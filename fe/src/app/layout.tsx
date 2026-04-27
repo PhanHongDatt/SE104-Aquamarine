@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "Quản Lý Cửa Hàng Vàng Bạc Đá Quý",
@@ -17,7 +18,17 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className="min-h-screen antialiased">{children}</body>
+      <body className="min-h-screen antialiased">
+        {children}
+        <Toaster
+          position="top-right"
+          richColors
+          expand
+          toastOptions={{
+            style: { fontFamily: "Inter, system-ui, sans-serif" },
+          }}
+        />
+      </body>
     </html>
   );
 }
