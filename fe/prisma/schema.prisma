@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Example minimal models based on model.d.ts
+model SanPham {
+  id        String   @id @default(uuid())
+  ten       String
+  maSp      String   @unique
+  giaMua    Float
+  giaBan    Float
+  tonKho    Int
+  loaiSpId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LoaiSanPham {
+  id               String   @id @default(uuid())
+  ten              String
+  phanTramLoiNhuan Float
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model NhaCungCap {
+  id        String   @id @default(uuid())
+  ten       String
+  diaChi    String
+  sdt       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
