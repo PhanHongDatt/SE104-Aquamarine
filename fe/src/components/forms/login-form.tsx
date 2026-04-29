@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, User, Lock } from "lucide-react";
 
@@ -44,7 +44,12 @@ export function LoginForm() {
         return;
       }
 
-      router.push("/");
+      const session = await getSession();
+      if (session?.user?.role === "QUAN_LY") {
+        router.push("/admin/dashboard");
+      } else {
+        router.push("/");
+      }
       router.refresh();
     } catch {
       setServerError("Lỗi kết nối máy chủ. Vui lòng thử lại sau.");

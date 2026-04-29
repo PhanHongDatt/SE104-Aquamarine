@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs ls *)",
+      "Bash(test -f \"D:/study/UIT/[SE] - Nhập môn Công nghệ phần mềm/Đồ án/QuanLyCuaHangVangBacDaQuy/fe/src/middleware.ts\")"
+    ]
+  }
+}

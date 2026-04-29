@@ -25,10 +25,12 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://admin:password123@db:5432/vangbac_db?schema=public
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=vangbac-secret-local-dev-1234
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+      - INTERNAL_API_URL=http://be:8080
     depends_on:
-      - db
-
+      - be
   be:
     build:
       context: ./be

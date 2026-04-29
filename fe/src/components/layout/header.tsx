@@ -7,8 +7,11 @@ import { LogOut, ChevronRight, Search, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function buildBreadcrumbs(pathname: string) {
+  const isAdmin = pathname.startsWith("/admin");
   const labelMap: Record<string, string> = {
     "": "Trang chủ",
+    "admin": "Admin",
+    "dashboard": "Tổng quan",
     "danh-muc": "Danh mục",
     "don-vi-tinh": "Đơn vị tính",
     "loai-san-pham": "Loại sản phẩm",
@@ -17,19 +20,24 @@ function buildBreadcrumbs(pathname: string) {
     "giao-dich": "Giao dịch",
     "mua-hang": "Mua hàng",
     "ban-hang": "Bán hàng",
+    "tao-moi": "Tạo mới",
     "dich-vu": "Dịch vụ",
+    "phieu-dich-vu": "Phiếu dịch vụ",
+    "loai-dich-vu": "Loại dịch vụ",
     "lap-phieu": "Lập phiếu",
     "tra-cuu": "Tra cứu",
     "bao-cao": "Báo cáo",
     "ton-kho": "Tồn kho",
     "doanh-thu": "Doanh thu",
+    "cai-dat": "Cài đặt",
     "he-thong": "Hệ thống",
     "phan-quyen": "Phân quyền",
     "quy-dinh": "Quy định",
   };
 
+  const homeHref = isAdmin ? "/admin/dashboard" : "/";
   const segments = pathname.split("/").filter(Boolean);
-  const crumbs = [{ label: "Trang chủ", href: "/" }];
+  const crumbs = [{ label: "Trang chủ", href: homeHref }];
   let path = "";
   for (const seg of segments) {
     path += `/${seg}`;
