@@ -33,13 +33,13 @@ const navGroups = [
     items: [
       { href: "/giao-dich/mua-hang", icon: ShoppingCart, label: "Phiếu mua" },
       { href: "/giao-dich/ban-hang", icon: Tag, label: "Phiếu bán" },
-      { href: "/dich-vu", icon: Wrench, label: "Phiếu dịch vụ" },
+      { href: "/dich-vu/lap-phieu", icon: Wrench, label: "Phiếu dịch vụ" },
+      { href: "/dich-vu/tra-cuu", icon: Search, label: "Tra cứu dịch vụ" },
     ],
   },
   {
     title: "Báo cáo",
     items: [
-      { href: "/tra-cuu", icon: Search, label: "Tra cứu dịch vụ" },
       { href: "/bao-cao/ton-kho", icon: BarChart3, label: "Báo cáo tồn kho" },
       { href: "/bao-cao/doanh-thu", icon: LineChart, label: "Báo cáo doanh thu" },
     ],
@@ -48,8 +48,7 @@ const navGroups = [
     title: "Hệ thống",
     role: "QUAN_LY",
     items: [
-      { href: "/he-thong/phan-quyen", icon: Users, label: "Phân quyền người dùng" },
-      { href: "/he-thong/quy-dinh", icon: Settings, label: "Thay đổi quy định QĐ11" },
+      { href: "/cai-dat", icon: Settings, label: "Quy định hệ thống" },
     ],
   },
 ];

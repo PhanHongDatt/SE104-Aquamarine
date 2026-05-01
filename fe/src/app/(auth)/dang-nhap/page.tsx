@@ -11,7 +11,7 @@ export const metadata = {
 export default async function DangNhapPage() {
   const session = await getServerSession(authOptions);
   if (session) {
-    redirect(session.user.role === "QUAN_LY" ? "/admin/dashboard" : "/");
+    redirect("/");
   }
 
   return (

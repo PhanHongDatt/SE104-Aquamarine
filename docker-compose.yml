@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # Base PostgreSQL Database for the application
   db:
     image: postgres:15-alpine
     container_name: quan_ly_vang_bac_db
@@ -15,32 +14,18 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
 
-  # Next.js Frontend Application
-  fe:
+  app:
     build:
       context: ./fe
       dockerfile: Dockerfile
-    container_name: quan_ly_vang_bac_fe
+    container_name: quan_ly_vang_bac_app
     restart: always
     ports:
       - "3000:3000"
     environment:
+      - DATABASE_URL=postgresql://admin:password123@db:5432/vangbac_db?schema=public
       - NEXTAUTH_URL=http://localhost:3000
       - NEXTAUTH_SECRET=vangbac-secret-local-dev-1234
-      - NEXT_PUBLIC_API_URL=http://localhost:8080
-      - INTERNAL_API_URL=http://be:8080
-    depends_on:
-      - be
-  be:
-    build:
-      context: ./be
-      dockerfile: Dockerfile
-    container_name: quan_ly_vang_bac_be
-    restart: always
-    ports:
-      - "8080:8080"
-    environment:
-      - DATABASE_URL=postgresql://admin:password123@db:5432/vangbac_db?schema=public
     depends_on:
       - db
 

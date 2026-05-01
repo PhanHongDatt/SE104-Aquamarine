@@ -1,5 +1,6 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { prisma } from "@/lib/prisma";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -12,64 +13,47 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.username || !credentials?.password) return null;
 
-        // TODO: Replace with real API call to `be` service
-        // e.g. const res = await fetch("http://be:8080/api/auth/login", { ... })
-        const mockUsers = [
-          {
-            id: "1",
-            name: "Nguyễn Quản Lý",
-            email: "admin@vangbac.vn",
-            username: "admin",
-            password: "Admin@123",
-            role: "QUAN_LY" as const,
-            maNhom: "NQ001",
-          },
-          {
-            id: "2",
-            name: "Trần Nhân Viên",
-            email: "nhanvien@vangbac.vn",
-            username: "nhanvien",
-            password: "Nhanvien@1",
-            role: "NHAN_VIEN" as const,
-            maNhom: "NV001",
-          },
-        ];
+        try {
+          const user = await prisma.nguoiDung.findUnique({
+            where: { tenDangNhap: credentials.username },
+            include: { nhomNguoiDung: true },
+          });
 
-        const user = mockUsers.find(
-          (u) =>
-            u.username === credentials.username &&
-            u.password === credentials.password
-        );
+          // Lưu ý: Đang dùng plain text password theo yêu cầu thử nghiệm nhanh
+          if (user && user.matKhau === credentials.password) {
+            return {
+              id: user.maND,
+              name: user.hoTen,
+              email: `${user.tenDangNhap}@vangbac.local`,
+              role: user.nhomNguoiDung.tenNhom,
+              maNhom: user.maNhom,
+            };
+          }
+        } catch (error) {
+          console.error("[Auth] Database error:", error);
+        }
 
-        if (!user) return null;
-
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          maNhom: user.maNhom,
-        };
+        return null;
       },
     }),
   ],
   session: {
     strategy: "jwt",
-    maxAge: 8 * 60 * 60, // 8 hours
+    maxAge: 8 * 60 * 60,
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = user.role;
-        token.maNhom = user.maNhom;
+        token.role = (user as any).role;
+        token.maNhom = (user as any).maNhom;
       }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.sub as string;
-        session.user.role = token.role;
-        session.user.maNhom = token.maNhom;
+        session.user.role = token.role as any;
+        session.user.maNhom = token.maNhom as any;
       }
       return session;
     },

@@ -7,54 +7,84 @@ import {
   ArrowDownRight,
   BarChart3,
 } from "lucide-react";
+import { prisma } from "@/lib/prisma";
 
 export const metadata = {
   title: "Tổng quan – Admin | Quản Lý Vàng Bạc Đá Quý",
 };
 
-const stats = [
-  {
-    title: "Doanh thu tháng",
-    value: "1.24 tỷ",
-    change: "+12.5%",
-    up: true,
-    icon: TrendingUp,
-    desc: "so với tháng trước",
-  },
-  {
-    title: "Sản phẩm",
-    value: "248",
-    change: "+4",
-    up: true,
-    icon: Package,
-    desc: "sản phẩm đang kinh doanh",
-  },
-  {
-    title: "Phiếu bán hôm nay",
-    value: "23",
-    change: "+8.2%",
-    up: true,
-    icon: ShoppingCart,
-    desc: "so với hôm qua",
-  },
-  {
-    title: "Tồn kho thấp",
-    value: "7",
-    change: "-2",
-    up: false,
-    icon: AlertTriangle,
-    desc: "sản phẩm cần nhập thêm",
-  },
-];
+function formatCurrency(value: number) {
+  if (value >= 1_000_000_000) return (value / 1_000_000_000).toFixed(2) + " tỷ";
+  if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + " triệu";
+  return value.toLocaleString("vi-VN") + " đ";
+}
 
-const quickLinks = [
-  { label: "Tạo phiếu bán hàng", href: "/admin/giao-dich/ban-hang/tao-moi", color: "bg-primary/10 text-primary" },
-  { label: "Tạo phiếu mua hàng", href: "/admin/giao-dich/mua-hang/tao-moi", color: "bg-accent/10 text-accent" },
-  { label: "Tạo phiếu dịch vụ", href: "/admin/dich-vu/phieu-dich-vu/tao-moi", color: "bg-emerald-50 text-emerald-600" },
-  { label: "Báo cáo doanh thu", href: "/admin/bao-cao/doanh-thu", color: "bg-amber-50 text-amber-600" },
-];
+export default async function AdminDashboardPage() {
+  // 1. Fetch real stats from Monolith Database
+  const [productCount, totalRevenue, todaySales, lowStockCount] = await Promise.all([
+    prisma.sanPham.count(),
+    prisma.phieuBanHang.aggregate({ _sum: { tongTien: true } }),
+    prisma.phieuBanHang.count({
+      where: {
+        ngayLap: {
+          gte: new Date(new Date().setHours(0, 0, 0, 0)),
+        },
+      },
+    }),
+    prisma.sanPham.count({
+      where: {
+        tonKho: { lte: prisma.sanPham.fields.tonToiThieu as any }
+      }
+    }).catch(() => 0) // Fallback if complex where fails
+  ]);
 
-export default function AdminDashboardPage() {
+  const stats = [
+    {
+      title: "Tổng doanh thu",
+      value: formatCurrency(Number(totalRevenue._sum.tongTien || 0)),
+      change: "Tất cả thời gian",
+      up: true,
+      icon: TrendingUp,
+      desc: "",
+    },
+    {
+      title: "Sản phẩm",
+      value: productCount.toString(),
+      change: "Đang kinh doanh",
+      up: true,
+      icon: Package,
+      desc: "",
+    },
+    {
+      title: "Phiếu bán hôm nay",
+      value: todaySales.toString(),
+      change: "Phiếu mới",
+      up: true,
+      icon: ShoppingCart,
+      desc: "",
+    },
+    {
+      title: "Cần nhập thêm",
+      value: lowStockCount.toString(),
+      change: "Sản phẩm",
+      up: false,
+      icon: AlertTriangle,
+      desc: "dưới mức tối thiểu",
+    },
+  ];
+
+  const quickLinks = [
+    { label: "Tạo phiếu bán hàng", href: "/admin/giao-dich/ban-hang/tao-moi", color: "bg-primary/10 text-primary" },
+    { label: "Tạo phiếu mua hàng", href: "/admin/giao-dich/mua-hang/tao-moi", color: "bg-accent/10 text-accent" },
+    { label: "Tạo phiếu dịch vụ", href: "/admin/dich-vu/phieu-dich-vu/tao-moi", color: "bg-emerald-50 text-emerald-600" },
+    { label: "Báo cáo doanh thu", href: "/admin/bao-cao/doanh-thu", color: "bg-amber-50 text-amber-600" },
+  ];
+
+  const recentTransactions = await prisma.phieuBanHang.findMany({
+    take: 5,
+    orderBy: { ngayLap: 'desc' },
+  });
+
   return (
     <div className="p-6 lg:p-8 space-y-6">
       <div>
@@ -80,11 +110,6 @@ export default function AdminDashboardPage() {
                 stat.up ? "text-green-600" : "text-red-500"
               }`}
             >
-              {stat.up ? (
-                <ArrowUpRight className="w-3 h-3" />
-              ) : (
-                <ArrowDownRight className="w-3 h-3" />
-              )}
               <span>
                 {stat.change} {stat.desc}
               </span>
@@ -95,14 +120,32 @@ export default function AdminDashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white rounded-2xl border border-zinc-200 shadow-sm p-6">
-          <h2 className="text-base font-semibold text-zinc-900 mb-4">Hoạt động gần đây</h2>
-          <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-zinc-100 flex items-center justify-center">
-              <BarChart3 className="w-6 h-6 text-zinc-400" />
+          <h2 className="text-base font-semibold text-zinc-900 mb-4">Giao dịch gần đây</h2>
+          {recentTransactions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-zinc-100 flex items-center justify-center">
+                <BarChart3 className="w-6 h-6 text-zinc-400" />
+              </div>
+              <p className="text-sm text-zinc-500">Chưa có giao dịch nào</p>
             </div>
-            <p className="text-sm text-zinc-500">Chức năng đang được phát triển</p>
-            <p className="text-xs text-zinc-400">Dữ liệu giao dịch sẽ hiển thị tại đây</p>
-          </div>
+          ) : (
+            <div className="space-y-4">
+              {recentTransactions.map((tx) => (
+                <div key={tx.soPhieu} className="flex items-center justify-between p-3 hover:bg-zinc-50 rounded-xl transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/5 flex items-center justify-center">
+                      <ShoppingCart className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-zinc-900">{tx.soPhieu}</p>
+                      <p className="text-xs text-zinc-500">{new Date(tx.ngayLap).toLocaleDateString("vi-VN")}</p>
+                    </div>
+                  </div>
+                  <p className="text-sm font-bold text-zinc-900">+{formatCurrency(Number(tx.tongTien))}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6">

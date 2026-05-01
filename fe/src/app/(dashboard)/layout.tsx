@@ -12,7 +12,6 @@ export default async function DashboardLayout({
 }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/dang-nhap");
-  if (session.user.role === "QUAN_LY") redirect("/admin/dashboard");
 
   return (
     <SessionProvider session={session}>

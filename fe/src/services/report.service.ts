@@ -10,13 +10,13 @@ export class ReportService {
         tongTien: true
       },
       where: {
-        ngayBan: {
+        ngayLap: {
           gte: start,
           lte: end
         }
       }
     });
 
-    return transactions._sum.tongTien || 0;
+    return transactions._sum.tongTien ? Number(transactions._sum.tongTien) : 0;
   }
 }
