@@ -16,6 +16,9 @@ export default async function TaoPhieuBanHangPage() {
     orderBy: { maSP: 'asc' },
   });
 
+  // Serialize to plain objects to avoid Decimal warnings
+  const serializedProducts = JSON.parse(JSON.stringify(products));
+
   // Generate next Invoice ID: PBH + 7 digits
   const lastPhieu = await prisma.phieuBanHang.findFirst({
     orderBy: { soPhieu: 'desc' },
@@ -36,7 +39,7 @@ export default async function TaoPhieuBanHangPage() {
         </div>
       </div>
 
-      <SalesInvoiceForm products={products} nextSoPhieu={nextSoPhieu} />
+      <SalesInvoiceForm products={serializedProducts} nextSoPhieu={nextSoPhieu} />
     </div>
   );
 }

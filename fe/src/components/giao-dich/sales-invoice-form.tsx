@@ -4,8 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { 
-  Plus, Trash2, Save, Printer, User, Calendar, 
-  Hash, ShoppingBag, AlertCircle, Search, X, Check, Info
+  Trash2, Save, Printer, Search, X, Check
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -126,51 +125,46 @@ export function SalesInvoiceForm({ products, nextSoPhieu }: SalesInvoiceFormProp
         {/* Left: General Info */}
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-white rounded-3xl border border-zinc-200 shadow-sm p-6 space-y-4">
-            <h2 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
-              <Info className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-bold text-zinc-900 cursor-default select-none">
               Thông tin chung
             </h2>
             
             <div className="space-y-4">
-              <div className="relative">
-                <Hash className="absolute left-3 top-3.5 w-4 h-4 text-zinc-400" />
+              <div className="pointer-events-none">
                 <Input
                   label="Số phiếu"
                   readOnly
-                  className="pl-10 bg-zinc-50 border-zinc-100 font-mono text-xs"
+                  tabIndex={-1}
+                  className="font-mono text-xs cursor-default"
                   {...register("soPhieu")}
                 />
               </div>
 
-              <div className="relative">
-                <Calendar className="absolute left-3 top-3.5 w-4 h-4 text-zinc-400" />
+              <div className="pointer-events-none">
                 <Input
                   label="Ngày lập"
                   type="date"
                   readOnly
+                  tabIndex={-1}
                   defaultValue={new Date().toISOString().split('T')[0]}
-                  className="pl-10 bg-zinc-50 border-zinc-100"
+                  className="cursor-default"
                 />
               </div>
 
-              <div className="relative">
-                <User className="absolute left-3 top-3.5 w-4 h-4 text-zinc-400" />
-                <Input
-                  label="Khách hàng"
-                  placeholder="Nhập tên khách hàng"
-                  className="pl-10"
-                  error={errors.tenKhachHang?.message}
-                  {...register("tenKhachHang")}
-                />
-              </div>
+              <Input
+                label="Khách hàng"
+                placeholder="Nhập tên khách hàng"
+                error={errors.tenKhachHang?.message}
+                {...register("tenKhachHang")}
+              />
             </div>
           </div>
 
           <div className="bg-primary/5 rounded-3xl border border-primary/10 p-6 space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between cursor-default select-none">
               <span className="text-zinc-500 font-medium">Tổng tiền thanh toán</span>
             </div>
-            <div className="text-3xl font-black text-primary font-montserrat tracking-tight">
+            <div className="text-3xl font-black text-primary font-montserrat tracking-tight cursor-default select-none">
               {formatCurrency(totalAmount)}
             </div>
             <div className="pt-2">
@@ -185,13 +179,17 @@ export function SalesInvoiceForm({ products, nextSoPhieu }: SalesInvoiceFormProp
         {/* Right: Products Table */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-bold text-zinc-900 cursor-default select-none">
               Danh sách sản phẩm
             </h2>
-            <Button type="button" variant="outline" size="sm" onClick={() => setIsProductModalOpen(true)}>
-              <Plus className="w-4 h-4 mr-1" />
-              Thêm dòng
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setIsProductModalOpen(true)}
+              className="bg-primary/5 border-primary/30 text-primary hover:bg-primary hover:text-white shadow-sm font-bold"
+            >
+              Thêm sản phẩm
             </Button>
           </div>
 
@@ -212,7 +210,6 @@ export function SalesInvoiceForm({ products, nextSoPhieu }: SalesInvoiceFormProp
                   <tr>
                     <td colSpan={6} className="px-4 py-20 text-center text-zinc-400 italic">
                       <div className="flex flex-col items-center gap-2">
-                        <ShoppingBag className="w-8 h-8 opacity-20" />
                         <span>Chưa có sản phẩm nào được chọn</span>
                       </div>
                     </td>
@@ -300,11 +297,6 @@ export function SalesInvoiceForm({ products, nextSoPhieu }: SalesInvoiceFormProp
                   `}
                 >
                   <div className="flex gap-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center
-                      ${inStock ? 'bg-primary/10 text-primary' : 'bg-red-100 text-red-500'}
-                    `}>
-                      <ShoppingBag className="w-6 h-6" />
-                    </div>
                     <div>
                       <p className="font-bold text-zinc-900">{p.tenSP}</p>
                       <div className="flex items-center gap-2 mt-1">
@@ -319,9 +311,9 @@ export function SalesInvoiceForm({ products, nextSoPhieu }: SalesInvoiceFormProp
                   {alreadyAdded ? (
                     <Check className="w-5 h-5 text-green-500" />
                   ) : !inStock ? (
-                    <AlertCircle className="w-5 h-5 text-red-400" />
+                    <span className="text-xs text-red-400 font-bold uppercase">Hết hàng</span>
                   ) : (
-                    <Plus className="w-5 h-5 text-zinc-300 group-hover:text-primary" />
+                    <span className="text-xs text-primary font-bold uppercase group-hover:underline">Chọn</span>
                   )}
                 </button>
               );

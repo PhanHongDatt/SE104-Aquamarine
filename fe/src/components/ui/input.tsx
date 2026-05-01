@@ -17,7 +17,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="text-sm font-medium text-gray-700"
+            className="text-sm font-medium text-gray-700 cursor-default select-none"
           >
             {label}
           </label>
@@ -36,6 +36,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               "border-soft/60 outline-none transition-all duration-200",
               "focus:border-accent focus:ring-2 focus:ring-soft/40",
               "disabled:opacity-50 disabled:cursor-not-allowed",
+              props.readOnly && "pointer-events-none select-none bg-zinc-50 border-zinc-100",
               error && "border-red-400 focus:border-red-400 focus:ring-red-200/40",
               leftIcon && "pl-10",
               rightElement && "pr-12",
