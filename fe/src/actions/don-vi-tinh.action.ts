@@ -53,7 +53,10 @@ export async function createDonViTinh(data: DonViTinhInput) {
     }
 
     const record = await prisma.donViTinh.create({
-      data: { maDVT: newId, tenDVT: validated.tenDVT },
+      data: {
+        maDVT: newId,
+        tenDVT: validated.tenDVT,
+      },
     });
 
     revalidatePath("/admin/danh-muc/don-vi-tinh");
@@ -80,7 +83,9 @@ export async function updateDonViTinh(maDVT: string, data: DonViTinhInput) {
 
     const record = await prisma.donViTinh.update({
       where: { maDVT },
-      data: { tenDVT: validated.tenDVT },
+      data: { 
+        tenDVT: validated.tenDVT,
+      },
     });
 
     revalidatePath("/admin/danh-muc/don-vi-tinh");

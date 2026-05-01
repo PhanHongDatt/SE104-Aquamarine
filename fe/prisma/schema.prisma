@@ -27,8 +27,8 @@ enum TinhTrangDichVu {
 }
 
 model DonViTinh {
-  maDVT   String       @id @db.Char(6)
-  tenDVT  String       @unique @db.VarChar(100)
+  maDVT      String       @id @db.Char(6)
+  tenDVT     String       @unique @db.VarChar(100)
 
   loaiSanPham LoaiSanPham[]
   sanPham     SanPham[]

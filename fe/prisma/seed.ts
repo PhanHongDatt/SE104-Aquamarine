@@ -7,8 +7,8 @@ async function main() {
 
   // ── 1. Đơn Vị Tính ──────────────────────────────────────────
   const dvt = await Promise.all([
-    prisma.donViTinh.upsert({ where: { maDVT: 'DVT001' }, update: {}, create: { maDVT: 'DVT001', tenDVT: 'Chỉ' } }),
-    prisma.donViTinh.upsert({ where: { maDVT: 'DVT002' }, update: {}, create: { maDVT: 'DVT002', tenDVT: 'Gram' } }),
+    prisma.donViTinh.upsert({ where: { maDVT: 'DVT001' }, update: { dinhLuong: 3.75 }, create: { maDVT: 'DVT001', tenDVT: 'Chỉ', dinhLuong: 3.75 } }),
+    prisma.donViTinh.upsert({ where: { maDVT: 'DVT002' }, update: { dinhLuong: 1.0 }, create: { maDVT: 'DVT002', tenDVT: 'Gram', dinhLuong: 1.0 } }),
     prisma.donViTinh.upsert({ where: { maDVT: 'DVT003' }, update: {}, create: { maDVT: 'DVT003', tenDVT: 'Cái' } }),
     prisma.donViTinh.upsert({ where: { maDVT: 'DVT004' }, update: {}, create: { maDVT: 'DVT004', tenDVT: 'Viên' } }),
   ])
