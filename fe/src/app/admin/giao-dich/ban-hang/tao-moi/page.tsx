@@ -1,26 +1,42 @@
-import { ArrowLeft } from "lucide-react";
+import { prisma } from "@/lib/prisma";
+import { SalesInvoiceForm } from "@/components/giao-dich/sales-invoice-form";
+import { ShoppingCart } from "lucide-react";
 
-export const metadata = { title: "Tạo phiếu bán hàng – Admin | Quản Lý Vàng Bạc Đá Quý" };
+export const metadata = {
+  title: "Lập phiếu bán hàng – Admin | Quản Lý Vàng Bạc Đá Quý",
+};
 
-export default function AdminTaoBanHangPage() {
+export default async function TaoPhieuBanHangPage() {
+  // Fetch products and their categories/units for price calculation
+  const products = await prisma.sanPham.findMany({
+    include: {
+      loaiSanPham: true,
+      donViTinh: true,
+    },
+    orderBy: { maSP: 'asc' },
+  });
+
+  // Generate next Invoice ID: PBH + 7 digits
+  const lastPhieu = await prisma.phieuBanHang.findFirst({
+    orderBy: { soPhieu: 'desc' },
+  });
+
+  const lastNum = lastPhieu ? parseInt(lastPhieu.soPhieu.replace('PBH', '')) : 0;
+  const nextSoPhieu = `PBH${(lastNum + 1).toString().padStart(7, '0')}`;
+
   return (
     <div className="p-6 lg:p-8 space-y-6">
-      <div className="flex items-center gap-4">
-        <a
-          href="/admin/giao-dich/ban-hang"
-          className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Quay lại
-        </a>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2">
+            <ShoppingCart className="w-6 h-6 text-primary" />
+            Lập phiếu bán hàng
+          </h1>
+          <p className="text-sm text-zinc-500 mt-1">Tạo mới giao dịch bán hàng cho khách hàng</p>
+        </div>
       </div>
-      <div>
-        <h1 className="text-2xl font-bold text-zinc-900">Tạo phiếu bán hàng</h1>
-        <p className="text-sm text-zinc-500 mt-1">Nhập thông tin phiếu bán hàng mới</p>
-      </div>
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-12 flex flex-col items-center justify-center gap-3 text-center">
-        <p className="text-sm text-zinc-500">Chức năng đang được phát triển</p>
-      </div>
+
+      <SalesInvoiceForm products={products} nextSoPhieu={nextSoPhieu} />
     </div>
   );
 }

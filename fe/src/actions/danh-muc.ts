@@ -52,11 +52,48 @@ export async function getDanhSachNhaCungCap(): Promise<NhaCungCap[]> {
   return serialize(data);
 }
 
-export async function themNhaCungCap(data: NhaCungCap): Promise<NhaCungCap> {
-  const record = await prisma.nhaCungCap.create({
-    data
-  });
-  return serialize(record);
+export async function themNhaCungCap(data: NhaCungCap): Promise<{ success: boolean; message: string; data?: NhaCungCap }> {
+  try {
+    const record = await prisma.nhaCungCap.create({
+      data
+    });
+    return {
+      success: true,
+      message: "Thêm nhà cung cấp thành công",
+      data: serialize(record)
+    };
+  } catch (error: any) {
+    console.error("[themNhaCungCap] Error:", error);
+    return {
+      success: false,
+      message: error.code === 'P2002' ? "Mã nhà cung cấp đã tồn tại" : "Lỗi khi thêm nhà cung cấp"
+    };
+  }
+}
+
+export async function capNhatNhaCungCap(maNCC: string, data: Partial<NhaCungCap>): Promise<{ success: boolean; message: string; data?: NhaCungCap }> {
+  try {
+    const record = await prisma.nhaCungCap.update({
+      where: { maNCC },
+      data: {
+        tenNCC: data.tenNCC,
+        diaChi: data.diaChi,
+        soDienThoai: data.soDienThoai,
+        nguoiLienHe: data.nguoiLienHe
+      }
+    });
+    return {
+      success: true,
+      message: "Cập nhật nhà cung cấp thành công",
+      data: serialize(record)
+    };
+  } catch (error) {
+    console.error("[capNhatNhaCungCap] Error:", error);
+    return {
+      success: false,
+      message: "Lỗi khi cập nhật nhà cung cấp"
+    };
+  }
 }
 
 // ── Sản Phẩm ──────────────────────────────────────────────────

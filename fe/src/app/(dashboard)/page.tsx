@@ -50,6 +50,10 @@ const metrics = [
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
 
+  if (session?.user?.role === "QUAN_LY") {
+    redirect("/admin/dashboard");
+  }
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Chào buổi sáng" : hour < 18 ? "Chào buổi chiều" : "Chào buổi tối";
   const firstName = session?.user?.name?.split(" ").pop() ?? "";
