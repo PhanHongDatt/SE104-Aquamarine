@@ -6,8 +6,20 @@ export default withAuth(
     const { token } = req.nextauth;
     const { pathname } = req.nextUrl;
 
+    // 1. Chặn truy cập Admin nếu không phải QUAN_LY
     if (pathname.startsWith("/admin") && token?.role !== "QUAN_LY") {
-      return NextResponse.redirect(new URL("/dang-nhap", req.url));
+      return NextResponse.redirect(new URL("/nhan-vien", req.url));
+    }
+
+    // 2. Chặn truy cập các báo cáo/cài đặt nhạy cảm nếu là NHAN_VIEN
+    const restrictedStaffRoutes = [
+      "/nhan-vien/bao-cao/doanh-thu",
+      "/nhan-vien/cai-dat/quy-dinh",
+      "/nhan-vien/cai-dat/phan-quyen",
+    ];
+
+    if (restrictedStaffRoutes.some(route => pathname.startsWith(route)) && token?.role !== "QUAN_LY") {
+      return NextResponse.redirect(new URL("/nhan-vien", req.url));
     }
   },
   {

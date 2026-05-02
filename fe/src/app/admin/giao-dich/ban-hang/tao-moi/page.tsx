@@ -3,7 +3,7 @@ import { SalesInvoiceForm } from "@/components/giao-dich/sales-invoice-form";
 import { ShoppingCart } from "lucide-react";
 
 export const metadata = {
-  title: "Lập phiếu bán hàng – Admin | Quản Lý Vàng Bạc Đá Quý",
+  title: "Lập phiếu bán hàng – Admin | Aquamarine Jewelry & Luxury",
 };
 
 export default async function TaoPhieuBanHangPage() {

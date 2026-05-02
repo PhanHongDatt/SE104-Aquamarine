@@ -29,6 +29,7 @@ enum TinhTrangDichVu {
 model DonViTinh {
   maDVT      String       @id @db.Char(6)
   tenDVT     String       @unique @db.VarChar(100)
+  dinhLuong  Decimal?     @db.Decimal(10, 4)
 
   loaiSanPham LoaiSanPham[]
   sanPham     SanPham[]
@@ -176,6 +177,8 @@ model ChiTietDichVu {
   traTruoc          Decimal   @db.Decimal(18, 0)
   conLai            Decimal   @db.Decimal(18, 0)
   ngayGiao          DateTime?
+  ketQua            String?   @db.VarChar(200)
+  soChungThu        String?   @db.VarChar(100)
 
   phieuDichVu PhieuDichVu @relation(fields: [soPhieu], references: [soPhieu])
   loaiDichVu  LoaiDichVu  @relation(fields: [maDV], references: [maDV])

@@ -82,33 +82,64 @@ export async function getDanhSachPhieuMuaHang(): Promise<PhieuMuaHang[]> {
 
 export async function lapPhieuMuaHang(
   data: Omit<PhieuMuaHang, 'nhaCungCap' | 'chiTietMuaHang'> & {
-    chiTietMuaHang: { maSP: string; soLuong: number; donGia: number; thanhTien: number }[];
+    chiTietMuaHang: { maSP: string; soLuong: number; donGiaMua: number; thanhTien: number }[];
   }
-): Promise<PhieuMuaHang> {
-  return await prisma.$transaction(async (tx) => {
-    const phieu = await tx.phieuMuaHang.create({
-      data: {
-        soPhieu: data.soPhieu,
-        maNCC: data.maNCC,
-        tongTien: data.tongTien,
-        chiTietMuaHang: {
-          create: data.chiTietMuaHang.map(ct => ({
-            maSP: ct.maSP,
-            soLuong: ct.soLuong,
-            donGia: ct.donGia,
-            thanhTien: ct.thanhTien
-          }))
+): Promise<{ success: boolean; message: string; data?: any }> {
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Tạo phiếu mua hàng
+      const phieu = await tx.phieuMuaHang.create({
+        data: {
+          soPhieu: data.soPhieu,
+          maNCC: data.maNCC,
+          tongTien: data.tongTien,
+          chiTietMuaHang: {
+            create: data.chiTietMuaHang.map(ct => ({
+              maSP: ct.maSP,
+              soLuong: ct.soLuong,
+              donGia: ct.donGiaMua,
+              thanhTien: ct.thanhTien
+            }))
+          }
         }
+      });
+
+      // 2. Cập nhật từng sản phẩm
+      for (const ct of data.chiTietMuaHang) {
+        const sp = await tx.sanPham.findUnique({
+          where: { maSP: ct.maSP },
+          include: { loaiSanPham: true }
+        });
+
+        if (!sp) throw new Error(`Sản phẩm ${ct.maSP} không tồn tại`);
+
+        // Tính lại giá bán mới dựa trên % lợi nhuận của loại SP
+        const phanTramLN = Number(sp.loaiSanPham.phanTramLoiNhuan);
+        const donGiaBanMoi = Number(ct.donGiaMua) * (1 + phanTramLN / 100);
+
+        await tx.sanPham.update({
+          where: { maSP: ct.maSP },
+          data: {
+            tonKho: { increment: ct.soLuong },
+            donGiaNhap: ct.donGiaMua, // Cập nhật đơn giá nhập mới nhất
+            donGiaBan: donGiaBanMoi    // Cập nhật giá bán mới
+          }
+        });
       }
+
+      return phieu;
     });
 
-    for (const ct of data.chiTietMuaHang) {
-      await tx.sanPham.update({
-        where: { maSP: ct.maSP },
-        data: { tonKho: { increment: ct.soLuong } }
-      });
-    }
-
-    return serialize(phieu);
-  });
+    return {
+      success: true,
+      message: "Lập phiếu mua hàng thành công",
+      data: serialize(result)
+    };
+  } catch (error: any) {
+    console.error("[lapPhieuMuaHang] Error:", error);
+    return {
+      success: false,
+      message: error.message || "Lỗi khi lập phiếu mua hàng"
+    };
+  }
 }

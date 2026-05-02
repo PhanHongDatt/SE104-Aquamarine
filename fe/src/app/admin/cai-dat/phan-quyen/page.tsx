@@ -1,26 +1,34 @@
-import { Users } from "lucide-react";
+import { Shield } from "lucide-react";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { getDanhSachNguoiDung, getDanhSachNhomNguoiDung } from "@/actions/user.action";
+import { UserManagementList } from "@/components/forms/user-management-list";
 
-export const metadata = { title: "Phân quyền – Admin | Quản Lý Vàng Bạc Đá Quý" };
+export const metadata = { title: "Phân quyền người dùng – Admin | Aquamarine Jewelry & Luxury" };
 
-export default function AdminPhanQuyenPage() {
+export default async function AdminPhanQuyenPage() {
+  const session = await getServerSession(authOptions);
+  
+  // Security check: Only QUAN_LY can access this management page
+  if (session?.user?.role !== "QUAN_LY") {
+    redirect("/admin/dashboard");
+  }
+
+  const users = await getDanhSachNguoiDung();
+  const groups = await getDanhSachNhomNguoiDung();
+
   return (
     <div className="p-6 lg:p-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Phân quyền người dùng</h1>
-          <p className="text-sm text-zinc-500 mt-1">Quản lý vai trò và quyền truy cập</p>
-        </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-xl hover:bg-primary/90 transition-colors">
-          + Thêm người dùng
-        </button>
+      <div>
+        <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2">
+          <Shield className="w-6 h-6 text-primary" />
+          Phân quyền người dùng
+        </h1>
+        <p className="text-sm text-zinc-500 mt-1">Quản lý tài khoản nhân viên và các nhóm quyền truy cập hệ thống</p>
       </div>
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-12 flex flex-col items-center justify-center gap-3 text-center">
-        <div className="w-12 h-12 rounded-2xl bg-zinc-100 flex items-center justify-center">
-          <Users className="w-6 h-6 text-zinc-400" />
-        </div>
-        <p className="text-sm font-medium text-zinc-600">Chưa có người dùng nào</p>
-        <p className="text-xs text-zinc-400">Chức năng đang được phát triển</p>
-      </div>
+
+      <UserManagementList users={users} groups={groups} />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { getDanhSachNhaCungCap } from "@/actions/danh-muc";
 import { SupplierClient } from "@/components/nha-cung-cap/supplier-client";
 
 export const metadata = { 
-  title: "Nhà cung cấp – Admin | Quản Lý Vàng Bạc Đá Quý" 
+  title: "Nhà cung cấp – Admin | Aquamarine Jewelry & Luxury" 
 };
 
 export default async function AdminNhaCungCapPage() {

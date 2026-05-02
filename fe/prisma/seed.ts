@@ -45,16 +45,16 @@ async function main() {
       create: { maSP: 'SP005', tenSP: 'Bông Tai Vàng 9999', maLSP: 'LSP001', hamLuong: 'K24', trongLuong: 1.8, maDVT: 'DVT003', tonToiThieu: 5, tonKho: 18, donGiaNhap: 13500000, donGiaBan: 14900000 }
     }),
     prisma.sanPham.upsert({
-      where: { maSP: 'SP006' }, update: {},
-      create: { maSP: 'SP006', tenSP: 'Vòng Tay Vàng 18K Charm', maLSP: 'LSP002', hamLuong: 'K18', trongLuong: 4.2, maDVT: 'DVT003', tonToiThieu: 3, tonKho: 9, donGiaNhap: 28000000, donGiaBan: 31360000 }
+      where: { maSP: 'SP009' }, update: {},
+      create: { maSP: 'SP009', tenSP: 'Nhẫn Cưới Kim Cương Đôi', maLSP: 'LSP004', hamLuong: 'K18', trongLuong: 6.5, maDVT: 'DVT003', tonToiThieu: 2, tonKho: 2, donGiaNhap: 150000000, donGiaBan: 187500000 }
     }),
     prisma.sanPham.upsert({
-      where: { maSP: 'SP007' }, update: {},
-      create: { maSP: 'SP007', tenSP: 'Nhẫn Đá Quý Ruby', maLSP: 'LSP005', hamLuong: 'K14', trongLuong: 2.8, maDVT: 'DVT003', tonToiThieu: 2, tonKho: 0, donGiaNhap: 45000000, donGiaBan: 58500000 }
+      where: { maSP: 'SP010' }, update: {},
+      create: { maSP: 'SP010', tenSP: 'Dây Chuyền Vàng 24K 5 Chỉ', maLSP: 'LSP001', hamLuong: 'K24', trongLuong: 18.75, maDVT: 'DVT001', tonToiThieu: 2, tonKho: 1, donGiaNhap: 42000000, donGiaBan: 46200000 }
     }),
     prisma.sanPham.upsert({
-      where: { maSP: 'SP008' }, update: {},
-      create: { maSP: 'SP008', tenSP: 'Lắc Chân Bạc 925', maLSP: 'LSP003', hamLuong: 'K18', trongLuong: 12.0, maDVT: 'DVT002', tonToiThieu: 5, tonKho: 22, donGiaNhap: 680000, donGiaBan: 735000 }
+      where: { maSP: 'SP011' }, update: {},
+      create: { maSP: 'SP011', tenSP: 'Vòng Cổ Ngọc Trai Biển', maLSP: 'LSP005', hamLuong: 'K14', trongLuong: 15.0, maDVT: 'DVT003', tonToiThieu: 3, tonKho: 8, donGiaNhap: 25000000, donGiaBan: 32500000 }
     }),
   ])
 
@@ -63,7 +63,7 @@ async function main() {
     prisma.nhaCungCap.upsert({ where: { maNCC: 'NCC001' }, update: {}, create: { maNCC: 'NCC001', tenNCC: 'Công ty Vàng SJC', diaChi: '79 Hàm Nghi, Q1, TP.HCM', soDienThoai: '0283822100', nguoiLienHe: 'Nguyễn Văn A' } }),
     prisma.nhaCungCap.upsert({ where: { maNCC: 'NCC002' }, update: {}, create: { maNCC: 'NCC002', tenNCC: 'Trang Sức DOJI', diaChi: '5 Lê Duẩn, Q1, TP.HCM', soDienThoai: '0283844555', nguoiLienHe: 'Trần Thị B' } }),
     prisma.nhaCungCap.upsert({ where: { maNCC: 'NCC003' }, update: {}, create: { maNCC: 'NCC003', tenNCC: 'Kim Hoàn PNJ', diaChi: '170E Phan Đăng Lưu, Phú Nhuận, TP.HCM', soDienThoai: '0283995671', nguoiLienHe: 'Lê Văn C' } }),
-    prisma.nhaCungCap.upsert({ where: { maNCC: 'NCC004' }, update: {}, create: { maNCC: 'NCC004', tenNCC: 'Bạch Kim Jewellery', diaChi: '45 Nguyễn Trãi, Q5, TP.HCM', soDienThoai: '0287665432', nguoiLienHe: 'Phạm Thị D' } }),
+    prisma.nhaCungCap.upsert({ where: { maNCC: 'NCC005' }, update: {}, create: { maNCC: 'NCC005', tenNCC: 'Thế Giới Kim Cương', diaChi: 'Vincom Center, Q1, TP.HCM', soDienThoai: '0286677889', nguoiLienHe: 'Lý Tiểu Long' } }),
   ])
 
   // ── 5. Loại Dịch Vụ ─────────────────────────────────────────
@@ -72,6 +72,8 @@ async function main() {
     prisma.loaiDichVu.upsert({ where: { maDV: 'DV0002' }, update: {}, create: { maDV: 'DV0002', tenDV: 'Gia công lắc tay', donGiaDV: 350000, nhomDV: 'GiaCong' } }),
     prisma.loaiDichVu.upsert({ where: { maDV: 'DV0003' }, update: {}, create: { maDV: 'DV0003', tenDV: 'Kiểm định vàng', donGiaDV: 150000, nhomDV: 'KiemDinh' } }),
     prisma.loaiDichVu.upsert({ where: { maDV: 'DV0004' }, update: {}, create: { maDV: 'DV0004', tenDV: 'Kiểm định đá quý', donGiaDV: 300000, nhomDV: 'KiemDinh' } }),
+    prisma.loaiDichVu.upsert({ where: { maDV: 'DV0005' }, update: {}, create: { maDV: 'DV0005', tenDV: 'Đánh bóng trang sức', donGiaDV: 100000, nhomDV: 'GiaCong' } }),
+    prisma.loaiDichVu.upsert({ where: { maDV: 'DV0006' }, update: {}, create: { maDV: 'DV0006', tenDV: 'Xi mạ bạch kim', donGiaDV: 500000, nhomDV: 'GiaCong' } }),
   ])
 
   // ── 6. Nhóm & Người Dùng ────────────────────────────────────

@@ -98,6 +98,7 @@ export default function AdminDonViTinhPage() {
   const handleEdit = (item: any) => {
     setEditingId(item.maDVT);
     setValue("tenDVT", item.tenDVT);
+    setValue("dinhLuong", item.dinhLuong ? Number(item.dinhLuong) : null);
     setIsModalOpen(true);
   };
 
@@ -174,6 +175,7 @@ export default function AdminDonViTinhPage() {
                   <th className="px-6 py-4 w-16 text-center uppercase">STT</th>
                   <th className="px-6 py-4 w-32 uppercase">Mã DVT</th>
                   <th className="px-6 py-4 uppercase text-center">Tên đơn vị</th>
+                  <th className="px-6 py-4 uppercase text-center">Định lượng (g)</th>
                   <th className="px-6 py-4 text-right uppercase">Thao tác</th>
                 </tr>
               </thead>
@@ -189,6 +191,9 @@ export default function AdminDonViTinhPage() {
                       )}>
                         {item.tenDVT}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-center font-mono text-zinc-600">
+                      {item.dinhLuong ? Number(item.dinhLuong).toFixed(4) : "-"}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
@@ -238,6 +243,19 @@ export default function AdminDonViTinhPage() {
                   {...register("tenDVT")}
                   className="rounded-xl border-zinc-200 focus:border-primary h-11 font-medium shadow-sm"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-zinc-700 ml-1">Định lượng (quy đổi ra Gram)</label>
+                <Input
+                  type="number"
+                  step="0.0001"
+                  placeholder="Ví dụ: 3.75"
+                  error={errors.dinhLuong?.message}
+                  {...register("dinhLuong")}
+                  className="rounded-xl border-zinc-200 focus:border-primary h-11 font-medium shadow-sm"
+                />
+                <p className="text-[10px] text-zinc-400 ml-1 italic">* Dùng để tính toán trọng lượng chuẩn nếu cần</p>
               </div>
 
               <div className="flex justify-end gap-3 pt-4">

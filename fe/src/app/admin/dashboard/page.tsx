@@ -10,7 +10,7 @@ import {
 import { prisma } from "@/lib/prisma";
 
 export const metadata = {
-  title: "Tổng quan – Admin | Quản Lý Vàng Bạc Đá Quý",
+  title: "Tổng quan – Admin | Aquamarine Jewelry & Luxury",
 };
 
 function formatCurrency(value: number) {

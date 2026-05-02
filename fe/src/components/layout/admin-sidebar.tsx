@@ -6,21 +6,10 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  LayoutDashboard,
-  Package,
-  Box,
-  Ruler,
-  Truck,
-  ShoppingCart,
-  Tag,
-  FileText,
-  ListChecks,
-  BarChart3,
-  LineChart,
-  Settings,
-  Users,
-  Gem,
-  ChevronRight,
+  LayoutDashboard, Package, Box, Ruler, Truck,
+  ShoppingCart, Tag, FileText, ListChecks, BarChart3,
+  LineChart, Settings, Users, Gem, ChevronRight, UserCircle,
+  Wrench, Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +18,7 @@ const adminNavGroups = [
     title: "Chính",
     items: [
       { href: "/admin/dashboard", icon: LayoutDashboard, label: "Tổng quan" },
+      { href: "/admin/tai-khoan", icon: UserCircle, label: "Tài khoản" },
     ],
   },
   {
@@ -64,8 +54,9 @@ const adminNavGroups = [
   {
     title: "Cài đặt",
     items: [
-      { href: "/admin/cai-dat/quy-dinh", icon: Settings, label: "Quy định" },
-      { href: "/admin/cai-dat/phan-quyen", icon: Users, label: "Phân quyền" },
+      { href: "/admin/cai-dat", icon: Settings, label: "Cài đặt hệ thống" },
+      { href: "/admin/cai-dat/quy-dinh", icon: Wrench, label: "Thay đổi quy định" },
+      { href: "/admin/cai-dat/phan-quyen", icon: Shield, label: "Phân quyền" },
     ],
   },
 ];
@@ -82,7 +73,7 @@ export function AdminSidebar() {
     <motion.aside
       animate={{ width: collapsed ? COLLAPSED_W : EXPANDED_W }}
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-      className="h-screen overflow-hidden flex flex-col flex-shrink-0 relative bg-primary"
+      className="h-screen overflow-visible flex flex-col flex-shrink-0 relative bg-primary z-[50]"
     >
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz4KPC9zdmc+')] opacity-20 pointer-events-none" />
 
@@ -91,7 +82,7 @@ export function AdminSidebar() {
         whileTap={{ scale: 0.9 }}
         onClick={() => setCollapsed((v) => !v)}
         aria-label={collapsed ? "Mở rộng" : "Thu gọn"}
-        className="absolute -right-3 top-[72px] z-20 w-6 h-6 rounded-full bg-primary border-2 border-[#1E12A1] flex items-center justify-center text-white shadow-sm hover:border-accent transition-colors"
+        className="absolute -right-3 top-[32px] z-[60] w-6 h-6 rounded-full bg-primary border-2 border-[#1E12A1] flex items-center justify-center text-white shadow-md hover:border-accent transition-colors"
       >
         <motion.span animate={{ rotate: collapsed ? 0 : 180 }} transition={{ duration: 0.3 }}>
           <ChevronRight className="w-3 h-3" />
@@ -113,8 +104,8 @@ export function AdminSidebar() {
               exit={{ opacity: 0, width: 0 }}
               className="overflow-hidden whitespace-nowrap"
             >
-              <p className="text-white font-bold text-sm tracking-wide">VàngBạcSystem</p>
-              <p className="text-white/40 text-[10px]">Admin Panel</p>
+              <p className="text-white font-bold text-sm tracking-wide uppercase">Aquamarine</p>
+              <p className="text-white/40 text-[10px]">Jewelry & Luxury</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -188,7 +179,13 @@ export function AdminSidebar() {
       </nav>
 
       {session?.user && (
-        <div className={cn("border-t border-white/5 py-4 px-3 relative z-10", collapsed && "flex justify-center")}>
+        <Link 
+          href="/admin/tai-khoan"
+          className={cn(
+            "border-t border-white/5 py-4 px-3 relative z-10 block hover:bg-white/5 transition-colors", 
+            collapsed && "flex justify-center"
+          )}
+        >
           {collapsed ? (
             <div className="w-9 h-9 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center text-white text-xs font-bold">
               {session.user.name?.charAt(0).toUpperCase()}
@@ -205,7 +202,7 @@ export function AdminSidebar() {
               <div className="ml-auto w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
             </div>
           )}
-        </div>
+        </Link>
       )}
     </motion.aside>
   );

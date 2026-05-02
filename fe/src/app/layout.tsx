@@ -7,8 +7,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-montserrat" });
 
 export const metadata: Metadata = {
-  title: "Quản Lý Cửa Hàng Vàng Bạc Đá Quý",
-  description: "Hệ thống quản lý cửa hàng kinh doanh vàng bạc đá quý — SE104.Q23 Nhóm 08",
+  title: "Aquamarine Jewelry & Luxury",
+  description: "Hệ thống quản lý cửa hàng kinh doanh vàng bạc đá quý — Nhóm 08",
 };
 
 export default function RootLayout({

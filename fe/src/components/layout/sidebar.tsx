@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Package, Box, Ruler, Truck,
   ShoppingCart, Tag, Wrench, Search, BarChart3,
-  LineChart, Users, Settings, Gem, ChevronRight,
+  LineChart, Users, Settings, Gem, ChevronRight, UserCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,39 +16,37 @@ const navGroups = [
   {
     title: "Chính",
     items: [
-      { href: "/", icon: LayoutDashboard, label: "Tổng quan" },
+      { href: "/nhan-vien", icon: LayoutDashboard, label: "Tổng quan" },
+      { href: "/nhan-vien/tai-khoan", icon: UserCircle, label: "Tài khoản" },
     ],
   },
   {
-    title: "Danh mục",
+    title: "Danh mục (Xem)",
     items: [
-      { href: "/danh-muc/san-pham", icon: Package, label: "Sản phẩm" },
-      { href: "/danh-muc/loai-san-pham", icon: Box, label: "Loại sản phẩm" },
-      { href: "/danh-muc/don-vi-tinh", icon: Ruler, label: "Đơn vị tính" },
-      { href: "/danh-muc/nha-cung-cap", icon: Truck, label: "Nhà cung cấp" },
+      { href: "/nhan-vien/danh-muc/san-pham", icon: Package, label: "Sản phẩm" },
+      { href: "/nhan-vien/danh-muc/loai-san-pham", icon: Box, label: "Loại sản phẩm" },
+      { href: "/nhan-vien/danh-muc/don-vi-tinh", icon: Ruler, label: "Đơn vị tính" },
+      { href: "/nhan-vien/danh-muc/nha-cung-cap", icon: Truck, label: "Nhà cung cấp" },
     ],
   },
   {
-    title: "Nghiệp vụ",
+    title: "Giao dịch",
     items: [
-      { href: "/giao-dich/mua-hang", icon: ShoppingCart, label: "Phiếu mua" },
-      { href: "/giao-dich/ban-hang", icon: Tag, label: "Phiếu bán" },
-      { href: "/dich-vu/lap-phieu", icon: Wrench, label: "Phiếu dịch vụ" },
-      { href: "/dich-vu/tra-cuu", icon: Search, label: "Tra cứu dịch vụ" },
+      { href: "/nhan-vien/giao-dich/ban-hang", icon: Tag, label: "Phiếu bán" },
+      { href: "/nhan-vien/giao-dich/mua-hang", icon: ShoppingCart, label: "Phiếu mua" },
+    ],
+  },
+  {
+    title: "Dịch vụ",
+    items: [
+      { href: "/nhan-vien/dich-vu/lap-phieu", icon: Wrench, label: "Lập phiếu" },
+      { href: "/nhan-vien/dich-vu/tra-cuu", icon: Search, label: "Tra cứu & Trả đồ" },
     ],
   },
   {
     title: "Báo cáo",
     items: [
-      { href: "/bao-cao/ton-kho", icon: BarChart3, label: "Báo cáo tồn kho" },
-      { href: "/bao-cao/doanh-thu", icon: LineChart, label: "Báo cáo doanh thu" },
-    ],
-  },
-  {
-    title: "Hệ thống",
-    role: "QUAN_LY",
-    items: [
-      { href: "/cai-dat", icon: Settings, label: "Quy định hệ thống" },
+      { href: "/nhan-vien/bao-cao/ton-kho", icon: BarChart3, label: "Báo cáo tồn kho" },
     ],
   },
 ];
@@ -62,31 +60,26 @@ export function Sidebar() {
   const { data: session } = useSession();
   const role = session?.user?.role;
 
-  const visibleGroups = navGroups.filter((g) => !g.role || g.role === role);
-
   return (
     <motion.aside
       animate={{ width: collapsed ? COLLAPSED_W : EXPANDED_W }}
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-      className="h-screen overflow-hidden flex flex-col flex-shrink-0 relative bg-primary"
+      className="h-screen overflow-visible flex flex-col flex-shrink-0 relative bg-primary z-[50]"
     >
-      {/* Ambient background noise */}
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz4KPC9zdmc+')] opacity-20 pointer-events-none" />
 
-      {/* Toggle */}
       <motion.button
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setCollapsed((v) => !v)}
         aria-label={collapsed ? "Mở rộng" : "Thu gọn"}
-        className="absolute -right-3 top-[72px] z-20 w-6 h-6 rounded-full bg-primary border-2 border-[#1E12A1] flex items-center justify-center text-white shadow-sm hover:border-accent transition-colors"
+        className="absolute -right-3 top-[32px] z-[60] w-6 h-6 rounded-full bg-primary border-2 border-[#1E12A1] flex items-center justify-center text-white shadow-md hover:border-accent transition-colors"
       >
         <motion.span animate={{ rotate: collapsed ? 0 : 180 }} transition={{ duration: 0.3 }}>
           <ChevronRight className="w-3 h-3" />
         </motion.span>
       </motion.button>
 
-      {/* Logo */}
       <div className={cn("flex items-center gap-3 border-b border-white/5 relative z-10", collapsed ? "px-3 py-5 justify-center" : "px-5 py-5")}>
         <motion.div
           whileHover={{ rotate: [0, -8, 8, 0], scale: 1.05 }}
@@ -102,16 +95,15 @@ export function Sidebar() {
               exit={{ opacity: 0, width: 0 }}
               className="overflow-hidden whitespace-nowrap"
             >
-              <p className="text-white font-bold text-sm tracking-wide">VàngBạcSystem</p>
-              <p className="text-white/40 text-[10px]">SE104.Q23 – Admin</p>
+              <p className="text-white font-bold text-sm tracking-wide uppercase">Aquamarine</p>
+              <p className="text-white/40 text-[10px]">Jewelry & Luxury</p>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 px-3 py-6 overflow-y-auto scrollbar-hidden space-y-6 relative z-10">
-        {visibleGroups.map((group) => (
+        {navGroups.map((group) => (
           <div key={group.title} className="relative">
             <AnimatePresence initial={false}>
               {!collapsed && (
@@ -127,7 +119,7 @@ export function Sidebar() {
             </AnimatePresence>
             <div className="space-y-1">
               {group.items.map(({ href, icon: Icon, label }) => {
-                const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
+                const isActive = pathname === href || (href !== "/nhan-vien" && pathname.startsWith(href));
                 return (
                   <Link
                     key={href}
@@ -167,9 +159,14 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* User */}
       {session?.user && (
-        <div className={cn("border-t border-white/5 py-4 px-3 relative z-10", collapsed && "flex justify-center")}>
+        <Link 
+          href="/nhan-vien/tai-khoan"
+          className={cn(
+            "border-t border-white/5 py-4 px-3 relative z-10 block hover:bg-white/5 transition-colors", 
+            collapsed && "flex justify-center"
+          )}
+        >
           {collapsed ? (
             <div className="w-9 h-9 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center text-white text-xs font-bold">
               {session.user.name?.charAt(0).toUpperCase()}
@@ -186,7 +183,7 @@ export function Sidebar() {
               <div className="ml-auto w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
             </div>
           )}
-        </div>
+        </Link>
       )}
     </motion.aside>
   );

@@ -2,7 +2,7 @@ import { Tag, Plus } from "lucide-react";
 import { getDanhSachPhieuBanHang } from "@/actions/giao-dich";
 import { SalesInvoiceList } from "@/components/giao-dich/sales-invoice-list";
 
-export const metadata = { title: "Bán hàng – Admin | Quản Lý Vàng Bạc Đá Quý" };
+export const metadata = { title: "Bán hàng – Admin | Aquamarine Jewelry & Luxury" };
 
 export default async function AdminBanHangPage() {
   let data = [];

@@ -1,0 +1,31 @@
+import { z } from "zod";
+
+export const serviceReceiptItemSchema = z.object({
+  maDV: z.string().min(1, "Vui lòng chọn loại dịch vụ"),
+  tenDV: z.string().optional(),
+  nhomDV: z.enum(["GiaCong", "KiemDinh"]).optional(),
+  donGiaDV: z.coerce.number().min(0),
+  chiPhiPhatSinh: z.coerce.number().min(0),
+  donGiaDuocTinh: z.coerce.number().min(0),
+  soLuong: z.coerce.number().min(1, "Số lượng phải ít nhất là 1"),
+  thanhTien: z.coerce.number().min(0),
+  traTruoc: z.coerce.number().min(0),
+  conLai: z.coerce.number().min(0),
+  // Fields for Appraisal (Kiểm định) when delivered, but might be useful in UI
+  ketQua: z.string().optional(),
+  soChungThu: z.string().optional(),
+});
+
+export const serviceReceiptSchema = z.object({
+  soPhieu: z.string().min(1, "Số phiếu không được để trống"),
+  ngayLap: z.date(),
+  tenKhachHang: z.string().min(1, "Vui lòng nhập tên khách hàng"),
+  soDienThoai: z.string().optional(),
+  chiTietDichVu: z.array(serviceReceiptItemSchema).min(1, "Phiếu phải có ít nhất 1 dịch vụ"),
+  tongTien: z.coerce.number().min(0),
+  tongTraTruoc: z.coerce.number().min(0),
+  tongConLai: z.coerce.number().min(0),
+});
+
+export type ServiceReceiptFormValues = z.infer<typeof serviceReceiptSchema>;
+export type ServiceReceiptItemValues = z.infer<typeof serviceReceiptItemSchema>;

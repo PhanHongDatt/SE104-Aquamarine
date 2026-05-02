@@ -56,6 +56,7 @@ export async function createDonViTinh(data: DonViTinhInput) {
       data: {
         maDVT: newId,
         tenDVT: validated.tenDVT,
+        dinhLuong: validated.dinhLuong,
       },
     });
 
@@ -85,6 +86,7 @@ export async function updateDonViTinh(maDVT: string, data: DonViTinhInput) {
       where: { maDVT },
       data: { 
         tenDVT: validated.tenDVT,
+        dinhLuong: validated.dinhLuong,
       },
     });
 
