@@ -4,26 +4,25 @@ Hệ thống quản lý cửa hàng kinh doanh Vàng Bạc Đá Quý, hỗ trợ
 
 ---
 
-## ⚡ Hướng dẫn khởi chạy nhanh (SIÊU TỐC)
+## ⚡ Khởi chạy SIÊU TỐC (Ưu tiên)
 
-Để tối giản hóa việc cài đặt cho thành viên mới, bạn chỉ cần thực hiện 2 bước duy nhất:
+Dự án đã được cấu hình **Zero-Config**. Bạn không cần tạo file `.env` hay cài đặt Database thủ công.
 
-### 1. Chuẩn bị
-- Đã cài đặt [Node.js](https://nodejs.org/) & [Docker Desktop](https://www.docker.com/).
-- Mở Docker Desktop lên trước khi chạy setup.
+### 1. Yêu cầu duy nhất
+- Đã cài đặt [Docker Desktop](https://www.docker.com/).
 
-### 2. Một câu lệnh duy nhất
+### 2. Chạy bằng một lệnh duy nhất
 Mở terminal tại thư mục dự án và chạy:
 ```bash
-npm run setup
+docker-compose up -d --build
 ```
-*Lệnh này sẽ tự động: Cài đặt library, tạo file .env, bật Docker DB, và nạp dữ liệu mẫu.*
 
-### 3. Chạy dự án
-```bash
-npm run dev
-```
-Truy cập: [http://localhost:3000](http://localhost:3000)
+**Hệ thống sẽ tự động:**
+1. Khởi tạo file `.env` từ mẫu.
+2. Thiết lập Database PostgreSQL.
+3. Đồng bộ Schema (Bảng biểu).
+4. Nạp dữ liệu mẫu (Seed data).
+5. Khởi chạy ứng dụng tại: **[http://localhost:3000](http://localhost:3000)**
 
 ---
 
@@ -36,29 +35,35 @@ Truy cập: [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## 🛠 Các lệnh thủ công (Nếu cần)
+## 💻 Phát triển cục bộ (Local Development)
 
-Nếu không muốn dùng script tự động, bạn có thể chạy từng bước:
-- `npm install`: Cài đặt thư viện.
-- `npm run env:init`: Tạo file `.env` từ mẫu.
-- `npm run db:up`: Khởi chạy database bằng Docker.
-- `npm run db:setup`: Đồng bộ database schema và nạp dữ liệu mẫu (seed).
-- `npm run db:studio`: Mở giao diện xem dữ liệu database.
+Nếu bạn muốn chạy không dùng Docker cho phần Frontend:
 
----
+1. **Cài đặt thư viện:**
+   ```bash
+   npm run setup
+   ```
+   *(Lệnh này tự động cài node_modules, tạo .env và bật Docker DB)*
 
-## ❓ Xử lý sự cố (Troubleshooting)
-
-- **Lỗi Docker:** Đảm bảo Docker Desktop đang chạy. Nếu lệnh `db:up` thất bại, hãy thử khởi động lại Docker.
-- **Lỗi Database chưa sẵn sàng:** Script setup sẽ đợi 10 giây. Nếu mạng chậm hoặc máy yếu, database có thể cần thêm thời gian. Hãy thử chạy lại `npm run db:setup` sau đó.
-- **Lỗi Port 3000:** Nếu port 3000 bị chiếm, hãy tắt ứng dụng đó hoặc đổi port trong cấu hình Next.js.
+2. **Chạy dự án:**
+   ```bash
+   npm run dev
+   ```
 
 ---
 
-## 📁 Cấu trúc thư mục chính
+## 🛠 Các lệnh quản trị Database
 
-- `src/app/`: Định nghĩa các trang và layout.
-- `src/actions/`: Logic xử lý nghiệp vụ phía Server.
-- `src/components/`: Các UI components dùng chung.
-- `prisma/`: Schema và script nạp dữ liệu ban đầu.
-- `scripts/`: Chứa script setup tự động.
+Nếu cần can thiệp trực tiếp vào dữ liệu (trong khi Docker đang chạy):
+- **Xem dữ liệu giao diện Web:** `docker exec -it quan_ly_vang_bac_app npx prisma studio`
+- **Nạp lại dữ liệu mẫu:** `docker exec -it quan_ly_vang_bac_app npx prisma db seed`
+- **Cập nhật cấu trúc bảng:** `docker exec -it quan_ly_vang_bac_app npx prisma db push`
+
+---
+
+## 📁 Cấu trúc thư mục
+
+- `src/app/`: Định nghĩa các trang và giao diện.
+- `src/actions/`: Logic xử lý nghiệp vụ Server Actions.
+- `prisma/`: Cấu trúc Database và dữ liệu mẫu.
+- `fe/`: Thư mục chứa mã nguồn Frontend & Dockerfile.

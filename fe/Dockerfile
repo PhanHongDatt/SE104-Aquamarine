@@ -19,6 +19,9 @@ COPY . .
 # Generate Prisma Client
 RUN npx prisma generate
 
+# Ensure a .env file exists for the build process
+RUN if [ ! -f .env ]; then cp .env.example .env || touch .env; fi
+
 # Next.js telemetry is disabled
 ENV NEXT_TELEMETRY_DISABLED=1
 
@@ -43,6 +46,11 @@ RUN chown -R nextjs:nodejs .next public
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
+
+RUN chmod +x ./docker-entrypoint.sh
 
 USER nextjs
 
@@ -52,4 +60,4 @@ ENV PORT=3000
 
 # server.js is created by next build from the standalone output
 # https://nextjs.org/docs/pages/api-reference/next-config-js/output
-CMD HOSTNAME="0.0.0.0" node server.js
+ENTRYPOINT ["./docker-entrypoint.sh"]

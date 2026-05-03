@@ -13,6 +13,11 @@ services:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d vangbac_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   app:
     build:
@@ -26,8 +31,10 @@ services:
       - DATABASE_URL=postgresql://admin:password123@db:5432/vangbac_db?schema=public
       - NEXTAUTH_URL=http://localhost:3000
       - NEXTAUTH_SECRET=vangbac-secret-local-dev-1234
+      - PRISMA_SKIP_POSTINSTALL_GENERATE=true
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   db_data:
