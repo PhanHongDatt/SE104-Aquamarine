@@ -23,18 +23,21 @@ export function UserForm({ groups, initialData, onSuccess }: UserFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const isEdit = !!initialData;
 
+  const getErrorMessage = (message: unknown) =>
+    typeof message === "string" ? message : undefined;
+
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<any>({
+  } = useForm<UserFormValues | UserUpdateFormValues>({
     resolver: zodResolver(isEdit ? userUpdateSchema : userSchema),
-    defaultValues: initialData || {
+    defaultValues: (initialData || {
       tenDangNhap: "",
       matKhau: "",
       hoTen: "",
       maNhom: "",
-    },
+    }) as UserFormValues | UserUpdateFormValues,
   });
 
   const onSubmit = async (data: any) => {
@@ -61,7 +64,7 @@ export function UserForm({ groups, initialData, onSuccess }: UserFormProps) {
         <Input
           label="Họ tên nhân viên"
           placeholder="Nhập họ và tên"
-          error={errors.hoTen?.message}
+          error={getErrorMessage(errors.hoTen?.message)}
           {...register("hoTen")}
         />
 
@@ -69,7 +72,7 @@ export function UserForm({ groups, initialData, onSuccess }: UserFormProps) {
           label="Tên đăng nhập"
           placeholder="VD: nguyenvanan"
           disabled={isEdit}
-          error={errors.tenDangNhap?.message}
+          error={getErrorMessage(errors.tenDangNhap?.message)}
           {...register("tenDangNhap")}
         />
 
@@ -78,7 +81,7 @@ export function UserForm({ groups, initialData, onSuccess }: UserFormProps) {
             label={isEdit ? "Mật khẩu mới (Để trống nếu không đổi)" : "Mật khẩu"}
             type={showPassword ? "text" : "password"}
             placeholder="••••••••"
-            error={errors.matKhau?.message}
+            error={getErrorMessage(errors.matKhau?.message)}
             {...register("matKhau")}
           />
           <button
@@ -104,7 +107,9 @@ export function UserForm({ groups, initialData, onSuccess }: UserFormProps) {
             ))}
           </select>
           {errors.maNhom && (
-            <p className="text-[10px] font-bold text-red-500 mt-1">{errors.maNhom.message}</p>
+            <p className="text-[10px] font-bold text-red-500 mt-1">
+              {getErrorMessage(errors.maNhom.message)}
+            </p>
           )}
         </div>
       </div>

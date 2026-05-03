@@ -8,6 +8,13 @@ function serialize(data: any) {
   return JSON.parse(JSON.stringify(data));
 }
 
+export async function getDanhSachLoaiDichVu() {
+  const data = await prisma.loaiDichVu.findMany({
+    orderBy: { maDV: "asc" },
+  });
+  return serialize(data);
+}
+
 export async function createLoaiDichVu(data: any) {
   try {
     const session = await getServerSession(authOptions);

@@ -1,12 +1,6 @@
 "use client";
 
 import React from "react";
-import { Be_Vietnam_Pro } from "next/font/google";
-
-const beVietnam = Be_Vietnam_Pro({
-  subsets: ["vietnamese"],
-  weight: ["400", "500", "600", "700", "800"],
-});
 
 interface PrintableInvoiceProps {
   phieu: any;
@@ -26,7 +20,7 @@ export const PrintableInvoice = React.forwardRef<
   return (
     <div
       ref={ref}
-      className={`${beVietnam.className} bg-white text-zinc-900 w-[720px] mx-auto px-8 py-8 text-[13px] leading-relaxed`}
+      className="print-font bg-white text-zinc-900 w-[720px] mx-auto px-8 py-8 text-[13px] leading-relaxed"
     >
       {/* Header */}
       <div className="border-b border-zinc-800 pb-4 mb-5">
