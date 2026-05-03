@@ -6,7 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:up": "docker-compose up -d",
+    "db:setup": "prisma db push && prisma db seed",
+    "db:studio": "prisma studio",
+    "postinstall": "prisma generate",
+    "env:init": "node -e \"const fs = require('fs'); if (!fs.existsSync('.env')) { fs.copyFileSync('.env.example', '.env'); console.log('.env file created from .env.example'); } else { console.log('.env file already exists'); }\"",
+    "setup": "node scripts/setup.js"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
