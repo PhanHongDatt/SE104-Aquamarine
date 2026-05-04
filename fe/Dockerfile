@@ -1,4 +1,5 @@
 FROM node:18-alpine AS base
+RUN apk add --no-cache openssl
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -8,6 +9,7 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json ./
+COPY prisma ./prisma
 RUN npm install
 
 # Rebuild the source code only when needed
@@ -16,8 +18,14 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Ensure public directory exists (Next.js requires it for COPY in runner stage)
+RUN mkdir -p public
+
 # Generate Prisma Client
 RUN npx prisma generate
+
+# Compile seed.ts -> seed.js (esbuild có sẵn trong Next.js devDeps)
+RUN npx esbuild prisma/seed.ts --platform=node --target=node18 --outfile=prisma/seed.js --external:@prisma/client --bundle
 
 # Ensure a .env file exists for the build process
 RUN if [ ! -f .env ]; then cp .env.example .env || touch .env; fi
@@ -50,7 +58,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 
-RUN chmod +x ./docker-entrypoint.sh
+RUN sed -i 's/\r$//' ./docker-entrypoint.sh && chmod +x ./docker-entrypoint.sh
 
 USER nextjs
 
