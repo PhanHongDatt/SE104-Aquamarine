@@ -14,16 +14,19 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { lapPhieuBanHang } from "@/actions/giao-dich";
+import { calculateLineTotal, calculateSellPrice, canSellQuantity } from "@/lib/business-rules";
 
 interface SalesInvoiceFormProps {
   products: any[];
+  customers?: any[];
   nextSoPhieu: string;
 }
 
-export function SalesInvoiceForm({ products, nextSoPhieu }: SalesInvoiceFormProps) {
+export function SalesInvoiceForm({ products, customers = [], nextSoPhieu }: SalesInvoiceFormProps) {
   const router = useRouter();
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
 
   const {
     register,
@@ -37,6 +40,7 @@ export function SalesInvoiceForm({ products, nextSoPhieu }: SalesInvoiceFormProp
     defaultValues: {
       soPhieu: nextSoPhieu,
       ngayLap: new Date(),
+      maKH: "",
       tenKhachHang: "",
       chiTietBanHang: [],
       tongTien: 0,
@@ -49,6 +53,7 @@ export function SalesInvoiceForm({ products, nextSoPhieu }: SalesInvoiceFormProp
   });
 
   const items = watch("chiTietBanHang");
+  const selectedCustomerId = watch("maKH");
 
   // Calculate total automatically
   const totalAmount = useMemo(() => {
@@ -64,6 +69,28 @@ export function SalesInvoiceForm({ products, nextSoPhieu }: SalesInvoiceFormProp
     p.maSP.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const filteredCustomers = customers
+    .filter((customer) => {
+      const keyword = customerSearch.trim().toLowerCase();
+      if (!keyword) return true;
+      return [customer.maKH, customer.hoTen, customer.soDienThoai]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword));
+    })
+    .slice(0, 6);
+
+  const selectCustomer = (customer: any) => {
+    setValue("maKH", customer.maKH);
+    setValue("tenKhachHang", customer.hoTen);
+    setCustomerSearch(`${customer.hoTen} - ${customer.soDienThoai}`);
+  };
+
+  const clearCustomer = () => {
+    setValue("maKH", "");
+    setValue("tenKhachHang", "");
+    setCustomerSearch("");
+  };
+
   const addProduct = (p: any) => {
     // Check if product already in list
     const existing = items.findIndex(item => item.maSP === p.maSP);
@@ -73,11 +100,12 @@ export function SalesInvoiceForm({ products, nextSoPhieu }: SalesInvoiceFormProp
     }
 
     const phanTramLN = Number(p.loaiSanPham?.phanTramLoiNhuan || 0);
-    const giaBan = Number(p.donGiaNhap) * (1 + phanTramLN / 100);
+    const giaBan = calculateSellPrice(Number(p.donGiaNhap), phanTramLN);
 
     append({
       maSP: p.maSP,
       tenSP: p.tenSP,
+      tenLSP: p.loaiSanPham?.tenLSP,
       maDVT: p.maDVT,
       tenDVT: p.donViTinh?.tenDVT,
       soLuong: 1,
@@ -92,13 +120,13 @@ export function SalesInvoiceForm({ products, nextSoPhieu }: SalesInvoiceFormProp
 
   const updateItemQuantity = (index: number, qty: number) => {
     const item = items[index];
-    if (qty > (item.tonKho || 0)) {
+    if (!canSellQuantity(item.tonKho || 0, qty)) {
       toast.error(`Số lượng bán vượt quá tồn kho (${item.tonKho})`);
       return;
     }
     const giaBan = Number(item.donGiaBan);
     setValue(`chiTietBanHang.${index}.soLuong`, qty);
-    setValue(`chiTietBanHang.${index}.thanhTien`, qty * giaBan);
+    setValue(`chiTietBanHang.${index}.thanhTien`, calculateLineTotal(qty, giaBan));
   };
 
   const onSubmit = async (data: SalesInvoiceFormValues) => {
@@ -151,9 +179,54 @@ export function SalesInvoiceForm({ products, nextSoPhieu }: SalesInvoiceFormProp
                 />
               </div>
 
+              <input type="hidden" {...register("maKH")} />
+
+              <div className="space-y-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-[38px] w-4 h-4 text-zinc-400" />
+                  <Input
+                    label="Tìm khách hàng"
+                    placeholder="Mã, SĐT hoặc tên khách hàng"
+                    className="pl-10 pr-10"
+                    value={customerSearch}
+                    onChange={(e) => setCustomerSearch(e.target.value)}
+                  />
+                  {selectedCustomerId && (
+                    <button
+                      type="button"
+                      onClick={clearCustomer}
+                      className="absolute right-3 top-[36px] p-1 text-zinc-400 hover:text-zinc-700"
+                      aria-label="Bỏ chọn khách hàng"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                {customerSearch.trim() && !selectedCustomerId && (
+                  <div className="max-h-48 overflow-y-auto rounded-2xl border border-zinc-200 bg-white shadow-sm">
+                    {filteredCustomers.length === 0 ? (
+                      <div className="px-4 py-3 text-sm text-zinc-400">Không tìm thấy khách hàng</div>
+                    ) : (
+                      filteredCustomers.map((customer) => (
+                        <button
+                          key={customer.maKH}
+                          type="button"
+                          onClick={() => selectCustomer(customer)}
+                          className="w-full px-4 py-3 text-left hover:bg-zinc-50 transition-colors border-b border-zinc-100 last:border-b-0"
+                        >
+                          <div className="font-semibold text-sm text-zinc-900">{customer.hoTen}</div>
+                          <div className="text-xs text-zinc-500 font-mono">{customer.maKH} - {customer.soDienThoai}</div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
               <Input
-                label="Khách hàng"
-                placeholder="Nhập tên khách hàng"
+                label="Tên khách hàng"
+                placeholder="Nhập tên khách hàng nếu chưa có hồ sơ"
                 error={errors.tenKhachHang?.message}
                 {...register("tenKhachHang")}
               />
@@ -193,13 +266,15 @@ export function SalesInvoiceForm({ products, nextSoPhieu }: SalesInvoiceFormProp
             </Button>
           </div>
 
-          <div className="bg-white rounded-3xl border border-zinc-200 shadow-sm overflow-hidden min-h-[400px]">
-            <table className="w-full text-sm text-left">
+          <div className="bg-white rounded-3xl border border-zinc-200 shadow-sm overflow-x-auto min-h-[400px]">
+            <table className="w-full min-w-[860px] text-sm text-left">
               <thead>
                 <tr className="border-b border-zinc-100 bg-zinc-50/50 font-bold text-zinc-600 uppercase tracking-tighter text-[11px]">
-                  <th className="px-4 py-4 w-10 text-center">#</th>
+                  <th className="px-4 py-4 w-10 text-center">STT</th>
                   <th className="px-4 py-4">Sản phẩm</th>
+                  <th className="px-4 py-4">Loại sản phẩm</th>
                   <th className="px-4 py-4 w-24 text-center">Số lượng</th>
+                  <th className="px-4 py-4 text-center">Đơn vị tính</th>
                   <th className="px-4 py-4 text-right">Đơn giá</th>
                   <th className="px-4 py-4 text-right">Thành tiền</th>
                   <th className="px-4 py-4 w-12"></th>
@@ -208,7 +283,7 @@ export function SalesInvoiceForm({ products, nextSoPhieu }: SalesInvoiceFormProp
               <tbody className="divide-y divide-zinc-100">
                 {fields.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-20 text-center text-zinc-400 italic">
+                    <td colSpan={8} className="px-4 py-20 text-center text-zinc-400 italic">
                       <div className="flex flex-col items-center gap-2">
                         <span>Chưa có sản phẩm nào được chọn</span>
                       </div>
@@ -222,12 +297,16 @@ export function SalesInvoiceForm({ products, nextSoPhieu }: SalesInvoiceFormProp
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex flex-col">
-                          <span className="font-bold text-zinc-900 line-clamp-1">{items[index]?.tenSP}</span>
+                          <span className="font-bold text-zinc-900 max-w-[180px] whitespace-normal break-words leading-snug">{items[index]?.tenSP}</span>
                           <div className="flex items-center gap-2 mt-0.5">
                              <span className="text-[10px] font-mono text-zinc-400 uppercase bg-zinc-100 px-1 rounded">{items[index]?.maSP}</span>
-                             <span className="text-[10px] text-zinc-400 font-medium">DVT: {items[index]?.tenDVT}</span>
                           </div>
                         </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="inline-block max-w-[150px] px-2 py-1 rounded-lg bg-zinc-100 text-zinc-600 text-[11px] font-bold border border-zinc-200 whitespace-normal break-words leading-tight">
+                          {items[index]?.tenLSP}
+                        </span>
                       </td>
                       <td className="px-4 py-4">
                         <input
@@ -238,6 +317,9 @@ export function SalesInvoiceForm({ products, nextSoPhieu }: SalesInvoiceFormProp
                           className="w-full h-9 bg-zinc-100 border-none rounded-lg text-center font-bold focus:ring-2 focus:ring-primary/20 transition-all"
                         />
                         <p className="text-[10px] text-zinc-400 text-center mt-1">Kho: {items[index]?.tonKho}</p>
+                      </td>
+                      <td className="px-4 py-4 text-center font-bold text-zinc-700">
+                        {items[index]?.tenDVT}
                       </td>
                       <td className="px-4 py-4 text-right font-medium text-zinc-600">
                         {formatCurrency(items[index]?.donGiaBan || 0)}
@@ -297,13 +379,15 @@ export function SalesInvoiceForm({ products, nextSoPhieu }: SalesInvoiceFormProp
                   `}
                 >
                   <div className="flex gap-4">
-                    <div>
-                      <p className="font-bold text-zinc-900">{p.tenSP}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-zinc-400">{p.maSP}</span>
-                        <span className="w-1 h-1 rounded-full bg-zinc-200" />
-                        <span className={`text-xs font-bold ${inStock ? 'text-zinc-500' : 'text-red-500'}`}>
-                          Tồn: {p.tonKho} {p.donViTinh?.tenDVT}
+	                      <div>
+	                      <p className="font-bold text-zinc-900">{p.tenSP}</p>
+	                      <div className="flex items-center gap-2 mt-1">
+	                        <span className="text-xs text-zinc-400">{p.maSP}</span>
+	                        <span className="w-1 h-1 rounded-full bg-zinc-200" />
+	                        <span className="text-xs text-zinc-400">{p.loaiSanPham?.tenLSP}</span>
+	                        <span className="w-1 h-1 rounded-full bg-zinc-200" />
+	                        <span className={`text-xs font-bold ${inStock ? 'text-zinc-500' : 'text-red-500'}`}>
+	                          Tồn: {p.tonKho} {p.donViTinh?.tenDVT}
                         </span>
                       </div>
                     </div>

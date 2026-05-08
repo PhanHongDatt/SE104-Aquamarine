@@ -19,12 +19,14 @@ interface ServiceReceiptFormProps {
   serviceTypes: any[];
   nextSoPhieu: string;
   redirectPath?: string;
+  minPrepaymentPercent?: number;
 }
 
 export function ServiceReceiptForm({ 
   serviceTypes, 
   nextSoPhieu,
-  redirectPath = "/dich-vu/tra-cuu"
+  redirectPath = "/dich-vu/tra-cuu",
+  minPrepaymentPercent = 50,
 }: ServiceReceiptFormProps) {
   const router = useRouter();
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
@@ -95,13 +97,13 @@ export function ServiceReceiptForm({
       donGiaDuocTinh: Number(s.donGiaDV),
       soLuong: 1,
       thanhTien: Number(s.donGiaDV),
-      traTruoc: Number(s.donGiaDV) * 0.5, // Default 50%
-      conLai: Number(s.donGiaDV) * 0.5,
+	      traTruoc: Math.round(Number(s.donGiaDV) * (minPrepaymentPercent / 100)),
+	      conLai: Number(s.donGiaDV) - Math.round(Number(s.donGiaDV) * (minPrepaymentPercent / 100)),
     });
     setIsServiceModalOpen(false);
   };
 
-  const [globalPrepayPercent, setGlobalPrepayPercent] = useState<number>(50);
+  const [globalPrepayPercent, setGlobalPrepayPercent] = useState<number>(minPrepaymentPercent);
 
   const applyGlobalPrepayment = (percent: number) => {
     setGlobalPrepayPercent(percent);
@@ -152,8 +154,8 @@ export function ServiceReceiptForm({
     // 2. Client-side validation for each item's prepayment (minimum 50%)
     for (let i = 0; i < data.chiTietDichVu.length; i++) {
       const item = data.chiTietDichVu[i];
-      if (item.traTruoc < item.thanhTien * 0.5) {
-        toast.error(`Dịch vụ "${item.tenDV}" yêu cầu trả trước tối thiểu 50% (${formatCurrency(item.thanhTien * 0.5)})`);
+      if (item.traTruoc < item.thanhTien * (minPrepaymentPercent / 100)) {
+        toast.error(`Dịch vụ "${item.tenDV}" yêu cầu trả trước tối thiểu ${minPrepaymentPercent}% (${formatCurrency(item.thanhTien * (minPrepaymentPercent / 100))})`);
         return;
       }
       if (item.traTruoc > item.thanhTien) {
@@ -237,7 +239,7 @@ export function ServiceReceiptForm({
                   <span className="text-primary">{globalPrepayPercent}%</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2">
-                  {[50, 75, 100].map((p) => (
+	                  {Array.from(new Set([minPrepaymentPercent, 75, 100])).sort((a, b) => a - b).map((p) => (
                     <button
                       key={p}
                       type="button"
@@ -295,7 +297,7 @@ export function ServiceReceiptForm({
           <div className="bg-amber-50 rounded-2xl p-4 flex gap-3 border border-amber-100">
             <Info className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
             <p className="text-xs text-amber-800 leading-relaxed">
-              <strong>Quy định:</strong> Số tiền trả trước của từng loại dịch vụ phải lớn hơn hoặc bằng 50% thành tiền của loại dịch vụ đó.
+	              <strong>Quy định:</strong> Số tiền trả trước của từng loại dịch vụ phải lớn hơn hoặc bằng {minPrepaymentPercent}% thành tiền của loại dịch vụ đó.
             </p>
           </div>
         </div>
@@ -319,23 +321,27 @@ export function ServiceReceiptForm({
 
           <div className="bg-white rounded-3xl border border-zinc-200 shadow-sm overflow-hidden min-h-[450px]">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left border-collapse">
+              <table className="w-full min-w-[1100px] text-sm text-left border-collapse">
                 <thead>
                   <tr className="border-b border-zinc-100 bg-zinc-50/50 font-bold text-zinc-600 uppercase tracking-tighter text-[10px]">
-                    <th className="px-4 py-4 w-8 text-center">#</th>
+                    <th className="px-4 py-4 w-8 text-center">STT</th>
                     <th className="px-4 py-4 min-w-[200px]">Loại dịch vụ</th>
-                    <th className="px-4 py-4 w-24 text-center">Số lượng</th>
                     <th className="px-4 py-4 text-right">Đơn giá</th>
                     <th className="px-4 py-4 text-right">Phát sinh</th>
+                    <th className="px-4 py-4 text-right">Đơn giá được tính</th>
+                    <th className="px-4 py-4 w-24 text-center">Số lượng</th>
                     <th className="px-4 py-4 text-right">Thành tiền</th>
                     <th className="px-4 py-4 text-right">Trả trước</th>
+                    <th className="px-4 py-4 text-right">Còn lại</th>
+                    <th className="px-4 py-4 text-center">Ngày giao</th>
+                    <th className="px-4 py-4 text-center">Tình trạng</th>
                     <th className="px-4 py-4 w-10"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {fields.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-4 py-24 text-center text-zinc-400 italic">
+                      <td colSpan={12} className="px-4 py-24 text-center text-zinc-400 italic">
                         <div className="flex flex-col items-center gap-2">
                           <Wrench className="w-8 h-8 text-zinc-200" />
                           <span>Chưa có dịch vụ nào được chọn</span>
@@ -366,15 +372,6 @@ export function ServiceReceiptForm({
                             )}
                           </div>
                         </td>
-                        <td className="px-2 py-4">
-                          <input
-                            type="number"
-                            min="1"
-                            value={items[index]?.soLuong}
-                            onChange={(e) => updateItem(index, { soLuong: parseInt(e.target.value) || 0 })}
-                            className="w-full h-9 bg-zinc-100 border-none rounded-lg text-center font-bold focus:ring-2 focus:ring-primary/20 transition-all"
-                          />
-                        </td>
                         <td className="px-2 py-4 text-right font-medium text-zinc-600">
                           {formatCurrency(items[index]?.donGiaDV || 0)}
                         </td>
@@ -388,6 +385,18 @@ export function ServiceReceiptForm({
                             className="w-full h-9 bg-zinc-50 border border-zinc-200 rounded-lg text-right px-2 font-medium focus:ring-2 focus:ring-primary/20 transition-all"
                           />
                         </td>
+                        <td className="px-2 py-4 text-right font-bold text-primary">
+                          {formatCurrency(items[index]?.donGiaDuocTinh || 0)}
+                        </td>
+                        <td className="px-2 py-4">
+                          <input
+                            type="number"
+                            min="1"
+                            value={items[index]?.soLuong}
+                            onChange={(e) => updateItem(index, { soLuong: parseInt(e.target.value) || 0 })}
+                            className="w-full h-9 bg-zinc-100 border-none rounded-lg text-center font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                          />
+                        </td>
                         <td className="px-2 py-4 text-right font-bold text-zinc-900">
                           {formatCurrency(items[index]?.thanhTien || 0)}
                         </td>
@@ -399,15 +408,24 @@ export function ServiceReceiptForm({
                               value={items[index]?.traTruoc}
                               onChange={(e) => updateItem(index, { traTruoc: Number(e.target.value) || 0 })}
                               className={`w-full h-9 rounded-lg text-right px-2 font-bold focus:ring-2 transition-all ${
-                                (items[index]?.traTruoc || 0) < (items[index]?.thanhTien || 0) * 0.5 
+	                                (items[index]?.traTruoc || 0) < (items[index]?.thanhTien || 0) * (minPrepaymentPercent / 100)
                                 ? 'bg-red-50 border-red-200 text-red-600 focus:ring-red-200' 
                                 : 'bg-green-50 border-green-200 text-green-700 focus:ring-green-200'
                               }`}
                             />
                             <p className="text-[9px] text-zinc-400 text-right">
-                              Min: {formatCurrency((items[index]?.thanhTien || 0) * 0.5)}
+	                              Min: {formatCurrency((items[index]?.thanhTien || 0) * (minPrepaymentPercent / 100))}
                             </p>
                           </div>
+                        </td>
+                        <td className="px-2 py-4 text-right font-bold text-zinc-700">
+                          {formatCurrency(items[index]?.conLai || 0)}
+                        </td>
+                        <td className="px-2 py-4 text-center text-zinc-400 text-xs">---</td>
+                        <td className="px-2 py-4 text-center">
+                          <span className="inline-flex px-2 py-1 rounded-full bg-amber-50 text-amber-600 border border-amber-100 text-[10px] font-bold uppercase">
+                            Chưa giao
+                          </span>
                         </td>
                         <td className="px-2 py-4 text-center">
                           <button 

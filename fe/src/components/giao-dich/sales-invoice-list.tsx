@@ -139,32 +139,38 @@ export function SalesInvoiceList({ data }: SalesInvoiceListProps) {
                 Danh mục sản phẩm
               </h4>
               <div className="rounded-2xl border border-zinc-100 overflow-hidden">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-zinc-50/80 border-b border-zinc-100 font-bold text-zinc-500">
-                    <tr>
-                      <th className="px-4 py-3">Sản phẩm</th>
-                      <th className="px-4 py-3 text-center">SL</th>
-                      <th className="px-4 py-3 text-right">Đơn giá</th>
-                      <th className="px-4 py-3 text-right">Thành tiền</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-50">
-                    {selectedPhieu.chiTietBanHang?.map((item: any) => (
-                      <tr key={item.maSP}>
-                        <td className="px-4 py-3">
-                          <p className="font-bold text-zinc-800 line-clamp-1">{item.sanPham?.tenSP}</p>
-                          <p className="text-[9px] font-mono text-zinc-400 uppercase">{item.maSP}</p>
-                        </td>
-                        <td className="px-4 py-3 text-center font-medium">{item.soLuong}</td>
-                        <td className="px-4 py-3 text-right">{formatCurrency(Number(item.donGia))}</td>
-                        <td className="px-4 py-3 text-right font-bold text-zinc-900">{formatCurrency(Number(item.thanhTien))}</td>
-                      </tr>
+	                <table className="w-full text-xs text-left">
+	                  <thead className="bg-zinc-50/80 border-b border-zinc-100 font-bold text-zinc-500">
+	                    <tr>
+	                      <th className="px-4 py-3 text-center">STT</th>
+	                      <th className="px-4 py-3">Sản phẩm</th>
+	                      <th className="px-4 py-3">Loại sản phẩm</th>
+	                      <th className="px-4 py-3 text-center">SL</th>
+	                      <th className="px-4 py-3 text-center">ĐVT</th>
+	                      <th className="px-4 py-3 text-right">Đơn giá</th>
+	                      <th className="px-4 py-3 text-right">Thành tiền</th>
+	                    </tr>
+	                  </thead>
+	                  <tbody className="divide-y divide-zinc-50">
+	                    {selectedPhieu.chiTietBanHang?.map((item: any, index: number) => (
+	                      <tr key={item.maSP}>
+	                        <td className="px-4 py-3 text-center font-mono text-zinc-400">{index + 1}</td>
+	                        <td className="px-4 py-3">
+	                          <p className="font-bold text-zinc-800 line-clamp-1">{item.sanPham?.tenSP}</p>
+	                          <p className="text-[9px] font-mono text-zinc-400 uppercase">{item.maSP}</p>
+	                        </td>
+	                        <td className="px-4 py-3 text-zinc-600">{item.sanPham?.loaiSanPham?.tenLSP}</td>
+	                        <td className="px-4 py-3 text-center font-medium">{item.soLuong}</td>
+	                        <td className="px-4 py-3 text-center font-medium">{item.sanPham?.donViTinh?.tenDVT}</td>
+	                        <td className="px-4 py-3 text-right">{formatCurrency(Number(item.donGia))}</td>
+	                        <td className="px-4 py-3 text-right font-bold text-zinc-900">{formatCurrency(Number(item.thanhTien))}</td>
+	                      </tr>
                     ))}
                   </tbody>
-                  <tfoot className="bg-primary/5 font-bold">
-                    <tr>
-                      <td colSpan={3} className="px-4 py-3 text-zinc-600">Tổng cộng</td>
-                      <td className="px-4 py-3 text-right text-primary text-sm font-black">
+	                  <tfoot className="bg-primary/5 font-bold">
+	                    <tr>
+	                      <td colSpan={6} className="px-4 py-3 text-zinc-600">Tổng cộng</td>
+	                      <td className="px-4 py-3 text-right text-primary text-sm font-black">
                         {formatCurrency(Number(selectedPhieu.tongTien))}
                       </td>
                     </tr>

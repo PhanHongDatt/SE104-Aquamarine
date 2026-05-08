@@ -216,9 +216,12 @@ export function ServiceReceiptDetail({ phieu, isAdmin = false }: ServiceReceiptD
                           {item.loaiDichVu?.nhomDV === 'GiaCong' ? 'Gia công' : 'Kiểm định'}
                         </span>
                       </div>
-                      <p className="text-xs text-zinc-500 mt-1">
-                        Số lượng: {item.soLuong} | Đơn giá DV: {formatCurrency(Number(item.donGiaDV))} | Phát sinh: {formatCurrency(Number(item.chiPhiPhatSinh))}
-                      </p>
+	                      <p className="text-xs text-zinc-500 mt-1">
+	                        Số lượng: {item.soLuong} | Đơn giá DV: {formatCurrency(Number(item.donGiaDV))} | Phát sinh: {formatCurrency(Number(item.chiPhiPhatSinh))} | Đơn giá được tính: {formatCurrency(Number(item.donGiaDuocTinh))}
+	                      </p>
+	                      <p className="text-xs text-zinc-500 mt-1">
+	                        Trả trước: {formatCurrency(Number(item.traTruoc))} | Ngày giao: {item.ngayGiao ? new Date(item.ngayGiao).toLocaleDateString("vi-VN") : "Chưa giao"}
+	                      </p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-black text-zinc-900">{formatCurrency(Number(item.thanhTien))}</p>

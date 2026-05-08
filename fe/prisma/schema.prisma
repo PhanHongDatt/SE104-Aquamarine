@@ -26,6 +26,13 @@ enum TinhTrangDichVu {
   ChuaHoanThanh
 }
 
+enum HangKhachHang {
+  Thuong
+  Bac
+  Vang
+  KimCuong
+}
+
 model DonViTinh {
   maDVT      String       @id @db.Char(6)
   tenDVT     String       @unique @db.VarChar(100)
@@ -70,6 +77,7 @@ model SanPham {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 }
 
 model NhaCungCap {
@@ -85,11 +93,32 @@ model NhaCungCap {
   updatedAt DateTime @updatedAt
 }
 
+model KhachHang {
+  maKH            String        @id @db.Char(6)
+  hoTen           String        @db.VarChar(200)
+  soDienThoai     String        @unique @db.VarChar(20)
+  email           String?       @db.VarChar(200)
+  diaChi          String?       @db.VarChar(500)
+  ngaySinh        DateTime?
+  hangThanhVien   HangKhachHang @default(Thuong)
+  ghiChu          String?       @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  phieuBanHang PhieuBanHang[]
+  phieuDichVu  PhieuDichVu[]
+}
+
 model PhieuBanHang {
   soPhieu       String    @id @db.Char(10)
   ngayLap       DateTime  @default(now())
+  maKH          String?   @db.Char(6)
   tenKhachHang  String?   @db.VarChar(200)
   tongTien      Decimal   @db.Decimal(18, 0)
+
+  khachHang KhachHang? @relation(fields: [maKH], references: [maKH])
 
   chiTietBanHang ChiTietBanHang[]
 
@@ -152,12 +181,15 @@ model LoaiDichVu {
 model PhieuDichVu {
   soPhieu          String              @id @db.Char(10)
   ngayLap          DateTime            @default(now())
+  maKH             String?             @db.Char(6)
   tenKhachHang     String              @db.VarChar(200)
   soDienThoai      String?             @db.VarChar(20)
   tongTien         Decimal             @db.Decimal(18, 0)
   tongTraTruoc     Decimal             @db.Decimal(18, 0)
   tongConLai       Decimal             @db.Decimal(18, 0)
   tinhTrang        TinhTrangDichVu     @default(ChuaHoanThanh)
+
+  khachHang KhachHang? @relation(fields: [maKH], references: [maKH])
 
   chiTietDichVu ChiTietDichVu[]
 
@@ -258,6 +290,7 @@ model ThamSo {
 
   phanTramLoiNhuanToiThieu    Decimal  @default(0) @db.Decimal(5, 2)
   soLuongTonKhoToiThieu       Int      @default(1)
+  soLuongNhapToiThieu         Int      @default(1)
   tiLeTraTruocToiThieu        Decimal  @default(50) @db.Decimal(5, 2)
 
   createdAt DateTime @default(now())

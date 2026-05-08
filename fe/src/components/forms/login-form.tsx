@@ -11,7 +11,7 @@ import { loginSchema, type LoginFormValues } from "@/schemas/auth.schema";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
-import { PasswordStrength } from "@/components/ui/password-strength";
+import Link from "next/link";
 
 export function LoginForm() {
   const router = useRouter();
@@ -21,14 +21,11 @@ export function LoginForm() {
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors, isSubmitting, isValid },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     mode: "onChange",
   });
-
-  const passwordValue = watch("password", "");
 
   const onSubmit = async (data: LoginFormValues) => {
     setServerError(null);
@@ -95,7 +92,6 @@ export function LoginForm() {
           error={errors.password?.message}
           {...register("password")}
         />
-        <PasswordStrength password={passwordValue} />
       </div>
 
       <Button
@@ -107,6 +103,13 @@ export function LoginForm() {
       >
         {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
       </Button>
+
+      <div className="text-center text-sm text-zinc-500">
+        Chưa có tài khoản?{" "}
+        <Link href="/dang-ky" className="font-semibold text-primary hover:underline">
+          Đăng ký
+        </Link>
+      </div>
     </form>
   );
 }

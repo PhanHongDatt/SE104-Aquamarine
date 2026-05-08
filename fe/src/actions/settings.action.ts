@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { hasPermission, PERMISSIONS } from "@/lib/permissions";
+import { systemSettingsSchema } from "@/schemas/system-settings.schema";
 
 function serialize(data: any) {
   return JSON.parse(JSON.stringify(data));
@@ -19,22 +21,23 @@ export async function updateSystemSettings(data: any) {
   try {
     const session = await getServerSession(authOptions);
     
-    // Step 1: Check Manager role
-    if (session?.user?.role !== "QUAN_LY") {
+    if (session?.user?.role !== "QUAN_LY" || !(await hasPermission(PERMISSIONS.QUY_DINH, session))) {
       return {
         success: false,
-        message: "Bạn không có quyền thực hiện thao tác này. Chỉ Quản lý mới có quyền thay đổi quy định."
+        message: "Bạn không có quyền thay đổi quy định."
       };
     }
+    const validated = systemSettingsSchema.parse(data);
 
     // Step 2 & 3: Update ThamSo in DB
     const result = await prisma.$transaction(async (tx) => {
       const updated = await tx.thamSo.update({
         where: { id: 1 },
         data: {
-          phanTramLoiNhuanToiThieu: data.phanTramLoiNhuanToiThieu,
-          soLuongTonKhoToiThieu: data.soLuongTonKhoToiThieu,
-          tiLeTraTruocToiThieu: data.tiLeTraTruocToiThieu,
+          phanTramLoiNhuanToiThieu: validated.phanTramLoiNhuanToiThieu,
+          soLuongTonKhoToiThieu: validated.soLuongTonKhoToiThieu,
+          soLuongNhapToiThieu: validated.soLuongNhapToiThieu,
+          tiLeTraTruocToiThieu: validated.tiLeTraTruocToiThieu,
         }
       });
 

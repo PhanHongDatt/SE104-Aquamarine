@@ -9,7 +9,7 @@ import {
   LayoutDashboard, Package, Box, Ruler, Truck,
   ShoppingCart, Tag, FileText, ListChecks, BarChart3,
   LineChart, Settings, Users, Gem, ChevronRight, UserCircle,
-  Wrench, Shield,
+  Wrench, Shield, Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +27,7 @@ const adminNavGroups = [
       { href: "/admin/danh-muc/san-pham", icon: Package, label: "Sản phẩm" },
       { href: "/admin/danh-muc/loai-san-pham", icon: Box, label: "Loại sản phẩm" },
       { href: "/admin/danh-muc/don-vi-tinh", icon: Ruler, label: "Đơn vị tính" },
+      { href: "/admin/danh-muc/khach-hang", icon: Users, label: "Khách hàng" },
       { href: "/admin/danh-muc/nha-cung-cap", icon: Truck, label: "Nhà cung cấp" },
     ],
   },
@@ -57,6 +58,7 @@ const adminNavGroups = [
       { href: "/admin/cai-dat", icon: Settings, label: "Cài đặt hệ thống" },
       { href: "/admin/cai-dat/quy-dinh", icon: Wrench, label: "Thay đổi quy định" },
       { href: "/admin/cai-dat/phan-quyen", icon: Shield, label: "Phân quyền" },
+      { href: "/admin/cai-dat/sao-luu-phuc-hoi", icon: Database, label: "Sao lưu/Phục hồi" },
     ],
   },
 ];

@@ -90,8 +90,11 @@ export const PrintableServiceInvoice = React.forwardRef<
             <th className="border border-zinc-300 px-2 py-2 text-center w-10">SL</th>
             <th className="border border-zinc-300 px-3 py-2 text-right w-24">Đơn giá DV</th>
             <th className="border border-zinc-300 px-3 py-2 text-right w-24">Phát sinh</th>
+            <th className="border border-zinc-300 px-3 py-2 text-right w-28">Đơn giá được tính</th>
             <th className="border border-zinc-300 px-3 py-2 text-right w-28">Thành tiền</th>
             <th className="border border-zinc-300 px-3 py-2 text-right w-28">Trả trước</th>
+            <th className="border border-zinc-300 px-3 py-2 text-right w-28">Còn lại</th>
+            <th className="border border-zinc-300 px-2 py-2 text-center w-20">Tình trạng</th>
           </tr>
         </thead>
         <tbody>
@@ -111,23 +114,34 @@ export const PrintableServiceInvoice = React.forwardRef<
               <td className="border border-zinc-300 px-3 py-2 text-right whitespace-nowrap">
                 {formatCurrency(Number(item.chiPhiPhatSinh))}
               </td>
+              <td className="border border-zinc-300 px-3 py-2 text-right whitespace-nowrap">
+                {formatCurrency(Number(item.donGiaDuocTinh))}
+              </td>
               <td className="border border-zinc-300 px-3 py-2 text-right font-semibold whitespace-nowrap">
                 {formatCurrency(Number(item.thanhTien))}
               </td>
               <td className="border border-zinc-300 px-3 py-2 text-right whitespace-nowrap italic">
                 {formatCurrency(Number(item.traTruoc))}
               </td>
+              <td className="border border-zinc-300 px-3 py-2 text-right whitespace-nowrap">
+                {formatCurrency(Number(item.conLai))}
+              </td>
+              <td className="border border-zinc-300 px-2 py-2 text-center">
+                {item.ngayGiao ? "Đã giao" : "Chưa giao"}
+              </td>
             </tr>
           ))}
         </tbody>
         <tfoot>
           <tr className="bg-zinc-50 font-bold">
-            <td colSpan={5} className="border border-zinc-300 px-3 py-2 text-right uppercase">Tổng cộng</td>
+            <td colSpan={6} className="border border-zinc-300 px-3 py-2 text-right uppercase">Tổng cộng</td>
             <td className="border border-zinc-300 px-3 py-2 text-right">{formatCurrency(Number(phieu.tongTien))}</td>
             <td className="border border-zinc-300 px-3 py-2 text-right">{formatCurrency(Number(phieu.tongTraTruoc))}</td>
+            <td className="border border-zinc-300 px-3 py-2 text-right">{formatCurrency(Number(phieu.tongConLai))}</td>
+            <td className="border border-zinc-300 px-3 py-2 text-center"></td>
           </tr>
           <tr className="bg-zinc-100 font-extrabold text-[14px]">
-            <td colSpan={5} className="border border-zinc-300 px-3 py-3 text-right uppercase text-primary">Tiền còn lại phải thu</td>
+            <td colSpan={8} className="border border-zinc-300 px-3 py-3 text-right uppercase text-primary">Tiền còn lại phải thu</td>
             <td colSpan={2} className="border border-zinc-300 px-3 py-3 text-right text-primary">
               {formatCurrency(Number(phieu.tongConLai))}
             </td>

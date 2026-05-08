@@ -15,7 +15,7 @@ export function ServiceSearchList({ initialData, isAdmin = false }: ServiceSearc
   const [filters, setFilters] = useState({
     soPhieu: "",
     tenKhachHang: "",
-    tinhTrang: "ALL", // ALL, HoanThanh, DangCho
+    tinhTrang: "ALL", // ALL, HoanThanh, ChuaHoanThanh
     tuNgay: "",
     denNgay: "",
   });
@@ -119,7 +119,7 @@ export function ServiceSearchList({ initialData, isAdmin = false }: ServiceSearc
               >
                 <option value="ALL">Tất cả trạng thái</option>
                 <option value="HoanThanh">Đã hoàn thành</option>
-                <option value="DangCho">Chưa hoàn thành</option>
+                <option value="ChuaHoanThanh">Chưa hoàn thành</option>
               </select>
             </div>
             <div className="space-y-1.5">
@@ -156,20 +156,21 @@ export function ServiceSearchList({ initialData, isAdmin = false }: ServiceSearc
           <table className="w-full text-sm text-left">
             <thead>
               <tr className="border-b border-zinc-100 bg-zinc-50/50 font-bold text-zinc-600 uppercase tracking-tighter text-[11px]">
-                <th className="px-6 py-4">Số phiếu</th>
+	                <th className="px-6 py-4 w-12 text-center">STT</th>
+	                <th className="px-6 py-4">Số phiếu</th>
                 <th className="px-6 py-4">Ngày lập</th>
                 <th className="px-6 py-4">Khách hàng</th>
                 <th className="px-6 py-4 text-right">Tổng tiền</th>
                 <th className="px-6 py-4 text-right">Trả trước</th>
                 <th className="px-6 py-4 text-right">Còn lại</th>
                 <th className="px-6 py-4 text-center">Trạng thái</th>
-                <th className="px-6 py-4 text-right">Thao tác</th>
+	                <th className="px-6 py-4 text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
               {filteredData.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-24 text-center text-zinc-400 italic">
+                  <td colSpan={9} className="px-6 py-24 text-center text-zinc-400 italic">
                     <div className="flex flex-col items-center gap-2">
                       <Search className="w-10 h-10 text-zinc-200" />
                       <p>Không tìm thấy phiếu dịch vụ nào phù hợp</p>
@@ -177,9 +178,10 @@ export function ServiceSearchList({ initialData, isAdmin = false }: ServiceSearc
                   </td>
                 </tr>
               ) : (
-                filteredData.map((phieu) => (
-                  <tr key={phieu.soPhieu} className="group hover:bg-zinc-50/50 transition-colors">
-                    <td className="px-6 py-4 font-mono text-xs text-zinc-400">
+	                filteredData.map((phieu, index) => (
+	                  <tr key={phieu.soPhieu} className="group hover:bg-zinc-50/50 transition-colors">
+	                    <td className="px-6 py-4 text-center text-zinc-400 font-mono text-xs">{index + 1}</td>
+	                    <td className="px-6 py-4 font-mono text-xs text-zinc-400">
                       <div className="flex items-center gap-2">
                         <FileText className="w-3 h-3" />
                         {phieu.soPhieu}
@@ -213,12 +215,12 @@ export function ServiceSearchList({ initialData, isAdmin = false }: ServiceSearc
                           {phieu.tinhTrang === "HoanThanh" ? (
                             <>
                               <CheckCircle2 className="w-3 h-3" />
-                              Đã xong
+	                              Hoàn thành
                             </>
                           ) : (
                             <>
                               <Clock className="w-3 h-3" />
-                              Đang chờ
+	                              Chưa hoàn thành
                             </>
                           )}
                         </span>

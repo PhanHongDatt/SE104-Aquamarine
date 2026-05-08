@@ -3,25 +3,22 @@ import { prisma } from "@/lib/prisma";
 import { getDanhSachLoaiDichVu } from "@/actions/service.action";
 import { ServiceReceiptForm } from "@/components/giao-dich/service-receipt-form";
 import Link from "next/link";
+import { nextSequentialIdFromValidCodes } from "@/lib/id-generation";
 
 export const metadata = { title: "Tạo phiếu dịch vụ – Admin | Aquamarine Jewelry & Luxury" };
 
 export default async function AdminTaoPhieuDichVuPage() {
-  const serviceTypes = await getDanhSachLoaiDichVu();
+  const [serviceTypes, thamSo] = await Promise.all([
+    getDanhSachLoaiDichVu(),
+    prisma.thamSo.findFirst({ where: { id: 1 } }),
+  ]);
   
   // Generate next soPhieu: PDV + 7 digits
-  const lastPhieu = await prisma.phieuDichVu.findFirst({
+  const existingReceipts = await prisma.phieuDichVu.findMany({
     where: { soPhieu: { startsWith: "PDV" } },
-    orderBy: { soPhieu: "desc" },
+    select: { soPhieu: true },
   });
-
-  let nextNumber = 1;
-  if (lastPhieu) {
-    const lastNumStr = lastPhieu.soPhieu.replace("PDV", "");
-    nextNumber = parseInt(lastNumStr) + 1;
-  }
-  
-  const nextSoPhieu = `PDV${nextNumber.toString().padStart(7, "0")}`;
+  const nextSoPhieu = nextSequentialIdFromValidCodes(existingReceipts.map((receipt) => receipt.soPhieu), "PDV", 7);
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -44,10 +41,11 @@ export default async function AdminTaoPhieuDichVuPage() {
 
       <div className="grid grid-cols-1 gap-6">
         <ServiceReceiptForm 
-          serviceTypes={serviceTypes} 
-          nextSoPhieu={nextSoPhieu} 
-          redirectPath="/admin/dich-vu/phieu-dich-vu"
-        />
+	          serviceTypes={serviceTypes} 
+	          nextSoPhieu={nextSoPhieu} 
+	          redirectPath="/admin/dich-vu/phieu-dich-vu"
+	          minPrepaymentPercent={Number(thamSo?.tiLeTraTruocToiThieu ?? 50)}
+	        />
       </div>
     </div>
   );

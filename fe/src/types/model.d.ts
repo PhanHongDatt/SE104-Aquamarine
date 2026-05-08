@@ -36,6 +36,19 @@ export interface NhaCungCap {
   nguoiLienHe: string;
 }
 
+export type HangKhachHang = 'Thuong' | 'Bac' | 'Vang' | 'KimCuong';
+
+export interface KhachHang {
+  maKH: string;
+  hoTen: string;
+  soDienThoai: string;
+  email?: string;
+  diaChi?: string;
+  ngaySinh?: string;
+  hangThanhVien: HangKhachHang;
+  ghiChu?: string;
+}
+
 export interface ChiTietBanHang {
   soPhieu: string;
   maSP: string;
@@ -48,8 +61,10 @@ export interface ChiTietBanHang {
 export interface PhieuBanHang {
   soPhieu: string;
   ngayLap: string;
+  maKH?: string;
   tenKhachHang?: string;
   tongTien: number;
+  khachHang?: KhachHang;
   chiTietBanHang?: ChiTietBanHang[];
 }
 
@@ -92,6 +107,6 @@ export interface ThamSo {
   id: number;
   phanTramLoiNhuanToiThieu: number;
   soLuongTonKhoToiThieu: number;
+  soLuongNhapToiThieu: number;
   tiLeTraTruocToiThieu: number;
 }
-

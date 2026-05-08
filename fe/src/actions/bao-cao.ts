@@ -28,6 +28,7 @@ function serialize(data: any) {
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { hasPermission, PERMISSIONS } from "@/lib/permissions";
 
 export interface BaoCaoDoanhThuDetailedResult {
   dailyData: BaoCaoDoanhThuItem[];
@@ -38,16 +39,53 @@ export interface BaoCaoDoanhThuDetailedResult {
 
 export async function getBaoCaoDoanhThuDetailed(thang: number, nam: number): Promise<BaoCaoDoanhThuDetailedResult> {
   try {
-    const session = await getServerSession(authOptions);
-    if (session?.user?.role !== "QUAN_LY") {
-      throw new Error("Từ chối truy cập: Chỉ Quản lý mới có quyền xem báo cáo doanh thu");
+	    const session = await getServerSession(authOptions);
+	    if (session?.user?.role !== "QUAN_LY" || !(await hasPermission(PERMISSIONS.BAO_CAO_DOANH_THU, session))) {
+	      throw new Error("Từ chối truy cập: Bạn không có quyền xem báo cáo doanh thu");
+	    }
+
+    const startDate = new Date(nam, thang - 1, 1);
+    const endDate = new Date(nam, thang, 0, 23, 59, 59);
+
+    const [salesReceipts, serviceReceipts] = await Promise.all([
+      prisma.phieuBanHang.findMany({
+        where: { ngayLap: { gte: startDate, lte: endDate } },
+        select: { ngayLap: true, tongTien: true },
+      }),
+	      prisma.phieuDichVu.findMany({
+	        where: {
+	          ngayLap: { gte: startDate, lte: endDate },
+	          tinhTrang: "HoanThanh",
+	          chiTietDichVu: {
+	            every: { ngayGiao: { not: null } },
+	          },
+	        },
+	        select: {
+	          ngayLap: true,
+	          tongTien: true,
+	        },
+	      }),
+    ]);
+
+    const dailyMap = new Map<number, BaoCaoDoanhThuItem>();
+
+    for (const receipt of salesReceipts) {
+      const ngay = receipt.ngayLap.getDate();
+      const current = dailyMap.get(ngay) ?? { ngay, thang, nam, dtBanHang: 0, dtDichVu: 0, tongDT: 0 };
+      current.dtBanHang += Number(receipt.tongTien);
+      current.tongDT = current.dtBanHang + current.dtDichVu;
+      dailyMap.set(ngay, current);
     }
 
-    // Truy vấn dữ liệu từ bảng BaoCaoDoanhThu (dữ liệu này đã được cập nhật bởi các Transaction khi lập phiếu)
-    const dailyData = await prisma.baoCaoDoanhThu.findMany({
-      where: { thang, nam },
-      orderBy: { ngay: 'asc' }
-    });
+	    for (const receipt of serviceReceipts) {
+	      const ngay = receipt.ngayLap.getDate();
+	      const current = dailyMap.get(ngay) ?? { ngay, thang, nam, dtBanHang: 0, dtDichVu: 0, tongDT: 0 };
+      current.dtDichVu += Number(receipt.tongTien);
+      current.tongDT = current.dtBanHang + current.dtDichVu;
+      dailyMap.set(ngay, current);
+    }
+
+    const dailyData = Array.from(dailyMap.values()).sort((a, b) => a.ngay - b.ngay);
 
     // Tính tổng kết
     const tongDTBanHang = dailyData.reduce((sum, item) => sum + Number(item.dtBanHang), 0);
@@ -81,14 +119,13 @@ export interface BaoCaoTonKhoDetailedItem {
 export async function getBaoCaoTonKhoDetailed(thang: number, nam: number): Promise<BaoCaoTonKhoDetailedItem[]> {
   try {
     const session = await getServerSession(authOptions);
-    const userRole = session?.user?.role;
-    
-    if (userRole !== "QUAN_LY" && userRole !== "NHAN_VIEN") {
+    if (!(await hasPermission(PERMISSIONS.BAO_CAO_TON_KHO, session))) {
       throw new Error("Từ chối truy cập: Bạn không có quyền xem báo cáo tồn kho");
     }
 
     // 1. Lấy danh sách tất cả sản phẩm
     const products = await prisma.sanPham.findMany({
+      where: { deletedAt: null },
       include: { loaiSanPham: { include: { donViTinh: true } } }
     });
 
@@ -98,19 +135,8 @@ export async function getBaoCaoTonKhoDetailed(thang: number, nam: number): Promi
     const startDate = new Date(nam, thang - 1, 1);
     const endDate = new Date(nam, thang, 0, 23, 59, 59);
 
-    // Tháng trước
-    const prevThang = thang === 1 ? 12 : thang - 1;
-    const prevNam = thang === 1 ? nam - 1 : nam;
-
     for (const p of products) {
-      // 3.1: Xác định tồn đầu kỳ (tồn cuối tháng trước)
-      const prevReport = await prisma.baoCaoTonKho.findFirst({
-        where: { maSP: p.maSP, thang: prevThang, nam: prevNam },
-        orderBy: { ngay: 'desc' }
-      });
-      const tonDau = prevReport ? prevReport.tonCuoi : 0;
-
-      // 3.2: Tính tổng mua vào trong tháng
+      // 3.1: Tính tổng mua vào trong tháng
       const muaVao = await prisma.chiTietMuaHang.aggregate({
         where: {
           maSP: p.maSP,
@@ -120,7 +146,7 @@ export async function getBaoCaoTonKhoDetailed(thang: number, nam: number): Promi
       });
       const slMuaVao = muaVao._sum.soLuong || 0;
 
-      // 3.3: Tính tổng bán ra trong tháng
+      // 3.2: Tính tổng bán ra trong tháng
       const banRa = await prisma.chiTietBanHang.aggregate({
         where: {
           maSP: p.maSP,
@@ -129,6 +155,27 @@ export async function getBaoCaoTonKhoDetailed(thang: number, nam: number): Promi
         _sum: { soLuong: true }
       });
       const slBanRa = banRa._sum.soLuong || 0;
+
+      // 3.3: Xác định tồn đầu kỳ bằng snapshot gần nhất trước kỳ báo cáo.
+      // Nếu dữ liệu cũ chưa có snapshot, rollback từ tồn kho hiện tại theo phát sinh trong kỳ đang xem.
+      const previousSnapshot = await prisma.baoCaoTonKho.findFirst({
+        where: {
+          maSP: p.maSP,
+          OR: [
+            { nam: { lt: nam } },
+            { nam, thang: { lt: thang } },
+          ],
+        },
+        orderBy: [
+          { nam: 'desc' },
+          { thang: 'desc' },
+          { ngay: 'desc' },
+        ],
+      });
+
+      const tonDau = previousSnapshot
+        ? previousSnapshot.tonCuoi
+        : p.tonKho - slMuaVao + slBanRa;
 
       // 3.4: Tính tồn cuối
       const tonCuoi = tonDau + slMuaVao - slBanRa;

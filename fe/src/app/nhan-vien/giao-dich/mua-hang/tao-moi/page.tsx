@@ -2,29 +2,32 @@ import { prisma } from "@/lib/prisma";
 import { PurchaseInvoiceForm } from "@/components/giao-dich/purchase-invoice-form";
 import { Truck, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { nextSequentialIdFromValidCodes } from "@/lib/id-generation";
 
 export const metadata = {
   title: "Lập phiếu mua hàng – Nhân viên | Aquamarine Jewelry & Luxury",
 };
 
 export default async function StaffTaoPhieuMuaHangPage() {
-  const productsRaw = await prisma.sanPham.findMany({
-    include: { loaiSanPham: true, donViTinh: true },
-    orderBy: { maSP: 'asc' },
-  });
+  const [productsRaw, suppliersRaw, existingReceipts, thamSo] = await Promise.all([
+    prisma.sanPham.findMany({
+      where: { deletedAt: null },
+      include: { loaiSanPham: true, donViTinh: true },
+      orderBy: { maSP: 'asc' },
+    }),
+    prisma.nhaCungCap.findMany({
+      orderBy: { maNCC: 'asc' },
+    }),
+    prisma.phieuMuaHang.findMany({
+      where: { soPhieu: { startsWith: "PMH" } },
+      select: { soPhieu: true },
+    }),
+    prisma.thamSo.findFirst({ where: { id: 1 } }),
+  ]);
   const products = JSON.parse(JSON.stringify(productsRaw));
-
-  const suppliersRaw = await prisma.nhaCungCap.findMany({
-    orderBy: { maNCC: 'asc' },
-  });
   const suppliers = JSON.parse(JSON.stringify(suppliersRaw));
-
-  const lastPhieu = await prisma.phieuMuaHang.findFirst({
-    orderBy: { soPhieu: 'desc' },
-  });
-
-  const lastNum = lastPhieu ? parseInt(lastPhieu.soPhieu.replace('PMH', '')) : 0;
-  const nextSoPhieu = `PMH${(lastNum + 1).toString().padStart(7, '0')}`;
+  const nextSoPhieu = nextSequentialIdFromValidCodes(existingReceipts.map((receipt) => receipt.soPhieu), "PMH", 7);
+  const minPurchaseQuantity = thamSo?.soLuongNhapToiThieu ?? 1;
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -43,7 +46,12 @@ export default async function StaffTaoPhieuMuaHangPage() {
         </div>
       </div>
 
-      <PurchaseInvoiceForm products={products} suppliers={suppliers} nextSoPhieu={nextSoPhieu} />
+      <PurchaseInvoiceForm
+        products={products}
+        suppliers={suppliers}
+        nextSoPhieu={nextSoPhieu}
+        minPurchaseQuantity={minPurchaseQuantity}
+      />
     </div>
   );
 }

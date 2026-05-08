@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import { purchaseInvoiceSchema, type PurchaseInvoiceFormValues } from "@/schemas/purchase.schema";
 import { Input } from "@/components/ui/input";
@@ -19,10 +20,12 @@ interface PurchaseInvoiceFormProps {
   products: any[];
   suppliers: any[];
   nextSoPhieu: string;
+  minPurchaseQuantity?: number;
 }
 
-export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu }: PurchaseInvoiceFormProps) {
+export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu, minPurchaseQuantity = 1 }: PurchaseInvoiceFormProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -50,6 +53,8 @@ export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu }: Purcha
   });
 
   const items = watch("chiTietMuaHang");
+  const selectedSupplierId = watch("maNCC");
+  const selectedSupplier = suppliers.find((supplier) => supplier.maNCC === selectedSupplierId);
 
   const totalAmount = useMemo(() => {
     return items.reduce((sum, item) => sum + (item.thanhTien || 0), 0);
@@ -74,11 +79,12 @@ export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu }: Purcha
     append({
       maSP: p.maSP,
       tenSP: p.tenSP,
+      tenLSP: p.loaiSanPham?.tenLSP,
       maDVT: p.maDVT,
       tenDVT: p.donViTinh?.tenDVT,
-      soLuong: 1,
+      soLuong: minPurchaseQuantity,
       donGiaMua: Number(p.donGiaNhap) || 0,
-      thanhTien: Number(p.donGiaNhap) || 0,
+      thanhTien: minPurchaseQuantity * (Number(p.donGiaNhap) || 0),
     });
     setIsProductModalOpen(false);
   };
@@ -91,11 +97,14 @@ export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu }: Purcha
 
   const onSubmit = async (values: PurchaseInvoiceFormValues) => {
     try {
-      // In logic as specified, inventory and sell price will be updated on server
       const res = await lapPhieuMuaHang(values as any);
-      toast.success("Lập phiếu mua hàng thành công!");
-      router.push("/admin/giao-dich/mua-hang");
-      router.refresh();
+      if (res.success) {
+        toast.success(res.message);
+        router.push(pathname.startsWith("/nhan-vien") ? "/nhan-vien/giao-dich/mua-hang" : "/admin/giao-dich/mua-hang");
+        router.refresh();
+      } else {
+        toast.error(res.message);
+      }
     } catch (error: any) {
       toast.error(error.message || "Lỗi khi lưu phiếu");
     }
@@ -130,6 +139,13 @@ export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu }: Purcha
                 </select>
                 {errors.maNCC && <p className="text-xs text-red-500">{errors.maNCC.message}</p>}
               </div>
+              {selectedSupplier && (
+                <div className="rounded-2xl bg-zinc-50 border border-zinc-100 p-4 space-y-1 text-sm">
+                  <p className="font-bold text-zinc-900">{selectedSupplier.tenNCC}</p>
+                  <p className="text-zinc-500">Địa chỉ: {selectedSupplier.diaChi}</p>
+                  <p className="text-zinc-500">Số điện thoại: {selectedSupplier.soDienThoai}</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -162,13 +178,15 @@ export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu }: Purcha
             </Button>
           </div>
 
-          <div className="bg-white rounded-3xl border border-zinc-200 shadow-sm overflow-hidden min-h-[400px]">
-            <table className="w-full text-sm text-left">
+          <div className="bg-white rounded-3xl border border-zinc-200 shadow-sm overflow-x-auto min-h-[400px]">
+            <table className="w-full min-w-[900px] text-sm text-left">
               <thead>
                 <tr className="border-b border-zinc-100 bg-zinc-50/50 font-bold text-zinc-600 uppercase tracking-tighter text-[11px] cursor-default select-none">
-                  <th className="px-4 py-4 w-10 text-center">#</th>
+                  <th className="px-4 py-4 w-10 text-center">STT</th>
                   <th className="px-4 py-4">Sản phẩm</th>
+                  <th className="px-4 py-4">Loại sản phẩm</th>
                   <th className="px-4 py-4 w-24 text-center">Số lượng</th>
+                  <th className="px-4 py-4 text-center">Đơn vị tính</th>
                   <th className="px-4 py-4 text-right">Đơn giá mua</th>
                   <th className="px-4 py-4 text-right">Thành tiền</th>
                   <th className="px-4 py-4 w-12"></th>
@@ -177,7 +195,7 @@ export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu }: Purcha
               <tbody className="divide-y divide-zinc-100">
                 {fields.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-20 text-center text-zinc-400 italic">Chưa có sản phẩm nào được chọn</td>
+                    <td colSpan={8} className="px-4 py-20 text-center text-zinc-400 italic">Chưa có sản phẩm nào được chọn</td>
                   </tr>
                 ) : (
                   fields.map((field, index) => (
@@ -185,23 +203,32 @@ export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu }: Purcha
                       <td className="px-4 py-4 text-center text-zinc-400 font-medium">{index + 1}</td>
                       <td className="px-4 py-4">
                         <div className="flex flex-col">
-                          <span className="font-bold text-zinc-900 line-clamp-1">{items[index]?.tenSP}</span>
-                          <span className="text-[10px] font-mono text-zinc-400 uppercase">{items[index]?.maSP} ({items[index]?.tenDVT})</span>
+                          <span className="font-bold text-zinc-900 max-w-[180px] whitespace-normal break-words leading-snug">{items[index]?.tenSP}</span>
+                          <span className="text-[10px] font-mono text-zinc-400 uppercase">{items[index]?.maSP}</span>
                         </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="inline-block max-w-[150px] px-2 py-1 rounded-lg bg-zinc-100 text-zinc-600 text-[11px] font-bold border border-zinc-200 whitespace-normal break-words leading-tight">
+                          {items[index]?.tenLSP}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <input
+                          type="number"
+                          min={minPurchaseQuantity}
+                          value={items[index]?.soLuong}
+                          onChange={(e) => updateItem(index, parseInt(e.target.value) || 0, items[index]?.donGiaMua)}
+                          className="w-full h-9 bg-zinc-100 border-none rounded-lg text-center font-bold focus:ring-2 focus:ring-primary/20"
+                        />
+                        <p className="text-[10px] text-zinc-400 text-center mt-1">Tối thiểu: {minPurchaseQuantity}</p>
+                      </td>
+                      <td className="px-4 py-4 text-center font-bold text-zinc-700">
+                        {items[index]?.tenDVT}
                       </td>
                       <td className="px-4 py-4">
                         <input
                           type="number"
                           min="1"
-                          value={items[index]?.soLuong}
-                          onChange={(e) => updateItem(index, parseInt(e.target.value) || 0, items[index]?.donGiaMua)}
-                          className="w-full h-9 bg-zinc-100 border-none rounded-lg text-center font-bold focus:ring-2 focus:ring-primary/20"
-                        />
-                      </td>
-                      <td className="px-4 py-4">
-                        <input
-                          type="number"
-                          min="0"
                           value={items[index]?.donGiaMua}
                           onChange={(e) => updateItem(index, items[index]?.soLuong, parseInt(e.target.value) || 0)}
                           className="w-full h-9 bg-zinc-100 border-none rounded-lg text-right px-2 font-bold focus:ring-2 focus:ring-primary/20"
@@ -241,9 +268,13 @@ export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu }: Purcha
                     <div>
                       <p className="font-bold text-zinc-900">{p.tenSP}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-zinc-400">{p.maSP}</span>
-                        <span className="w-1 h-1 rounded-full bg-zinc-200" />
-                        <span className="text-xs text-zinc-500">Đơn giá nhập cũ: {formatCurrency(Number(p.donGiaNhap))}</span>
+	                        <span className="text-xs text-zinc-400">{p.maSP}</span>
+	                        <span className="w-1 h-1 rounded-full bg-zinc-200" />
+	                        <span className="text-xs text-zinc-400">{p.loaiSanPham?.tenLSP}</span>
+	                        <span className="w-1 h-1 rounded-full bg-zinc-200" />
+	                        <span className="text-xs text-zinc-400">{p.donViTinh?.tenDVT}</span>
+	                        <span className="w-1 h-1 rounded-full bg-zinc-200" />
+	                        <span className="text-xs text-zinc-500">Đơn giá nhập cũ: {formatCurrency(Number(p.donGiaNhap))}</span>
                       </div>
                     </div>
                   </div>

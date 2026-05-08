@@ -40,6 +40,8 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 logs/
+backups/
+fe/backups/
 
 # ========================
 # Runtime & Cache
