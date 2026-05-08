@@ -68,8 +68,6 @@ export function SupplierClient({ initialData, isAdmin }: SupplierClientProps) {
         const newSupplier: NhaCungCap = {
           maNCC: newId,
           ...values,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         };
 
         res = await themNhaCungCap(newSupplier);

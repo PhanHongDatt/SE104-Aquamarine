@@ -289,7 +289,7 @@ export function ServiceReceiptDetail({ phieu, isAdmin = false }: ServiceReceiptD
             <div className="space-y-1">
               <h4 className="text-sm font-bold text-amber-900 uppercase tracking-tight">Lưu ý khi giao hàng</h4>
               <p className="text-xs text-amber-800 leading-relaxed">
-                Nhân viên cần kiểm tra kỹ lại tình trạng sản phẩm và ghi nhận kết quả giám định (đối với nhóm Kiểm định) trước khi bấm hoàn thành phiếu. Khi bấm <strong>"Cập nhật & Giao hàng"</strong>, trạng thái phiếu sẽ chuyển sang <strong>Đã hoàn thành</strong> và không thể chỉnh sửa thêm.
+                Nhân viên cần kiểm tra kỹ lại tình trạng sản phẩm và ghi nhận kết quả giám định (đối với nhóm Kiểm định) trước khi bấm hoàn thành phiếu. Khi bấm <strong>&quot;Cập nhật & Giao hàng&quot;</strong>, trạng thái phiếu sẽ chuyển sang <strong>Đã hoàn thành</strong> và không thể chỉnh sửa thêm.
               </p>
             </div>
           </div>

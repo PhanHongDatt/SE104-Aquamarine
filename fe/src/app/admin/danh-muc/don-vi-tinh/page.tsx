@@ -282,7 +282,7 @@ export default function AdminDonViTinhPage() {
               <div className="space-y-2">
                 <h3 className="text-xl font-bold text-zinc-900 font-montserrat">Xác nhận xóa?</h3>
                 <p className="text-sm text-zinc-500 leading-relaxed">
-                  Bạn có chắc chắn muốn xóa đơn vị tính <span className="font-bold text-zinc-800">"{deleteConfirm.name}"</span>? 
+                  Bạn có chắc chắn muốn xóa đơn vị tính <span className="font-bold text-zinc-800">&quot;{deleteConfirm.name}&quot;</span>?
                   <br />Hành động này không thể hoàn tác.
                 </p>
               </div>

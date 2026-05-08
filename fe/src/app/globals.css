@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,6 +7,9 @@
   --color-warm: #EFE3CA;
   --color-accent: #56B6C6;
   --color-soft: #8ACBD0;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-print: "Times New Roman", Georgia, serif;
 }
 
 /* ── Smooth scrolling & full height ── */
@@ -19,7 +20,7 @@ html {
 
 body {
   min-height: 100vh;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   @apply bg-[#FAFAFA] text-zinc-900 antialiased;
 }
 
@@ -97,6 +98,8 @@ body {
     -ms-overflow-style: none;
   }
   .scrollbar-hidden::-webkit-scrollbar { display: none; }
+
+  .print-font { font-family: var(--font-print); }
 
   /* Gradient borders */
   .gradient-border {

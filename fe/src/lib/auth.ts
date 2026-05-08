@@ -21,11 +21,12 @@ export const authOptions: NextAuthOptions = {
 
           // Lưu ý: Đang dùng plain text password theo yêu cầu thử nghiệm nhanh
           if (user && user.matKhau === credentials.password) {
+            const role = user.nhomNguoiDung.tenNhom as "QUAN_LY" | "NHAN_VIEN";
             return {
               id: user.maND,
               name: user.hoTen,
               email: `${user.tenDangNhap}@vangbac.local`,
-              role: user.nhomNguoiDung.tenNhom,
+              role,
               maNhom: user.maNhom,
             };
           }
