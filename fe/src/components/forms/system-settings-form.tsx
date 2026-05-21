@@ -27,6 +27,7 @@ export function SystemSettingsForm({ initialData }: SystemSettingsFormProps) {
     defaultValues: {
       phanTramLoiNhuanToiThieu: Number(initialData?.phanTramLoiNhuanToiThieu || 0),
       soLuongTonKhoToiThieu: Number(initialData?.soLuongTonKhoToiThieu || 0),
+      soLuongNhapToiThieu: Number(initialData?.soLuongNhapToiThieu || 1),
       tiLeTraTruocToiThieu: Number(initialData?.tiLeTraTruocToiThieu || 50),
     },
   });
@@ -99,7 +100,31 @@ export function SystemSettingsForm({ initialData }: SystemSettingsFormProps) {
                     {...register("soLuongTonKhoToiThieu")}
                   />
                   <p className="text-[10px] text-zinc-400 italic leading-relaxed">
-                    * Dùng để hiển thị cảnh báo tồn thấp trong báo cáo kho khi số lượng sản phẩm chạm ngưỡng này.
+                    * Dùng để hiển thị cảnh báo tồn thấp trong báo cáo kho khi số lượng sản phẩm thấp hơn ngưỡng này.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* QĐ4 */}
+            <div className="space-y-4 border-t border-zinc-50 pt-8">
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs font-black">QĐ4</span>
+                <h3 className="font-bold text-zinc-800">Số lượng nhập tối thiểu</h3>
+              </div>
+              <div className="pl-10 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                <div className="space-y-2">
+                  <Input
+                    label="Số lượng mua tối thiểu mỗi dòng"
+                    type="number"
+                    min={1}
+                    max={1000}
+                    placeholder="VD: 5"
+                    error={errors.soLuongNhapToiThieu?.message}
+                    {...register("soLuongNhapToiThieu")}
+                  />
+                  <p className="text-[10px] text-zinc-400 italic leading-relaxed">
+                    * Dùng để từ chối phiếu mua có số lượng nhập thấp hơn mức quy định.
                   </p>
                 </div>
               </div>

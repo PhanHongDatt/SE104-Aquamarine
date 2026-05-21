@@ -146,14 +146,14 @@ export function InventoryReportView() {
             <table className="w-full text-sm text-left">
               <thead>
                 <tr className="border-b border-zinc-100 bg-zinc-50/50 font-bold text-zinc-600 uppercase tracking-tighter text-[11px]">
-                  <th className="px-6 py-4 w-12 text-center">STT</th>
-                  <th className="px-6 py-4 min-w-[200px]">Sản phẩm</th>
-                  <th className="px-6 py-4 text-center">ĐVT</th>
-                  <th className="px-6 py-4 text-right">Tồn đầu</th>
-                  <th className="px-6 py-4 text-right">Mua vào</th>
-                  <th className="px-6 py-4 text-right">Bán ra</th>
-                  <th className="px-6 py-4 text-right">Tồn cuối</th>
-                  <th className="px-6 py-4 text-right">Tối thiểu</th>
+	                  <th className="px-6 py-4 w-12 text-center">STT</th>
+	                  <th className="px-6 py-4 min-w-[200px]">Sản phẩm</th>
+	                  <th className="px-6 py-4 text-right">Tồn đầu</th>
+	                  <th className="px-6 py-4 text-right">Mua vào</th>
+	                  <th className="px-6 py-4 text-right">Bán ra</th>
+	                  <th className="px-6 py-4 text-right">Tồn cuối</th>
+	                  <th className="px-6 py-4 text-right">Tối thiểu</th>
+	                  <th className="px-6 py-4 text-center">ĐVT</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -178,14 +178,14 @@ export function InventoryReportView() {
                           <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">{item.maSP}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-center text-zinc-600">{item.tenDVT}</td>
-                      <td className="px-6 py-4 text-right font-medium">{item.tonDau}</td>
-                      <td className="px-6 py-4 text-right text-blue-600 font-bold">{item.slMuaVao}</td>
-                      <td className="px-6 py-4 text-right text-orange-600 font-bold">{item.slBanRa}</td>
+	                      <td className="px-6 py-4 text-right font-medium">{item.tonDau}</td>
+	                      <td className="px-6 py-4 text-right text-blue-600 font-bold">{item.slMuaVao}</td>
+	                      <td className="px-6 py-4 text-right text-orange-600 font-bold">{item.slBanRa}</td>
                       <td className={`px-6 py-4 text-right font-black text-base ${item.canhBao ? 'text-red-600' : 'text-zinc-900'}`}>
                         {item.tonCuoi}
-                      </td>
-                      <td className="px-6 py-4 text-right text-zinc-400 italic text-xs">{item.tonToiThieu}</td>
+	                      </td>
+	                      <td className="px-6 py-4 text-right text-zinc-400 italic text-xs">{item.tonToiThieu}</td>
+	                      <td className="px-6 py-4 text-center text-zinc-600">{item.tenDVT}</td>
                     </tr>
                   ))
                 )}

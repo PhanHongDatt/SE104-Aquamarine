@@ -7,8 +7,15 @@ export const metadata = { title: "Tra Cứu Dịch Vụ – Quản Lý Vàng B�
 
 export default async function TraCuuDichVuPage() {
   const data = await prisma.phieuDichVu.findMany({
+    include: { chiTietDichVu: true },
     orderBy: { ngayLap: 'desc' }
   });
+  const computedData = data.map((phieu) => ({
+    ...phieu,
+    tinhTrang: phieu.chiTietDichVu.length > 0 && phieu.chiTietDichVu.every((ct) => ct.ngayGiao)
+      ? "HoanThanh"
+      : "ChuaHoanThanh",
+  }));
 
   return (
     <div className="page-container space-y-6">
@@ -28,7 +35,7 @@ export default async function TraCuuDichVuPage() {
         </Link>
       </div>
 
-      <ServiceSearchList initialData={JSON.parse(JSON.stringify(data))} isAdmin={false} />
+      <ServiceSearchList initialData={JSON.parse(JSON.stringify(computedData))} isAdmin={false} />
     </div>
   );
 }

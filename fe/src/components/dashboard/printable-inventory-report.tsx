@@ -51,12 +51,12 @@ export const PrintableInventoryReport = React.forwardRef<
           <tr className="bg-zinc-100">
             <th className="border border-zinc-800 p-2 text-center w-8">STT</th>
             <th className="border border-zinc-800 p-2 text-left">Sản phẩm</th>
-            <th className="border border-zinc-800 p-2 text-center">ĐVT</th>
             <th className="border border-zinc-800 p-2 text-right">Tồn đầu</th>
             <th className="border border-zinc-800 p-2 text-right">Mua vào</th>
             <th className="border border-zinc-800 p-2 text-right">Bán ra</th>
             <th className="border border-zinc-800 p-2 text-right">Tồn cuối</th>
             <th className="border border-zinc-800 p-2 text-right">Tồn tối thiểu</th>
+            <th className="border border-zinc-800 p-2 text-center">ĐVT</th>
           </tr>
         </thead>
         <tbody>
@@ -68,12 +68,12 @@ export const PrintableInventoryReport = React.forwardRef<
                 <br />
                 <span className="text-[8px] font-mono text-zinc-400">{item.maSP}</span>
               </td>
-              <td className="border border-zinc-800 p-2 text-center">{item.tenDVT}</td>
               <td className="border border-zinc-800 p-2 text-right">{item.tonDau}</td>
               <td className="border border-zinc-800 p-2 text-right">{item.slMuaVao}</td>
               <td className="border border-zinc-800 p-2 text-right">{item.slBanRa}</td>
               <td className="border border-zinc-800 p-2 text-right font-bold">{item.tonCuoi}</td>
               <td className="border border-zinc-800 p-2 text-right italic text-zinc-500">{item.tonToiThieu}</td>
+              <td className="border border-zinc-800 p-2 text-center">{item.tenDVT}</td>
             </tr>
           ))}
         </tbody>

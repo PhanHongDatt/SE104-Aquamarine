@@ -1,0 +1,2 @@
+ALTER TABLE "SanPham" ADD COLUMN "deletedAt" TIMESTAMP(3);
+ALTER TABLE "KhachHang" ADD COLUMN "deletedAt" TIMESTAMP(3);

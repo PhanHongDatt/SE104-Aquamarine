@@ -34,3 +34,28 @@ export const userUpdateSchema = userSchema.extend({
 });
 
 export type UserUpdateFormValues = z.infer<typeof userUpdateSchema>;
+
+export const registerUserSchema = userSchema
+  .omit({ maNhom: true })
+  .extend({
+    xacNhanMatKhau: z.string().min(1, "Vui lòng xác nhận mật khẩu"),
+  })
+  .refine((data) => data.matKhau === data.xacNhanMatKhau, {
+    path: ["xacNhanMatKhau"],
+    message: "Mật khẩu xác nhận không khớp",
+  });
+
+export type RegisterUserFormValues = z.infer<typeof registerUserSchema>;
+
+export const changePasswordSchema = z
+  .object({
+    matKhauCu: z.string().min(1, "Vui lòng nhập mật khẩu hiện tại"),
+    matKhauMoi: userSchema.shape.matKhau,
+    xacNhanMatKhau: z.string().min(1, "Vui lòng xác nhận mật khẩu mới"),
+  })
+  .refine((data) => data.matKhauMoi === data.xacNhanMatKhau, {
+    path: ["xacNhanMatKhau"],
+    message: "Mật khẩu xác nhận không khớp",
+  });
+
+export type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;

@@ -42,8 +42,30 @@ Nếu không muốn dùng script tự động, bạn có thể chạy từng bư
 - `npm install`: Cài đặt thư viện.
 - `npm run env:init`: Tạo file `.env` từ mẫu.
 - `npm run db:up`: Khởi chạy database bằng Docker.
-- `npm run db:setup`: Đồng bộ database schema và nạp dữ liệu mẫu (seed).
+- `npm run db:setup`: Áp dụng Prisma migrations và nạp dữ liệu mẫu (seed).
 - `npm run db:studio`: Mở giao diện xem dữ liệu database.
+- `npm run test:logic`: Kiểm thử các hàm nghiệp vụ lõi như tính giá bán, tổng hóa đơn, kiểm tồn kho.
+- `npm run build`: Kiểm tra build production.
+- `npm run start`: Chạy bản production standalone sau khi build.
+- `npm run db:backup`: Sao lưu PostgreSQL ra file `.sql` trong `BACKUP_DIR`.
+- `BACKUP_FILE=./backups/file.sql RESTORE_CONFIRM=YES npm run db:restore`: Phục hồi database từ file sao lưu.
+
+Sau khi thay đổi `prisma/schema.prisma`, chạy:
+
+```bash
+npx prisma migrate dev --name ten-thay-doi
+npx prisma generate
+```
+
+Khi deploy production, dùng `npx prisma migrate deploy` thay cho `db push`.
+
+---
+
+## 📚 Tài liệu đồ án liên quan Chương 7-8-9
+
+- `../docs/chapter-7-ui-design.md`: thiết kế giao diện, sơ đồ màn hình, danh sách màn hình và mô tả control.
+- `../docs/chapter-8-implementation.md`: phương pháp cài đặt, môi trường, stack và phong cách lập trình.
+- `../docs/chapter-9-testing-maintenance.md`: test plan, test case, kiểm thử hộp đen/hộp trắng và kế hoạch bảo trì.
 
 ---
 

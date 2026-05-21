@@ -26,6 +26,7 @@ const navGroups = [
       { href: "/nhan-vien/danh-muc/san-pham", icon: Package, label: "Sản phẩm" },
       { href: "/nhan-vien/danh-muc/loai-san-pham", icon: Box, label: "Loại sản phẩm" },
       { href: "/nhan-vien/danh-muc/don-vi-tinh", icon: Ruler, label: "Đơn vị tính" },
+      { href: "/nhan-vien/danh-muc/khach-hang", icon: Users, label: "Khách hàng" },
       { href: "/nhan-vien/danh-muc/nha-cung-cap", icon: Truck, label: "Nhà cung cấp" },
     ],
   },

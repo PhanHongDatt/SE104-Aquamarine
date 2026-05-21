@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { Eye, ShoppingBag, Truck, Calendar, Hash } from "lucide-react";
+import { useRef, useState } from "react";
+import { Download, Eye, Printer, ShoppingBag } from "lucide-react";
 import type { PhieuMuaHang } from "@/types/model";
 import { Modal } from "@/components/ui/modal";
+import { PrintablePurchaseInvoice } from "./printable-purchase-invoice";
 
 interface PurchaseInvoiceListProps {
   data: PhieuMuaHang[];
@@ -15,9 +16,55 @@ function formatCurrency(value: number) {
 
 export function PurchaseInvoiceList({ data }: PurchaseInvoiceListProps) {
   const [selectedPhieu, setSelectedPhieu] = useState<any | null>(null);
+  const printRef = useRef<HTMLDivElement>(null);
 
   const openDetail = (phieu: PhieuMuaHang) => {
     setSelectedPhieu(phieu);
+  };
+
+  const handlePrint = () => {
+    if (!printRef.current) return;
+
+    const iframe = document.createElement("iframe");
+    iframe.style.display = "none";
+    document.body.appendChild(iframe);
+
+    const printWindow = iframe.contentWindow;
+    if (!printWindow) return;
+
+    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+      .map((style) => style.outerHTML)
+      .join("");
+
+    printWindow.document.open();
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>PhieuMua_${selectedPhieu?.soPhieu || "PurchaseInvoice"}</title>
+          ${styles}
+          <style>
+            @media print {
+              body { margin: 0; padding: 0; }
+              .print-container { width: 100% !important; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-container">
+            ${printRef.current.innerHTML}
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              window.onafterprint = function() {
+                window.parent.document.body.removeChild(window.frameElement);
+              };
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   return (
@@ -77,10 +124,12 @@ export function PurchaseInvoiceList({ data }: PurchaseInvoiceListProps) {
                 <p className="text-[10px] uppercase tracking-wider text-zinc-400 font-bold">Ngày lập</p>
                 <p className="text-sm text-zinc-800">{new Date(selectedPhieu.ngayLap).toLocaleDateString("vi-VN")}</p>
               </div>
-              <div className="col-span-2 space-y-1 pt-2 border-t border-zinc-200/50">
-                <p className="text-[10px] uppercase tracking-wider text-zinc-400 font-bold">Nhà cung cấp</p>
-                <p className="text-sm font-bold text-zinc-900">{selectedPhieu.nhaCungCap?.tenNCC || selectedPhieu.maNCC}</p>
-              </div>
+	              <div className="col-span-2 space-y-1 pt-2 border-t border-zinc-200/50">
+	                <p className="text-[10px] uppercase tracking-wider text-zinc-400 font-bold">Nhà cung cấp</p>
+	                <p className="text-sm font-bold text-zinc-900">{selectedPhieu.nhaCungCap?.tenNCC || selectedPhieu.maNCC}</p>
+	                <p className="text-xs text-zinc-500">Địa chỉ: {selectedPhieu.nhaCungCap?.diaChi}</p>
+	                <p className="text-xs text-zinc-500">Số điện thoại: {selectedPhieu.nhaCungCap?.soDienThoai}</p>
+	              </div>
             </div>
 
             <div className="space-y-3">
@@ -91,30 +140,36 @@ export function PurchaseInvoiceList({ data }: PurchaseInvoiceListProps) {
               <div className="rounded-2xl border border-zinc-100 overflow-hidden">
                 <table className="w-full text-xs text-left">
                   <thead className="bg-zinc-50/80 border-b border-zinc-100 font-bold text-zinc-500">
-                    <tr className="cursor-default select-none">
-                      <th className="px-4 py-3">Sản phẩm</th>
-                      <th className="px-4 py-3 text-center">SL</th>
-                      <th className="px-4 py-3 text-right">Đơn giá nhập</th>
-                      <th className="px-4 py-3 text-right">Thành tiền</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-50">
-                    {selectedPhieu.chiTietMuaHang?.map((item: any) => (
-                      <tr key={item.maSP}>
-                        <td className="px-4 py-3">
-                          <p className="font-bold text-zinc-800 line-clamp-1">{item.sanPham?.tenSP}</p>
-                          <p className="text-[9px] font-mono text-zinc-400 uppercase">{item.maSP}</p>
-                        </td>
-                        <td className="px-4 py-3 text-center font-medium">{item.soLuong}</td>
-                        <td className="px-4 py-3 text-right">{formatCurrency(Number(item.donGia))}</td>
-                        <td className="px-4 py-3 text-right font-bold text-zinc-900">{formatCurrency(Number(item.thanhTien))}</td>
-                      </tr>
+	                    <tr className="cursor-default select-none">
+	                      <th className="px-4 py-3 text-center">STT</th>
+	                      <th className="px-4 py-3">Sản phẩm</th>
+	                      <th className="px-4 py-3">Loại sản phẩm</th>
+	                      <th className="px-4 py-3 text-center">SL</th>
+	                      <th className="px-4 py-3 text-center">ĐVT</th>
+	                      <th className="px-4 py-3 text-right">Đơn giá nhập</th>
+	                      <th className="px-4 py-3 text-right">Thành tiền</th>
+	                    </tr>
+	                  </thead>
+	                  <tbody className="divide-y divide-zinc-50">
+	                    {selectedPhieu.chiTietMuaHang?.map((item: any, index: number) => (
+	                      <tr key={item.maSP}>
+	                        <td className="px-4 py-3 text-center font-mono text-zinc-400">{index + 1}</td>
+	                        <td className="px-4 py-3">
+	                          <p className="font-bold text-zinc-800 line-clamp-1">{item.sanPham?.tenSP}</p>
+	                          <p className="text-[9px] font-mono text-zinc-400 uppercase">{item.maSP}</p>
+	                        </td>
+	                        <td className="px-4 py-3 text-zinc-600">{item.sanPham?.loaiSanPham?.tenLSP}</td>
+	                        <td className="px-4 py-3 text-center font-medium">{item.soLuong}</td>
+	                        <td className="px-4 py-3 text-center font-medium">{item.sanPham?.donViTinh?.tenDVT}</td>
+	                        <td className="px-4 py-3 text-right">{formatCurrency(Number(item.donGia))}</td>
+	                        <td className="px-4 py-3 text-right font-bold text-zinc-900">{formatCurrency(Number(item.thanhTien))}</td>
+	                      </tr>
                     ))}
                   </tbody>
                   <tfoot className="bg-primary/5 font-bold">
-                    <tr className="cursor-default select-none">
-                      <td colSpan={3} className="px-4 py-3 text-zinc-600 text-right">Tổng thanh toán:</td>
-                      <td className="px-4 py-3 text-right text-primary text-sm font-black">
+	                    <tr className="cursor-default select-none">
+	                      <td colSpan={6} className="px-4 py-3 text-zinc-600 text-right">Tổng thanh toán:</td>
+	                      <td className="px-4 py-3 text-right text-primary text-sm font-black">
                         {formatCurrency(Number(selectedPhieu.tongTien))}
                       </td>
                     </tr>
@@ -123,16 +178,36 @@ export function PurchaseInvoiceList({ data }: PurchaseInvoiceListProps) {
               </div>
             </div>
 
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={() => setSelectedPhieu(null)}
-                className="px-6 py-2 bg-zinc-900 text-white rounded-xl text-sm font-bold hover:bg-zinc-800 transition-colors"
+	            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-2">
+	              <button
+	                onClick={handlePrint}
+	                className="flex items-center justify-center gap-2 px-6 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary-hover transition-colors"
+	              >
+	                <Printer className="w-4 h-4" />
+	                In phiếu
+	              </button>
+	              <button
+	                onClick={handlePrint}
+	                className="flex items-center justify-center gap-2 px-6 py-2 bg-zinc-100 text-zinc-600 rounded-xl text-sm font-bold hover:bg-zinc-200 transition-colors"
+	              >
+	                <Download className="w-4 h-4" />
+	                Tải xuống (PDF)
+	              </button>
+	              <button
+	                onClick={() => setSelectedPhieu(null)}
+	                className="px-6 py-2 bg-zinc-900 text-white rounded-xl text-sm font-bold hover:bg-zinc-800 transition-colors"
               >
                 Đóng
-              </button>
-            </div>
-          </div>
-        )}
+	              </button>
+	            </div>
+
+	            <div className="hidden">
+	              <div ref={printRef}>
+	                <PrintablePurchaseInvoice phieu={selectedPhieu} />
+	              </div>
+	            </div>
+	          </div>
+	        )}
       </Modal>
     </div>
   );

@@ -1,0 +1,911 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Báo cáo giao diện, chức năng, kiểm thử và vận hành - Aquamarine</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #5d667a;
+      --line: #dfe4ee;
+      --soft: #f6f8fb;
+      --brand: #1247a6;
+      --brand-2: #0f766e;
+      --danger: #b42318;
+      --warn: #b54708;
+      --ok: #067647;
+      --card: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #edf1f7;
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.55;
+    }
+
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      background: var(--card);
+      min-height: 100vh;
+      box-shadow: 0 20px 60px rgba(20, 31, 51, 0.12);
+    }
+
+    header {
+      padding: 34px 42px 28px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #ffffff 0%, #f7f9fc 100%);
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 30px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin: 36px 0 14px;
+      font-size: 22px;
+      border-left: 5px solid var(--brand);
+      padding-left: 12px;
+    }
+
+    h3 {
+      margin: 26px 0 10px;
+      font-size: 17px;
+    }
+
+    p {
+      margin: 8px 0;
+    }
+
+    code {
+      background: #eef2f7;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 0.92em;
+    }
+
+    pre {
+      margin: 12px 0;
+      padding: 14px 16px;
+      overflow-x: auto;
+      border-radius: 8px;
+      color: #f8fafc;
+      background: #111827;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 13px;
+    }
+
+    main {
+      padding: 28px 42px 48px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 15px;
+      max-width: 900px;
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .meta-item {
+      border: 1px solid var(--line);
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+
+    .meta-item strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .toc {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin: 18px 0 28px;
+    }
+
+    .toc a {
+      display: block;
+      padding: 10px 12px;
+      color: var(--brand);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--soft);
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      padding: 16px;
+    }
+
+    .card h3 {
+      margin-top: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 22px;
+      font-size: 13.5px;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--line);
+      padding: 9px 10px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      background: #eef3f9;
+      font-weight: 700;
+    }
+
+    tbody tr:nth-child(even) td {
+      background: #fbfcfe;
+    }
+
+    ul,
+    ol {
+      margin: 8px 0 16px 22px;
+      padding: 0;
+    }
+
+    li {
+      margin: 5px 0;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .done {
+      color: var(--ok);
+      background: #ecfdf3;
+      border-color: #abefc6;
+    }
+
+    .partial {
+      color: var(--warn);
+      background: #fffaeb;
+      border-color: #fedf89;
+    }
+
+    .todo {
+      color: var(--danger);
+      background: #fef3f2;
+      border-color: #fecdca;
+    }
+
+    .note {
+      border-left: 4px solid var(--brand-2);
+      background: #f0fdfa;
+      padding: 12px 14px;
+      margin: 14px 0;
+      color: #134e4a;
+    }
+
+    .warning {
+      border-left: 4px solid var(--warn);
+      background: #fffaeb;
+      padding: 12px 14px;
+      margin: 14px 0;
+      color: #7a2e0e;
+    }
+
+    .screen-map {
+      white-space: pre-wrap;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 13px;
+    }
+
+    .feature-test h3 {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 6px;
+    }
+
+    footer {
+      padding: 20px 42px 34px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      background: #f8fafc;
+      font-size: 13px;
+    }
+
+    @media (max-width: 860px) {
+      .page {
+        box-shadow: none;
+      }
+
+      header,
+      main,
+      footer {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+
+      .meta,
+      .toc,
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+      }
+
+      .page {
+        max-width: none;
+        box-shadow: none;
+      }
+
+      .toc {
+        display: none;
+      }
+
+      h2 {
+        page-break-after: avoid;
+      }
+
+      table,
+      pre,
+      .card {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>Báo cáo giao diện, chức năng, kiểm thử và vận hành hệ thống Aquamarine</h1>
+      <p class="subtitle">
+        Tài liệu tổng hợp các thành phần giao diện, chức năng đã triển khai, mục tiêu đã hoàn thành,
+        hướng dẫn chạy chương trình và hướng dẫn kiểm thử chi tiết cho hệ thống quản lý cửa hàng vàng bạc đá quý.
+      </p>
+      <div class="meta">
+        <div class="meta-item">
+          <strong>Dự án</strong>
+          Aquamarine Jewelry
+        </div>
+        <div class="meta-item">
+          <strong>Stack</strong>
+          Next.js, React, Prisma, PostgreSQL
+        </div>
+        <div class="meta-item">
+          <strong>Thư mục mã nguồn</strong>
+          <code>SE104-Aquamarine/fe</code>
+        </div>
+        <div class="meta-item">
+          <strong>Tài khoản demo</strong>
+          <code>admin</code>, <code>nhanvien</code>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <nav class="toc" aria-label="Mục lục">
+        <a href="#overview">1. Tổng quan</a>
+        <a href="#ui">2. Thành phần giao diện</a>
+        <a href="#features">3. Chức năng</a>
+        <a href="#goals">4. Mục tiêu hoàn thành</a>
+        <a href="#run">5. Hướng dẫn chạy</a>
+        <a href="#test">6. Hướng dẫn kiểm thử</a>
+        <a href="#feature-tests">7. Test chi tiết từng tính năng</a>
+        <a href="#operations">8. Vận hành và bảo trì</a>
+        <a href="#risks">9. Rủi ro còn lại</a>
+      </nav>
+
+      <section id="overview">
+        <h2>1. Tổng quan hệ thống</h2>
+        <p>
+          Aquamarine là hệ thống web hỗ trợ quản lý cửa hàng vàng bạc đá quý. Hệ thống tập trung vào các nghiệp vụ:
+          quản lý danh mục, quản lý sản phẩm, mua hàng, bán hàng, dịch vụ, tra cứu, báo cáo, phân quyền,
+          thay đổi quy định và sao lưu/phục hồi dữ liệu.
+        </p>
+        <div class="grid">
+          <div class="card">
+            <h3>Vai trò người dùng</h3>
+            <ul>
+              <li><strong>Quản lý/Admin:</strong> toàn quyền với danh mục, giao dịch, báo cáo, tài khoản, phân quyền và quy định.</li>
+              <li><strong>Nhân viên:</strong> thao tác bán hàng, mua hàng, dịch vụ, tra cứu và xem các màn hình được cấp quyền.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Công nghệ sử dụng</h3>
+            <ul>
+              <li>Frontend/backend: Next.js 14 App Router, React 18, TypeScript.</li>
+              <li>Cơ sở dữ liệu: PostgreSQL thông qua Prisma ORM.</li>
+              <li>Xác thực: NextAuth Credentials Provider.</li>
+              <li>Validation: Zod, React Hook Form.</li>
+              <li>Giao diện: Tailwind CSS, lucide-react, sonner toast.</li>
+            </ul>
+          </div>
+        </div>
+
+        <h3>Sơ đồ điều hướng tổng quát</h3>
+        <div class="screen-map">Đăng nhập
+  -> Dashboard
+      -> Đơn vị tính
+      -> Loại sản phẩm
+      -> Sản phẩm
+      -> Khách hàng
+      -> Nhà cung cấp
+      -> Phiếu mua hàng
+      -> Phiếu bán hàng
+      -> Phiếu dịch vụ
+      -> Tra cứu phiếu dịch vụ
+      -> Báo cáo tồn kho
+      -> Báo cáo doanh thu
+      -> Phân quyền người dùng
+      -> Thay đổi quy định
+      -> Sao lưu và phục hồi dữ liệu</div>
+      </section>
+
+      <section id="ui">
+        <h2>2. Thành phần giao diện</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>STT</th>
+              <th>Thành phần</th>
+              <th>Vai trò trong giao diện</th>
+              <th>File/thư mục liên quan</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td>Layout Admin/Nhân viên</td>
+              <td>Tạo khung trang, vùng nội dung, sidebar, header cho từng vai trò.</td>
+              <td><code>fe/src/app/admin</code>, <code>fe/src/app/nhan-vien</code></td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>Sidebar điều hướng</td>
+              <td>Gom nhóm chức năng: Danh mục, Giao dịch, Dịch vụ, Báo cáo, Cài đặt.</td>
+              <td><code>fe/src/components/layout</code></td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>Form nhập liệu</td>
+              <td>Nhập dữ liệu sản phẩm, phiếu, dịch vụ, người dùng, quy định.</td>
+              <td><code>fe/src/components/forms</code>, <code>fe/src/components/giao-dich</code></td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td>Bảng dữ liệu</td>
+              <td>Hiển thị danh sách đơn vị tính, loại sản phẩm, sản phẩm, nhà cung cấp, phiếu và báo cáo.</td>
+              <td>Các page trong <code>fe/src/app</code></td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td>Thông báo/toast/modal</td>
+              <td>Thông báo thành công, lỗi validation, lỗi phân quyền, xác nhận thao tác nguy hiểm.</td>
+              <td><code>sonner</code>, <code>fe/src/components/ui</code></td>
+            </tr>
+            <tr>
+              <td>6</td>
+              <td>Báo biểu/in phiếu</td>
+              <td>In phiếu bán, phiếu dịch vụ, báo cáo tồn kho và doanh thu.</td>
+              <td><code>fe/src/components/dashboard</code>, <code>fe/src/components/giao-dich</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Danh sách màn hình chính</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>STT</th>
+              <th>Màn hình</th>
+              <th>Loại màn hình</th>
+              <th>Chức năng chính</th>
+              <th>Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td>Đăng nhập</td><td>Nhập liệu/xác thực</td><td>Xác thực tài khoản và điều hướng theo vai trò.</td><td><span class="badge done">Đã có</span></td></tr>
+            <tr><td>2</td><td>Dashboard</td><td>Màn hình chính</td><td>Thống kê nhanh, điều hướng nghiệp vụ, cảnh báo tồn thấp.</td><td><span class="badge done">Đã có</span></td></tr>
+            <tr><td>3</td><td>Đơn vị tính</td><td>Nhập liệu + tra cứu</td><td>Quản lý đơn vị tính sản phẩm.</td><td><span class="badge done">Đã có</span></td></tr>
+            <tr><td>4</td><td>Loại sản phẩm</td><td>Nhập liệu + tra cứu</td><td>Quản lý loại sản phẩm, DVT mặc định, % lợi nhuận.</td><td><span class="badge done">Đã có</span></td></tr>
+            <tr><td>5</td><td>Sản phẩm</td><td>Nhập liệu + tra cứu</td><td>Quản lý sản phẩm, hàm lượng, giá, tồn kho.</td><td><span class="badge done">Đã có</span></td></tr>
+            <tr><td>6</td><td>Nhà cung cấp</td><td>Nhập liệu + tra cứu</td><td>Quản lý đối tác nhập hàng.</td><td><span class="badge done">Đã có</span></td></tr>
+            <tr><td>7</td><td>Phiếu mua hàng</td><td>Nghiệp vụ</td><td>Lập phiếu nhập, tăng tồn, cập nhật giá.</td><td><span class="badge done">Đã có</span></td></tr>
+            <tr><td>8</td><td>Phiếu bán hàng</td><td>Nghiệp vụ</td><td>Lập phiếu bán, kiểm tồn, giảm tồn, in phiếu.</td><td><span class="badge done">Đã có</span></td></tr>
+            <tr><td>9</td><td>Phiếu dịch vụ</td><td>Nghiệp vụ</td><td>Lập phiếu dịch vụ, tính tiền, kiểm trả trước.</td><td><span class="badge done">Đã có</span></td></tr>
+            <tr><td>10</td><td>Tra cứu phiếu dịch vụ</td><td>Tra cứu</td><td>Tìm phiếu, xem chi tiết, cập nhật giao/trả.</td><td><span class="badge done">Đã có</span></td></tr>
+            <tr><td>11</td><td>Báo cáo tồn kho</td><td>Báo biểu</td><td>Tồn đầu, mua vào, bán ra, tồn cuối, cảnh báo thấp.</td><td><span class="badge done">Đã có</span></td></tr>
+            <tr><td>12</td><td>Báo cáo doanh thu</td><td>Báo biểu</td><td>Tổng hợp doanh thu theo kỳ.</td><td><span class="badge done">Đã có</span></td></tr>
+            <tr><td>13</td><td>Phân quyền</td><td>Cấu hình hệ thống</td><td>Quản lý tài khoản và vai trò.</td><td><span class="badge done">Đã có</span></td></tr>
+            <tr><td>14</td><td>Thay đổi quy định</td><td>Cấu hình hệ thống</td><td>Cập nhật tỷ lệ lợi nhuận, tồn tối thiểu, tỷ lệ trả trước.</td><td><span class="badge done">Đã có</span></td></tr>
+            <tr><td>15</td><td>Sao lưu/phục hồi dữ liệu</td><td>Vận hành</td><td>Backup/restore database bằng script.</td><td><span class="badge partial">Có script, chưa có UI riêng</span></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="features">
+        <h2>3. Chức năng nghiệp vụ</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Nhóm chức năng</th>
+              <th>Mô tả xử lý</th>
+              <th>Ràng buộc chính</th>
+              <th>File xử lý chính</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Đăng nhập và phân quyền</td>
+              <td>Xác thực tài khoản, lưu session, phân biệt Quản lý/Nhân viên, chặn route admin.</td>
+              <td>Người chưa đăng nhập bị chuyển về đăng nhập; nhân viên không vào được route admin.</td>
+              <td><code>auth.ts</code>, <code>middleware.ts</code>, <code>user.action.ts</code></td>
+            </tr>
+            <tr>
+              <td>Danh mục</td>
+              <td>Quản lý đơn vị tính, loại sản phẩm, sản phẩm, khách hàng, nhà cung cấp.</td>
+              <td>Không trùng tên/mã, không xóa dữ liệu đang được giao dịch sử dụng.</td>
+              <td><code>don-vi-tinh.action.ts</code>, <code>loai-san-pham.action.ts</code>, <code>san-pham.action.ts</code></td>
+            </tr>
+            <tr>
+              <td>Mua hàng</td>
+              <td>Lập phiếu mua, ghi chi tiết, tăng tồn kho, cập nhật đơn giá nhập và giá bán.</td>
+              <td>Số lượng và đơn giá phải lớn hơn 0; thành tiền phải khớp số lượng x đơn giá.</td>
+              <td><code>giao-dich.ts</code>, <code>purchase.schema.ts</code></td>
+            </tr>
+            <tr>
+              <td>Bán hàng</td>
+              <td>Lập phiếu bán, kiểm tra tồn kho, ghi chi tiết, giảm tồn kho.</td>
+              <td>Không bán vượt tồn; thành tiền và tổng tiền phải đúng.</td>
+              <td><code>giao-dich.ts</code>, <code>giao-dich.schema.ts</code></td>
+            </tr>
+            <tr>
+              <td>Dịch vụ</td>
+              <td>Lập phiếu gia công/kiểm định, tính đơn giá, thành tiền, trả trước, còn lại.</td>
+              <td>Trả trước đạt tỷ lệ tối thiểu; kiểm định phải có kết quả trước khi giao.</td>
+              <td><code>service.action.ts</code>, <code>service.schema.ts</code></td>
+            </tr>
+            <tr>
+              <td>Báo cáo</td>
+              <td>Tổng hợp tồn kho và doanh thu theo kỳ, hỗ trợ in báo cáo.</td>
+              <td>Tồn cuối = tồn đầu + mua vào - bán ra; tồn cuối thấp hơn tồn tối thiểu thì cảnh báo.</td>
+              <td><code>bao-cao.ts</code>, <code>report.service.ts</code></td>
+            </tr>
+            <tr>
+              <td>Sao lưu/phục hồi</td>
+              <td>Sao lưu database ra file SQL, phục hồi từ file backup khi có xác nhận.</td>
+              <td>Restore yêu cầu <code>RESTORE_CONFIRM=YES</code>; file backup không commit lên Git.</td>
+              <td><code>db-backup.js</code>, <code>db-restore.js</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="goals">
+        <h2>4. Mục tiêu đã hoàn thành</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>STT</th>
+              <th>Mục tiêu</th>
+              <th>Kết quả</th>
+              <th>Ghi chú</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td>Hoàn thiện giao diện theo vai trò</td><td><span class="badge done">Hoàn thành</span></td><td>Có layout Admin và Nhân viên.</td></tr>
+            <tr><td>2</td><td>Quản lý danh mục nền</td><td><span class="badge done">Hoàn thành</span></td><td>Đơn vị tính, loại sản phẩm, sản phẩm, khách hàng, nhà cung cấp.</td></tr>
+            <tr><td>3</td><td>Xử lý mua hàng/bán hàng</td><td><span class="badge done">Hoàn thành</span></td><td>Có transaction cập nhật tồn kho.</td></tr>
+            <tr><td>4</td><td>Xử lý dịch vụ</td><td><span class="badge done">Hoàn thành</span></td><td>Có kiểm tra trả trước và kết quả kiểm định khi giao.</td></tr>
+            <tr><td>5</td><td>Báo cáo tồn kho/doanh thu</td><td><span class="badge done">Hoàn thành</span></td><td>Có màn hình báo cáo và bản in.</td></tr>
+            <tr><td>6</td><td>Phân quyền cơ bản</td><td><span class="badge done">Hoàn thành</span></td><td>Middleware chặn route admin, server actions quan trọng có kiểm quyền.</td></tr>
+            <tr><td>7</td><td>Thay đổi quy định</td><td><span class="badge done">Hoàn thành</span></td><td>Quản lý tham số lợi nhuận, tồn tối thiểu, trả trước.</td></tr>
+            <tr><td>8</td><td>Kiểm thử logic nghiệp vụ</td><td><span class="badge done">Hoàn thành</span></td><td><code>npm run test:logic</code> đã pass.</td></tr>
+            <tr><td>9</td><td>Build production</td><td><span class="badge done">Hoàn thành</span></td><td><code>npm run build</code> đã pass.</td></tr>
+            <tr><td>10</td><td>UI sao lưu/phục hồi</td><td><span class="badge partial">Một phần</span></td><td>Đã có script vận hành, chưa có màn hình riêng.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="run">
+        <h2>5. Hướng dẫn chạy chương trình</h2>
+        <h3>5.1. Chạy nhanh bằng Docker ở thư mục gốc</h3>
+        <p>Yêu cầu: Docker Desktop hoặc Docker Engine.</p>
+        <pre><code>cd /home/tofu/SE104-Aquamarine
+docker-compose up -d --build</code></pre>
+        <p>Sau khi container chạy xong, mở trình duyệt tại:</p>
+        <pre><code>http://localhost:3000</code></pre>
+
+        <h3>5.2. Chạy phát triển cục bộ trong thư mục <code>fe</code></h3>
+        <p>Yêu cầu: Node.js 20+, npm, Docker nếu dùng PostgreSQL bằng container.</p>
+        <pre><code>cd /home/tofu/SE104-Aquamarine/fe
+npm install
+cp .env.example .env.local
+npm run db:up
+npx prisma db push
+npx prisma db seed
+npm run dev</code></pre>
+
+        <h3>5.3. Tài khoản demo</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Vai trò</th>
+              <th>Tên đăng nhập</th>
+              <th>Mật khẩu</th>
+              <th>Mục đích test</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Quản lý</td><td><code>admin</code></td><td><code>Admin@123</code></td><td>Test toàn bộ chức năng quản trị.</td></tr>
+            <tr><td>Nhân viên</td><td><code>nhanvien</code></td><td><code>Nhanvien@1</code></td><td>Test giới hạn quyền nhân viên.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>5.4. Build production</h3>
+        <pre><code>cd /home/tofu/SE104-Aquamarine/fe
+npm run build
+npm run start</code></pre>
+
+        <h3>5.5. Sao lưu và phục hồi dữ liệu</h3>
+        <pre><code>cd /home/tofu/SE104-Aquamarine/fe
+npm run db:backup</code></pre>
+        <pre><code>cd /home/tofu/SE104-Aquamarine/fe
+BACKUP_FILE=./backups/aquamarine-file.sql RESTORE_CONFIRM=YES npm run db:restore</code></pre>
+        <div class="warning">
+          Phục hồi dữ liệu là thao tác có rủi ro cao. Chỉ thực hiện trên môi trường test hoặc khi đã có bản sao lưu mới nhất.
+        </div>
+      </section>
+
+      <section id="test">
+        <h2>6. Hướng dẫn kiểm thử tổng quát</h2>
+        <h3>6.1. Kiểm thử kỹ thuật bằng lệnh</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Lệnh</th>
+              <th>Mục tiêu</th>
+              <th>Kết quả mong đợi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>npm run test:logic</code></td>
+              <td>Kiểm thử hàm nghiệp vụ lõi.</td>
+              <td>In ra <code>Business rules tests passed.</code></td>
+            </tr>
+            <tr>
+              <td><code>npm run lint</code></td>
+              <td>Kiểm tra lỗi lint.</td>
+              <td>Không có warning hoặc error.</td>
+            </tr>
+            <tr>
+              <td><code>npm run build</code></td>
+              <td>Kiểm tra build production, type và route.</td>
+              <td>Build thành công, liệt kê route app.</td>
+            </tr>
+          </tbody>
+        </table>
+        <pre><code>cd /home/tofu/SE104-Aquamarine/fe
+npm run test:logic
+npm run lint
+npm run build</code></pre>
+
+        <h3>6.2. Nguyên tắc ghi nhận kết quả test</h3>
+        <ul>
+          <li>Chỉ ghi <strong>Đạt</strong> khi đã chạy test và có kết quả thực tế.</li>
+          <li>Ghi <strong>Chưa thực hiện</strong> nếu mới có test case nhưng chưa thao tác hoặc chưa chạy tự động.</li>
+          <li>Ghi lại dữ liệu đầu vào, thao tác, kết quả thực tế và ảnh chụp/log nếu có.</li>
+          <li>Với lỗi liên quan đến tiền, tồn kho, phân quyền, mất dữ liệu: xếp mức nghiêm trọng cao.</li>
+        </ul>
+      </section>
+
+      <section id="feature-tests" class="feature-test">
+        <h2>7. Hướng dẫn test chi tiết từng tính năng</h2>
+
+        <h3>7.1. Đăng nhập và phân quyền</h3>
+        <table>
+          <thead>
+            <tr><th>Mã test</th><th>Dữ liệu</th><th>Các bước thực hiện</th><th>Kết quả mong đợi</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>AUTH-01</td>
+              <td><code>admin</code> / <code>Admin@123</code></td>
+              <td>Mở <code>/dang-nhap</code>, nhập tài khoản, bấm đăng nhập.</td>
+              <td>Vào dashboard Quản lý.</td>
+            </tr>
+            <tr>
+              <td>AUTH-02</td>
+              <td><code>nhanvien</code> / <code>Nhanvien@1</code></td>
+              <td>Đăng nhập, truy cập trực tiếp <code>/admin/cai-dat/phan-quyen</code>.</td>
+              <td>Bị chuyển hướng hoặc không được truy cập.</td>
+            </tr>
+            <tr>
+              <td>AUTH-03</td>
+              <td>Mật khẩu sai hoặc bỏ trống.</td>
+              <td>Submit form đăng nhập.</td>
+              <td>Hiển thị lỗi đăng nhập/validation.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>7.2. Đơn vị tính</h3>
+        <table>
+          <thead>
+            <tr><th>Mã test</th><th>Dữ liệu</th><th>Các bước thực hiện</th><th>Kết quả mong đợi</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>DVT-01</td><td>Tên DVT hợp lệ, ví dụ <code>Lượng</code>.</td><td>Admin vào Đơn vị tính, thêm mới.</td><td>Lưu thành công, xuất hiện trong danh sách.</td></tr>
+            <tr><td>DVT-02</td><td>Tên rỗng.</td><td>Submit form thêm/sửa.</td><td>Báo lỗi tên không được trống.</td></tr>
+            <tr><td>DVT-03</td><td>Tên đã tồn tại.</td><td>Thêm DVT trùng.</td><td>Báo lỗi trùng tên.</td></tr>
+            <tr><td>DVT-04</td><td>DVT đang được sản phẩm/loại sản phẩm sử dụng.</td><td>Bấm xóa và xác nhận.</td><td>Không cho xóa, hiển thị lỗi ràng buộc.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>7.3. Loại sản phẩm</h3>
+        <table>
+          <thead>
+            <tr><th>Mã test</th><th>Dữ liệu</th><th>Các bước thực hiện</th><th>Kết quả mong đợi</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>LSP-01</td><td>Tên, DVT, % lợi nhuận hợp lệ.</td><td>Admin thêm loại sản phẩm.</td><td>Lưu thành công, tự sinh mã LSP.</td></tr>
+            <tr><td>LSP-02</td><td>% lợi nhuận <code>-1</code> hoặc <code>101</code>.</td><td>Submit form.</td><td>Báo lỗi % lợi nhuận phải từ 0 đến 100.</td></tr>
+            <tr><td>LSP-03</td><td>Loại sản phẩm đã có sản phẩm.</td><td>Bấm xóa.</td><td>Không cho xóa.</td></tr>
+            <tr><td>LSP-04</td><td>Đổi % lợi nhuận từ 10% sang 20%.</td><td>Sửa loại sản phẩm và lưu.</td><td>Sản phẩm thuộc loại được tính lại giá bán.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>7.4. Sản phẩm</h3>
+        <table>
+          <thead>
+            <tr><th>Mã test</th><th>Dữ liệu</th><th>Các bước thực hiện</th><th>Kết quả mong đợi</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>SP-01</td><td>Tên, loại, hàm lượng, trọng lượng, giá nhập hợp lệ.</td><td>Admin thêm sản phẩm.</td><td>Lưu thành công, giá bán tự tính.</td></tr>
+            <tr><td>SP-02</td><td>Hàm lượng <code>25K</code> hoặc rỗng.</td><td>Submit form.</td><td>Báo lỗi hàm lượng không hợp lệ.</td></tr>
+            <tr><td>SP-03</td><td>Trọng lượng <code>0</code> hoặc đơn giá nhập <code>0</code>.</td><td>Submit form.</td><td>Báo lỗi dữ liệu phải lớn hơn 0.</td></tr>
+            <tr><td>SP-04</td><td>Tồn kho thấp hơn tồn tối thiểu.</td><td>Xem danh sách sản phẩm hoặc báo cáo tồn kho.</td><td>Hiển thị cảnh báo tồn thấp.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>7.5. Nhà cung cấp</h3>
+        <table>
+          <thead>
+            <tr><th>Mã test</th><th>Dữ liệu</th><th>Các bước thực hiện</th><th>Kết quả mong đợi</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>NCC-01</td><td>Tên, địa chỉ, SĐT, người liên hệ đầy đủ.</td><td>Thêm nhà cung cấp.</td><td>Lưu thành công.</td></tr>
+            <tr><td>NCC-02</td><td>Thiếu tên hoặc thiếu số điện thoại.</td><td>Submit form.</td><td>Báo lỗi trường bắt buộc.</td></tr>
+            <tr><td>NCC-03</td><td>Tài khoản nhân viên.</td><td>Thử thêm/sửa nếu không có quyền.</td><td>Bị từ chối theo phân quyền.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>7.6. Phiếu mua hàng</h3>
+        <table>
+          <thead>
+            <tr><th>Mã test</th><th>Dữ liệu</th><th>Các bước thực hiện</th><th>Kết quả mong đợi</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>PMH-01</td><td>NCC hợp lệ, SP hợp lệ, SL 10, đơn giá 1.000.000.</td><td>Lập phiếu mua và lưu.</td><td>Phiếu lưu thành công, tồn kho tăng 10.</td></tr>
+            <tr><td>PMH-02</td><td>Không chọn nhà cung cấp.</td><td>Submit phiếu.</td><td>Báo lỗi bắt buộc chọn NCC.</td></tr>
+            <tr><td>PMH-03</td><td>Số lượng hoặc đơn giá bằng 0.</td><td>Submit phiếu.</td><td>Báo lỗi dữ liệu phải lớn hơn 0.</td></tr>
+            <tr><td>PMH-04</td><td>Thành tiền nhập sai so với SL x đơn giá.</td><td>Gửi phiếu.</td><td>Server action từ chối vì thành tiền không khớp.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>7.7. Phiếu bán hàng</h3>
+        <table>
+          <thead>
+            <tr><th>Mã test</th><th>Dữ liệu</th><th>Các bước thực hiện</th><th>Kết quả mong đợi</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>PBH-01</td><td>Khách hàng, SP còn tồn, số lượng hợp lệ.</td><td>Lập phiếu bán và lưu.</td><td>Phiếu lưu thành công, tồn kho giảm.</td></tr>
+            <tr><td>PBH-02</td><td>Số lượng bán lớn hơn tồn kho.</td><td>Chọn SP và nhập số lượng vượt tồn.</td><td>Báo lỗi không đủ tồn kho, không lưu phiếu.</td></tr>
+            <tr><td>PBH-03</td><td>Không có dòng sản phẩm.</td><td>Submit phiếu.</td><td>Báo lỗi phiếu phải có ít nhất một sản phẩm.</td></tr>
+            <tr><td>PBH-04</td><td>SL 3, đơn giá 250.000.</td><td>Kiểm tra thành tiền dòng.</td><td>Thành tiền = 750.000.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>7.8. Phiếu dịch vụ</h3>
+        <table>
+          <thead>
+            <tr><th>Mã test</th><th>Dữ liệu</th><th>Các bước thực hiện</th><th>Kết quả mong đợi</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>PDV-01</td><td>Khách hàng, loại dịch vụ, SL, trả trước >= 50%.</td><td>Lập phiếu dịch vụ.</td><td>Lưu thành công, trạng thái Chưa hoàn thành.</td></tr>
+            <tr><td>PDV-02</td><td>Trả trước dưới 50% thành tiền.</td><td>Submit phiếu.</td><td>Báo lỗi trả trước tối thiểu.</td></tr>
+            <tr><td>PDV-03</td><td>Dịch vụ kiểm định thiếu kết quả.</td><td>Cập nhật giao hàng.</td><td>Báo lỗi phải có kết quả kiểm định.</td></tr>
+            <tr><td>PDV-04</td><td>Tất cả dòng đã giao.</td><td>Cập nhật trạng thái.</td><td>Phiếu chuyển Hoàn thành.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>7.9. Tra cứu phiếu dịch vụ</h3>
+        <table>
+          <thead>
+            <tr><th>Mã test</th><th>Dữ liệu</th><th>Các bước thực hiện</th><th>Kết quả mong đợi</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>TC-PDV-01</td><td>Số phiếu tồn tại.</td><td>Nhập số phiếu, bấm tìm kiếm.</td><td>Hiển thị đúng phiếu.</td></tr>
+            <tr><td>TC-PDV-02</td><td>Tên khách hàng.</td><td>Tìm theo tên khách.</td><td>Danh sách phiếu phù hợp.</td></tr>
+            <tr><td>TC-PDV-03</td><td>Tình trạng Hoàn thành/Chưa hoàn thành.</td><td>Lọc theo tình trạng.</td><td>Danh sách lọc đúng.</td></tr>
+            <tr><td>TC-PDV-04</td><td>Khoảng ngày hợp lệ.</td><td>Chọn từ ngày/đến ngày.</td><td>Chỉ hiển thị phiếu trong khoảng.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>7.10. Báo cáo tồn kho</h3>
+        <table>
+          <thead>
+            <tr><th>Mã test</th><th>Dữ liệu</th><th>Các bước thực hiện</th><th>Kết quả mong đợi</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>BCTK-01</td><td>Tháng/năm có giao dịch.</td><td>Mở báo cáo tồn kho, chọn kỳ.</td><td>Hiển thị tồn đầu, mua vào, bán ra, tồn cuối.</td></tr>
+            <tr><td>BCTK-02</td><td>Tồn đầu 5, mua 10, bán 3.</td><td>Đối chiếu báo cáo.</td><td>Tồn cuối = 12.</td></tr>
+            <tr><td>BCTK-03</td><td>Tồn cuối thấp hơn tồn tối thiểu.</td><td>Xem báo cáo.</td><td>Dòng sản phẩm có cảnh báo tồn thấp.</td></tr>
+            <tr><td>BCTK-04</td><td>Báo cáo đã lập.</td><td>Bấm In/Xuất PDF nếu có.</td><td>Bản in đúng dữ liệu đang xem.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>7.11. Báo cáo doanh thu</h3>
+        <table>
+          <thead>
+            <tr><th>Mã test</th><th>Dữ liệu</th><th>Các bước thực hiện</th><th>Kết quả mong đợi</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>BCDT-01</td><td>Tháng/năm có phiếu bán hoặc dịch vụ.</td><td>Mở báo cáo doanh thu, chọn kỳ.</td><td>Hiển thị doanh thu đúng kỳ.</td></tr>
+            <tr><td>BCDT-02</td><td>Phiếu trong kỳ và ngoài kỳ.</td><td>Đối chiếu tổng doanh thu.</td><td>Chỉ tính phiếu trong kỳ.</td></tr>
+            <tr><td>BCDT-03</td><td>Báo cáo đã lập.</td><td>Bấm In/Xuất PDF nếu có.</td><td>Bản in đúng dữ liệu.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>7.12. Thay đổi quy định</h3>
+        <table>
+          <thead>
+            <tr><th>Mã test</th><th>Dữ liệu</th><th>Các bước thực hiện</th><th>Kết quả mong đợi</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>QD-01</td><td>Tồn tối thiểu mới, tỷ lệ trả trước mới.</td><td>Admin vào Thay đổi quy định, cập nhật.</td><td>Lưu thành công, quy định áp dụng cho nghiệp vụ sau đó.</td></tr>
+            <tr><td>QD-02</td><td>Giá trị âm hoặc tỷ lệ > 100.</td><td>Submit form.</td><td>Báo lỗi validation.</td></tr>
+            <tr><td>QD-03</td><td>Tài khoản nhân viên.</td><td>Truy cập/lưu quy định.</td><td>Bị từ chối hoặc chuyển hướng.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>7.13. Sao lưu và phục hồi</h3>
+        <table>
+          <thead>
+            <tr><th>Mã test</th><th>Dữ liệu</th><th>Các bước thực hiện</th><th>Kết quả mong đợi</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>BACKUP-01</td><td><code>DATABASE_URL</code> hợp lệ.</td><td>Chạy <code>npm run db:backup</code>.</td><td>Sinh file <code>.sql</code> trong thư mục backup.</td></tr>
+            <tr><td>BACKUP-02</td><td>Thiếu file restore hoặc file sai.</td><td>Chạy restore với file không hợp lệ.</td><td>Script báo lỗi, không phục hồi.</td></tr>
+            <tr><td>BACKUP-03</td><td>Thiếu <code>RESTORE_CONFIRM=YES</code>.</td><td>Chạy restore.</td><td>Script dừng và yêu cầu xác nhận.</td></tr>
+            <tr><td>BACKUP-04</td><td>File backup hợp lệ trên môi trường test.</td><td>Chạy restore có xác nhận.</td><td>Dữ liệu được phục hồi, kiểm tra lại bằng đăng nhập và danh sách dữ liệu.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="operations">
+        <h2>8. Vận hành và bảo trì</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Hạng mục</th>
+              <th>Tần suất</th>
+              <th>Cách thực hiện</th>
+              <th>Ghi chú</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Sao lưu CSDL</td><td>Hằng ngày hoặc trước khi deploy</td><td>Chạy <code>npm run db:backup</code></td><td>Không commit file backup lên Git.</td></tr>
+            <tr><td>Kiểm tra log lỗi</td><td>Hằng tuần/sau deploy</td><td>Xem log Next.js, Docker, Prisma</td><td>Ưu tiên lỗi tiền, tồn kho, phân quyền.</td></tr>
+            <tr><td>Kiểm tra tồn kho bất thường</td><td>Hằng tuần</td><td>Đối chiếu báo cáo tồn kho với phiếu mua/bán</td><td>Không để tồn âm.</td></tr>
+            <tr><td>Kiểm tra tài khoản</td><td>Hằng tháng</td><td>Rà tài khoản không sử dụng và nhóm quyền</td><td>Thu hồi quyền không cần thiết.</td></tr>
+            <tr><td>Kiểm thử hồi quy</td><td>Sau mỗi lần sửa lỗi</td><td>Chạy test logic, lint, build và test thủ công nghiệp vụ liên quan</td><td>Không chỉ test đúng lỗi vừa sửa.</td></tr>
+            <tr><td>Phục hồi thử</td><td>Hằng tháng</td><td>Restore backup trên môi trường test</td><td>Không restore thử trên production.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="risks">
+        <h2>9. Rủi ro còn lại và đề xuất cải thiện</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Rủi ro</th>
+              <th>Mức độ</th>
+              <th>Hiện trạng</th>
+              <th>Đề xuất</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Test đăng nhập/phân quyền chưa có E2E tự động</td>
+              <td><span class="badge partial">Trung bình</span></td>
+              <td>Mật khẩu đã hash bằng bcryptjs, có phân quyền mềm theo bảng; đã kiểm build/lint nhưng chưa có Playwright.</td>
+              <td>Bổ sung E2E đăng nhập, route guard, tick quyền và đăng nhập lại để xác nhận quyền mới.</td>
+            </tr>
+            <tr>
+              <td>Chưa có UI riêng cho sao lưu/phục hồi</td>
+              <td><span class="badge partial">Trung bình</span></td>
+              <td>Đã có script CLI.</td>
+              <td>Bổ sung màn hình Admin cho backup/restore có xác nhận.</td>
+            </tr>
+            <tr>
+              <td>Test tích hợp DB chưa tự động hóa đầy đủ</td>
+              <td><span class="badge partial">Trung bình</span></td>
+              <td>Đã có unit test business rules.</td>
+              <td>Thêm test transaction mua/bán/dịch vụ bằng database test.</td>
+            </tr>
+            <tr>
+              <td>Chưa có test E2E trình duyệt</td>
+              <td><span class="badge partial">Trung bình</span></td>
+              <td>Đã có hướng dẫn test thủ công.</td>
+              <td>Bổ sung Playwright cho đăng nhập, bán hàng, mua hàng, dịch vụ, báo cáo.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="note">
+          Kết luận: hệ thống đã đáp ứng tốt yêu cầu đồ án về giao diện, chức năng, kiểm thử logic, bảo mật mật khẩu và build.
+          Để vận hành thực tế, cần tiếp tục bổ sung test tích hợp tự động, test E2E và quy trình backup/restore có bằng chứng định kỳ.
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      File báo cáo này có thể mở trực tiếp bằng trình duyệt tại <code>docs/report.html</code> hoặc in thành PDF bằng chức năng Print của trình duyệt.
+    </footer>
+  </div>
+</body>
+</html>

@@ -5,33 +5,61 @@ import { User, Shield, Key, LogOut, ChevronLeft, Calendar, BadgeCheck } from "lu
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { updateNguoiDung } from "@/actions/user.action";
+import { getCurrentNguoiDungProfile, updateOwnPassword } from "@/actions/user.action";
 
 export function UserProfileView() {
   const { data: session } = useSession();
   const router = useRouter();
   const [isUpdating, setIsUpdating] = useState(false);
-  const [newPassword, setNewPassword] = useState("");
+  const [profile, setProfile] = useState<any>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    matKhauCu: "",
+    matKhauMoi: "",
+    xacNhanMatKhau: "",
+  });
+
+  const loadProfile = useCallback(async () => {
+    try {
+      setIsProfileLoading(true);
+      setProfileError(false);
+      const result = await getCurrentNguoiDungProfile();
+      if (!result) {
+        setProfileError(true);
+      }
+      setProfile(result);
+    } catch {
+      setProfile(null);
+      setProfileError(true);
+    } finally {
+      setIsProfileLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   const handleUpdatePassword = async () => {
-    if (!newPassword || newPassword.length < 8) {
+    if (!passwordForm.matKhauCu) {
+      toast.error("Vui lòng nhập mật khẩu hiện tại");
+      return;
+    }
+    if (!passwordForm.matKhauMoi || passwordForm.matKhauMoi.length < 8) {
       toast.error("Mật khẩu mới phải có ít nhất 8 ký tự");
       return;
     }
 
     try {
       setIsUpdating(true);
-      const res = await updateNguoiDung(session?.user?.id as string, {
-        hoTen: session?.user?.name,
-        maNhom: session?.user?.maNhom,
-        matKhau: newPassword
-      });
+      const res = await updateOwnPassword(passwordForm);
 
       if (res.success) {
-        toast.success("Đổi mật khẩu thành công");
-        setNewPassword("");
+        toast.success(res.message);
+        setPasswordForm({ matKhauCu: "", matKhauMoi: "", xacNhanMatKhau: "" });
       } else {
         toast.error(res.message);
       }
@@ -43,6 +71,9 @@ export function UserProfileView() {
   };
 
   if (!session?.user) return null;
+  const joinedAt = profile?.createdAt
+    ? new Date(profile.createdAt).toLocaleDateString("vi-VN")
+    : "Chưa có dữ liệu";
 
   return (
     <div className="space-y-8">
@@ -123,7 +154,19 @@ export function UserProfileView() {
                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Ngày gia nhập</p>
                 <p className="font-bold text-zinc-900 flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-zinc-300" />
-                  Hệ thống ghi nhận
+                  {isProfileLoading ? (
+                    <span className="h-4 w-24 animate-pulse rounded bg-zinc-100" />
+                  ) : profileError ? (
+                    <button
+                      type="button"
+                      onClick={loadProfile}
+                      className="text-xs font-bold text-primary hover:underline"
+                    >
+                      Tải lại
+                    </button>
+                  ) : (
+                    joinedAt
+                  )}
                 </p>
               </div>
             </div>
@@ -139,11 +182,25 @@ export function UserProfileView() {
             <div className="p-8 space-y-6">
               <div className="max-w-md space-y-4">
                 <Input
+                  label="Mật khẩu hiện tại"
+                  type="password"
+                  placeholder="Nhập mật khẩu cũ để xác nhận"
+                  value={passwordForm.matKhauCu}
+                  onChange={(e) => setPasswordForm((current) => ({ ...current, matKhauCu: e.target.value }))}
+                />
+                <Input
                   label="Mật khẩu mới"
                   type="password"
                   placeholder="Nhập mật khẩu mới ít nhất 8 ký tự"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
+                  value={passwordForm.matKhauMoi}
+                  onChange={(e) => setPasswordForm((current) => ({ ...current, matKhauMoi: e.target.value }))}
+                />
+                <Input
+                  label="Xác nhận mật khẩu mới"
+                  type="password"
+                  placeholder="Nhập lại mật khẩu mới"
+                  value={passwordForm.xacNhanMatKhau}
+                  onChange={(e) => setPasswordForm((current) => ({ ...current, xacNhanMatKhau: e.target.value }))}
                 />
                 <Button 
                   onClick={handleUpdatePassword} 

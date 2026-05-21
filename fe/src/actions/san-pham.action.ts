@@ -5,21 +5,33 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { sanPhamSchema, type SanPhamInput } from "@/schemas/san-pham.schema";
+import { assertDvtValidForLoaiSP, calculateSellPrice } from "@/lib/business-rules";
+import { nextSequentialIdFromValidCodes, withUniqueRetry } from "@/lib/id-generation";
+import { hasPermission, PERMISSIONS } from "@/lib/permissions";
 
-// 1. Kiểm tra quyền Quản lý
-async function checkIsAdmin() {
-  const session = await getServerSession(authOptions);
-  return session?.user?.role === "QUAN_LY";
+async function canManageSanPham() {
+  const session = await getServerSession(authOptions) as any;
+  if (session?.user?.role !== "QUAN_LY") return false;
+  return hasPermission(PERMISSIONS.SAN_PHAM, session);
 }
 
 function serialize(data: any) {
   return JSON.parse(JSON.stringify(data));
 }
 
+async function generateProductId() {
+  const records = await prisma.sanPham.findMany({
+    where: { maSP: { startsWith: "SP" } },
+    select: { maSP: true },
+  });
+  return nextSequentialIdFromValidCodes(records.map((record) => record.maSP), "SP", 3);
+}
+
 // 2. Lấy danh sách sản phẩm
 export async function getSanPhams() {
   try {
     const data = await prisma.sanPham.findMany({
+      where: { deletedAt: null },
       include: { loaiSanPham: true, donViTinh: true },
       orderBy: { maSP: "asc" },
     });
@@ -32,7 +44,7 @@ export async function getSanPhams() {
 // 3. Thêm mới Sản phẩm (Thuật toán 2.2.3.4)
 export async function createSanPham(data: SanPhamInput) {
   try {
-    if (!(await checkIsAdmin())) {
+    if (!(await canManageSanPham())) {
       return { success: false, message: "Bạn không có quyền thực hiện chức năng này" };
     }
 
@@ -40,47 +52,44 @@ export async function createSanPham(data: SanPhamInput) {
     const validated = sanPhamSchema.parse(data);
 
     // Bước 3: Lấy thông tin loại sản phẩm để lấy % lợi nhuận
-    const category = await prisma.loaiSanPham.findUnique({
-      where: { maLSP: validated.maLSP },
-    });
+    const [category, donViTinh] = await Promise.all([
+      prisma.loaiSanPham.findUnique({ where: { maLSP: validated.maLSP } }),
+      prisma.donViTinh.findUnique({ where: { maDVT: validated.maDVT } }),
+    ]);
     if (!category) return { success: false, message: "Loại sản phẩm không hợp lệ" };
+    if (!donViTinh) return { success: false, message: "Đơn vị tính không hợp lệ" };
+    assertDvtValidForLoaiSP(category.tenLSP, donViTinh.tenDVT);
 
     // Bước 7: Tự động tính đơn giá bán
     // Đơn giá bán = Đơn giá nhập × (1 + % Lợi nhuận / 100)
-    const giaBan = Number(validated.donGiaNhap) * (1 + Number(category.phanTramLoiNhuan) / 100);
-
-    // Bước 8: Tự động sinh mã sản phẩm SPxxx
-    const lastRecord = await prisma.sanPham.findFirst({
-      orderBy: { maSP: "desc" },
-    });
-    let newId = "SP001";
-    if (lastRecord) {
-      const lastIdNum = parseInt(lastRecord.maSP.replace("SP", ""));
-      newId = `SP${(lastIdNum + 1).toString().padStart(3, "0")}`;
-    }
+    const giaBan = calculateSellPrice(Number(validated.donGiaNhap), Number(category.phanTramLoiNhuan));
 
     // Bước 9: Gán tồn tối thiểu từ tham số hệ thống (mặc định nếu không nhập)
     const thamSo = await prisma.thamSo.findFirst({ where: { id: 1 } });
     const tonToiThieuMacDinh = thamSo ? thamSo.soLuongTonKhoToiThieu : 1;
 
     // Bước 10: Lưu bản ghi
-    const record = await prisma.sanPham.create({
-      data: {
-        maSP: newId,
-        tenSP: validated.tenSP,
-        maLSP: validated.maLSP,
-        hamLuong: validated.hamLuong as any,
-        trongLuong: validated.trongLuong,
-        maDVT: validated.maDVT,
-        tonToiThieu: validated.tonToiThieu || tonToiThieuMacDinh,
-        tonKho: 0, // Mặc định khi tạo mới là 0, sẽ nhập qua phiếu mua sau
-        donGiaNhap: validated.donGiaNhap,
-        donGiaBan: giaBan,
-      },
+    const record = await withUniqueRetry(async () => {
+      const newId = await generateProductId();
+
+      return prisma.sanPham.create({
+        data: {
+          maSP: newId,
+          tenSP: validated.tenSP,
+          maLSP: validated.maLSP,
+          hamLuong: validated.hamLuong as any,
+          trongLuong: validated.trongLuong,
+          maDVT: validated.maDVT,
+          tonToiThieu: tonToiThieuMacDinh,
+          tonKho: 0, // Mặc định khi tạo mới là 0, sẽ nhập qua phiếu mua sau
+          donGiaNhap: validated.donGiaNhap,
+          donGiaBan: giaBan,
+        },
+      });
     });
 
     revalidatePath("/admin/danh-muc/san-pham");
-    return { success: true, message: `Thêm sản phẩm thành công với mã ${newId}`, data: serialize(record) };
+    return { success: true, message: `Thêm sản phẩm thành công với mã ${record.maSP}`, data: serialize(record) };
   } catch (error: any) {
     console.error("Create SP Error:", error);
     return { success: false, message: error.message || "Lỗi hệ thống khi tạo sản phẩm" };
@@ -90,7 +99,7 @@ export async function createSanPham(data: SanPhamInput) {
 // 4. Sửa Sản phẩm (Thuật toán 2.2.3.5)
 export async function updateSanPham(maSP: string, data: SanPhamInput) {
   try {
-    if (!(await checkIsAdmin())) {
+    if (!(await canManageSanPham())) {
       return { success: false, message: "Bạn không có quyền thực hiện chức năng này" };
     }
 
@@ -99,12 +108,16 @@ export async function updateSanPham(maSP: string, data: SanPhamInput) {
     // Lấy thông tin loại SP hiện tại để lấy % lợi nhuận (Loại và DVT không đổi)
     const currentSP = await prisma.sanPham.findUnique({ 
       where: { maSP },
-      include: { loaiSanPham: true }
+      include: { loaiSanPham: true, donViTinh: true }
     });
     if (!currentSP) return { success: false, message: "Sản phẩm không tồn tại" };
+    if (validated.maDVT !== currentSP.maDVT || validated.maLSP !== currentSP.maLSP) {
+      return { success: false, message: "Không được thay đổi loại sản phẩm hoặc đơn vị tính khi cập nhật sản phẩm" };
+    }
+    assertDvtValidForLoaiSP(currentSP.loaiSanPham.tenLSP, currentSP.donViTinh.tenDVT);
 
     // Bước 4: Tự động tính lại giá bán nếu giá nhập đổi
-    const giaBan = Number(validated.donGiaNhap) * (1 + Number(currentSP.loaiSanPham.phanTramLoiNhuan) / 100);
+    const giaBan = calculateSellPrice(Number(validated.donGiaNhap), Number(currentSP.loaiSanPham.phanTramLoiNhuan));
 
     const record = await prisma.sanPham.update({
       where: { maSP },
@@ -114,38 +127,30 @@ export async function updateSanPham(maSP: string, data: SanPhamInput) {
         trongLuong: validated.trongLuong,
         donGiaNhap: validated.donGiaNhap,
         donGiaBan: giaBan,
-        tonToiThieu: validated.tonToiThieu,
       },
     });
 
     revalidatePath("/admin/danh-muc/san-pham");
     return { success: true, message: "Cập nhật sản phẩm thành công", data: serialize(record) };
   } catch (error: any) {
-    return { success: false, message: "Lỗi khi cập nhật sản phẩm" };
+    return { success: false, message: error.message || "Lỗi khi cập nhật sản phẩm" };
   }
 }
 
 // 5. Xóa Sản phẩm
 export async function deleteSanPham(maSP: string) {
   try {
-    if (!(await checkIsAdmin())) {
+    if (!(await canManageSanPham())) {
       return { success: false, message: "Bạn không có quyền thực hiện chức năng này" };
     }
 
-    // Kiểm tra ràng buộc: Không xóa nếu đã có giao dịch
-    const isSold = await prisma.chiTietBanHang.findFirst({ where: { maSP } });
-    const isBought = await prisma.chiTietMuaHang.findFirst({ where: { maSP } });
-
-    if (isSold || isBought) {
-      return { 
-        success: false, 
-        message: "Không thể xóa sản phẩm đã có lịch sử giao dịch (bán hoặc mua). Vui lòng kiểm tra lại." 
-      };
-    }
-
-    await prisma.sanPham.delete({ where: { maSP } });
+    await prisma.sanPham.update({
+      where: { maSP },
+      data: { deletedAt: new Date() },
+    });
 
     revalidatePath("/admin/danh-muc/san-pham");
+    revalidatePath("/nhan-vien/danh-muc/san-pham");
     return { success: true, message: "Xóa sản phẩm thành công" };
   } catch (error: any) {
     return { success: false, message: "Lỗi hệ thống khi xóa sản phẩm" };

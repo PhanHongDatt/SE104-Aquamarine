@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { SalesInvoiceForm } from "@/components/giao-dich/sales-invoice-form";
 import { ShoppingCart, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { nextSequentialIdFromValidCodes } from "@/lib/id-generation";
 
 export const metadata = {
   title: "Lập phiếu bán hàng – Nhân viên | Aquamarine Jewelry & Luxury",
@@ -9,24 +10,32 @@ export const metadata = {
 
 export default async function StaffTaoPhieuBanHangPage() {
   // Fetch products and their categories/units for price calculation
-  const products = await prisma.sanPham.findMany({
-    include: {
-      loaiSanPham: true,
-      donViTinh: true,
-    },
-    orderBy: { maSP: 'asc' },
-  });
+  const [products, customers] = await Promise.all([
+    prisma.sanPham.findMany({
+      where: { deletedAt: null },
+      include: {
+        loaiSanPham: true,
+        donViTinh: true,
+      },
+      orderBy: { maSP: 'asc' },
+    }),
+    prisma.khachHang.findMany({
+      where: { deletedAt: null },
+      orderBy: { maKH: 'asc' },
+    }),
+  ]);
 
   // Serialize to plain objects to avoid Decimal warnings
   const serializedProducts = JSON.parse(JSON.stringify(products));
+  const serializedCustomers = JSON.parse(JSON.stringify(customers));
 
   // Generate next Invoice ID: PBH + 7 digits
-  const lastPhieu = await prisma.phieuBanHang.findFirst({
-    orderBy: { soPhieu: 'desc' },
+  const existingReceipts = await prisma.phieuBanHang.findMany({
+    where: { soPhieu: { startsWith: "PBH" } },
+    select: { soPhieu: true },
   });
 
-  const lastNum = lastPhieu ? parseInt(lastPhieu.soPhieu.replace('PBH', '')) : 0;
-  const nextSoPhieu = `PBH${(lastNum + 1).toString().padStart(7, '0')}`;
+  const nextSoPhieu = nextSequentialIdFromValidCodes(existingReceipts.map((receipt) => receipt.soPhieu), "PBH", 7);
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -45,7 +54,7 @@ export default async function StaffTaoPhieuBanHangPage() {
         </div>
       </div>
 
-      <SalesInvoiceForm products={serializedProducts} nextSoPhieu={nextSoPhieu} />
+      <SalesInvoiceForm products={serializedProducts} customers={serializedCustomers} nextSoPhieu={nextSoPhieu} />
     </div>
   );
 }

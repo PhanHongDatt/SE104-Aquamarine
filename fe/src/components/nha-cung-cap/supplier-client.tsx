@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { SupplierForm } from "./supplier-form";
-import { themNhaCungCap, capNhatNhaCungCap } from "@/actions/danh-muc";
+import { createNhaCungCap, updateNhaCungCap } from "@/actions/nha-cung-cap.action";
 import { type NhaCungCapFormValues } from "@/schemas/nha-cung-cap.schema";
 
 interface SupplierClientProps {
@@ -54,23 +54,9 @@ export function SupplierClient({ initialData, isAdmin }: SupplierClientProps) {
     try {
       let res;
       if (editingSupplier) {
-        res = await capNhatNhaCungCap(editingSupplier.maNCC, values);
+        res = await updateNhaCungCap(editingSupplier.maNCC, values);
       } else {
-        // Tự sinh mã NCC: NCC + 3 chữ số
-        const lastId = data.length > 0 
-          ? Math.max(...data.map(d => {
-              const num = parseInt(d.maNCC.replace('NCC', ''));
-              return isNaN(num) ? 0 : num;
-            })) 
-          : 0;
-        const newId = `NCC${(lastId + 1).toString().padStart(3, '0')}`;
-        
-        const newSupplier: NhaCungCap = {
-          maNCC: newId,
-          ...values,
-        };
-
-        res = await themNhaCungCap(newSupplier);
+        res = await createNhaCungCap(values);
       }
       
       if (res.success) {
@@ -134,41 +120,43 @@ export function SupplierClient({ initialData, isAdmin }: SupplierClientProps) {
             <table className="w-full text-sm text-left border-collapse">
               <thead>
                 <tr className="border-b border-zinc-100 bg-zinc-50/60 font-semibold text-zinc-600">
-                  <th className="px-6 py-4">Thông tin đối tác</th>
-                  <th className="px-6 py-4">Liên hệ</th>
-                  <th className="px-6 py-4">Địa chỉ</th>
-                  <th className="px-6 py-4 text-right">Thao tác</th>
+	                  <th className="px-6 py-4 text-center w-16">STT</th>
+	                  <th className="px-6 py-4">Mã nhà cung cấp</th>
+	                  <th className="px-6 py-4">Tên nhà cung cấp</th>
+	                  <th className="px-6 py-4">Địa chỉ</th>
+	                  <th className="px-6 py-4">Số điện thoại</th>
+	                  <th className="px-6 py-4">Người liên hệ</th>
+	                  <th className="px-6 py-4 text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {filteredData.map((item) => (
-                  <tr key={item.maNCC} className="group hover:bg-zinc-50/60 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-bold text-zinc-900">{item.tenNCC}</span>
-                        <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 bg-zinc-100 w-fit px-1.5 py-0.5 rounded">
-                          {item.maNCC}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-zinc-600">
-                          <Phone className="w-3.5 h-3.5 text-zinc-400" />
-                          <span>{item.soDienThoai}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-zinc-600">
-                          <UserIcon className="w-3.5 h-3.5 text-zinc-400" />
-                          <span>{item.nguoiLienHe}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 max-w-[300px]">
-                       <div className="flex gap-2 text-zinc-500 line-clamp-2">
-                          <MapPin className="w-3.5 h-3.5 text-zinc-400 mt-0.5 shrink-0" />
-                          <span className="text-xs leading-relaxed">{item.diaChi}</span>
-                       </div>
-                    </td>
+	                {filteredData.map((item, index) => (
+	                  <tr key={item.maNCC} className="group hover:bg-zinc-50/60 transition-colors">
+	                    <td className="px-6 py-4 text-center text-zinc-400 font-mono text-xs">{index + 1}</td>
+	                    <td className="px-6 py-4">
+	                      <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 bg-zinc-100 w-fit px-1.5 py-0.5 rounded">
+	                        {item.maNCC}
+	                      </span>
+	                    </td>
+	                    <td className="px-6 py-4 font-bold text-zinc-900">{item.tenNCC}</td>
+	                    <td className="px-6 py-4 max-w-[300px]">
+	                       <div className="flex gap-2 text-zinc-500 line-clamp-2">
+	                          <MapPin className="w-3.5 h-3.5 text-zinc-400 mt-0.5 shrink-0" />
+	                          <span className="text-xs leading-relaxed">{item.diaChi}</span>
+	                       </div>
+	                    </td>
+	                    <td className="px-6 py-4">
+	                      <div className="flex items-center gap-2 text-zinc-600">
+	                        <Phone className="w-3.5 h-3.5 text-zinc-400" />
+	                        <span>{item.soDienThoai}</span>
+	                      </div>
+	                    </td>
+	                    <td className="px-6 py-4">
+	                      <div className="flex items-center gap-2 text-zinc-600">
+	                        <UserIcon className="w-3.5 h-3.5 text-zinc-400" />
+	                        <span>{item.nguoiLienHe}</span>
+	                      </div>
+	                    </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <button 

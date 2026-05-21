@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getDanhSachNguoiDung, getDanhSachNhomNguoiDung } from "@/actions/user.action";
 import { UserManagementList } from "@/components/forms/user-management-list";
+import { getBangPhanQuyen, getChucNangs } from "@/actions/phan-quyen.action";
+import { PermissionMatrix } from "@/components/forms/permission-matrix";
 
 export const metadata = { title: "Phân quyền người dùng – Admin | Aquamarine Jewelry & Luxury" };
 
@@ -17,6 +19,12 @@ export default async function AdminPhanQuyenPage() {
 
   const users = await getDanhSachNguoiDung();
   const groups = await getDanhSachNhomNguoiDung();
+  const permissions = await getChucNangs();
+  const initialPermissions = Object.fromEntries(
+    await Promise.all(
+      groups.map(async (group: any) => [group.maNhom, await getBangPhanQuyen(group.maNhom)])
+    )
+  );
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -28,6 +36,7 @@ export default async function AdminPhanQuyenPage() {
         <p className="text-sm text-zinc-500 mt-1">Quản lý tài khoản nhân viên và các nhóm quyền truy cập hệ thống</p>
       </div>
 
+      <PermissionMatrix groups={groups} permissions={permissions} initialPermissions={initialPermissions} />
       <UserManagementList users={users} groups={groups} />
     </div>
   );

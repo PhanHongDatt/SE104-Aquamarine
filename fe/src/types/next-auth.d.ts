@@ -8,6 +8,7 @@ declare module "next-auth" {
       email: string;
       role: "QUAN_LY" | "NHAN_VIEN";
       maNhom: string;
+      permissions: string[];
     };
   }
 
@@ -17,6 +18,7 @@ declare module "next-auth" {
     email: string;
     role: "QUAN_LY" | "NHAN_VIEN";
     maNhom: string;
+    permissions: string[];
   }
 }
 
@@ -24,5 +26,6 @@ declare module "next-auth/jwt" {
   interface JWT {
     role: "QUAN_LY" | "NHAN_VIEN";
     maNhom: string;
+    permissions: string[];
   }
 }

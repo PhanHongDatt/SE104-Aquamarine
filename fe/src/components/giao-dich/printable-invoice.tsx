@@ -98,8 +98,16 @@ export const PrintableInvoice = React.forwardRef<
               Sản phẩm
             </th>
 
+            <th className="border border-zinc-300 px-3 py-2 text-left">
+              Loại sản phẩm
+            </th>
+
             <th className="border border-zinc-300 px-2 py-2 text-center w-14">
               SL
+            </th>
+
+            <th className="border border-zinc-300 px-2 py-2 text-center w-20">
+              ĐVT
             </th>
 
             <th className="border border-zinc-300 px-3 py-2 text-right w-32">
@@ -123,8 +131,16 @@ export const PrintableInvoice = React.forwardRef<
                 {item.sanPham?.tenSP}
               </td>
 
+              <td className="border border-zinc-300 px-3 py-2 break-words">
+                {item.sanPham?.loaiSanPham?.tenLSP}
+              </td>
+
               <td className="border border-zinc-300 px-2 py-2 text-center">
                 {item.soLuong}
+              </td>
+
+              <td className="border border-zinc-300 px-2 py-2 text-center">
+                {item.sanPham?.donViTinh?.tenDVT}
               </td>
 
               <td className="border border-zinc-300 px-3 py-2 text-right whitespace-nowrap">
@@ -141,7 +157,7 @@ export const PrintableInvoice = React.forwardRef<
         <tfoot>
           <tr className="bg-zinc-50">
             <td
-              colSpan={4}
+              colSpan={6}
               className="border border-zinc-300 px-3 py-3 text-right font-bold uppercase"
             >
               Tổng thanh toán

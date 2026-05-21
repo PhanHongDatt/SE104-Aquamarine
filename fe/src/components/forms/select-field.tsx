@@ -9,15 +9,15 @@ interface SelectFieldProps extends React.SelectHTMLAttributes<HTMLSelectElement>
 export const SelectField = React.forwardRef<HTMLSelectElement, SelectFieldProps>(
   ({ label, options, error, ...props }, ref) => {
     return (
-      <div className="flex flex-col gap-1">
+      <div className="flex max-w-full flex-col gap-1 overflow-hidden">
         <label className="text-sm font-medium">{label}</label>
         <select
           ref={ref}
-          className="rounded-md border p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="max-w-full truncate rounded-md border p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           {...props}
         >
           {options.map((option) => (
-            <option key={option.value} value={option.value}>
+            <option key={option.value} value={option.value} className="truncate" title={option.label}>
               {option.label}
             </option>
           ))}

@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
@@ -62,11 +63,65 @@ async function main() {
   // ── 6. Nhóm & Người Dùng ────────────────────────────────────
   await prisma.nhomNguoiDung.upsert({ where: { maNhom: 'QUANLY' }, update: {}, create: { maNhom: 'QUANLY', tenNhom: 'QUAN_LY' } })
   await prisma.nhomNguoiDung.upsert({ where: { maNhom: 'NHANVI' }, update: {}, create: { maNhom: 'NHANVI', tenNhom: 'NHAN_VIEN' } })
-  await prisma.nguoiDung.upsert({ where: { tenDangNhap: 'admin' }, update: {}, create: { maND: 'ND0001', tenDangNhap: 'admin', matKhau: 'Admin@123', hoTen: 'Nguyễn Quản Lý', maNhom: 'QUANLY' } })
-  await prisma.nguoiDung.upsert({ where: { tenDangNhap: 'nhanvien' }, update: {}, create: { maND: 'ND0002', tenDangNhap: 'nhanvien', matKhau: 'Nhanvien@1', hoTen: 'Trần Nhân Viên', maNhom: 'NHANVI' } })
+  const [adminPassword, staffPassword] = await Promise.all([
+    bcrypt.hash('Admin@123', 10),
+    bcrypt.hash('Nhanvien@1', 10),
+  ])
+  await prisma.nguoiDung.upsert({
+    where: { tenDangNhap: 'admin' },
+    update: { matKhau: adminPassword },
+    create: { maND: 'ND0001', tenDangNhap: 'admin', matKhau: adminPassword, hoTen: 'Nguyễn Quản Lý', maNhom: 'QUANLY' }
+  })
+  await prisma.nguoiDung.upsert({
+    where: { tenDangNhap: 'nhanvien' },
+    update: { matKhau: staffPassword },
+    create: { maND: 'ND0002', tenDangNhap: 'nhanvien', matKhau: staffPassword, hoTen: 'Trần Nhân Viên', maNhom: 'NHANVI' }
+  })
+
+  const chucNangs = [
+    { maChucNang: 'DM_DVT', tenChucNang: 'Quản lý đơn vị tính', tenManHinhDuocLoad: '/admin/danh-muc/don-vi-tinh' },
+    { maChucNang: 'DM_LSP', tenChucNang: 'Quản lý loại sản phẩm', tenManHinhDuocLoad: '/admin/danh-muc/loai-san-pham' },
+    { maChucNang: 'DM_SP', tenChucNang: 'Quản lý sản phẩm', tenManHinhDuocLoad: '/admin/danh-muc/san-pham' },
+    { maChucNang: 'DM_KH', tenChucNang: 'Quản lý khách hàng', tenManHinhDuocLoad: '/admin/danh-muc/khach-hang' },
+    { maChucNang: 'DM_NCC', tenChucNang: 'Quản lý nhà cung cấp', tenManHinhDuocLoad: '/admin/danh-muc/nha-cung-cap' },
+    { maChucNang: 'GD_BAN', tenChucNang: 'Lập phiếu bán hàng', tenManHinhDuocLoad: '/admin/giao-dich/ban-hang' },
+    { maChucNang: 'GD_MUA', tenChucNang: 'Lập phiếu mua hàng', tenManHinhDuocLoad: '/admin/giao-dich/mua-hang' },
+    { maChucNang: 'DV_LAP', tenChucNang: 'Lập phiếu dịch vụ', tenManHinhDuocLoad: '/admin/dich-vu/lap-phieu' },
+    { maChucNang: 'DV_TRA', tenChucNang: 'Tra cứu phiếu dịch vụ', tenManHinhDuocLoad: '/admin/dich-vu/tra-cuu' },
+    { maChucNang: 'BC_TON', tenChucNang: 'Báo cáo tồn kho', tenManHinhDuocLoad: '/admin/bao-cao/ton-kho' },
+    { maChucNang: 'BC_DTH', tenChucNang: 'Báo cáo doanh thu', tenManHinhDuocLoad: '/admin/bao-cao/doanh-thu' },
+    { maChucNang: 'HT_USR', tenChucNang: 'Quản lý tài khoản người dùng', tenManHinhDuocLoad: '/admin/tai-khoan' },
+    { maChucNang: 'HT_PHQ', tenChucNang: 'Phân quyền người dùng', tenManHinhDuocLoad: '/admin/cai-dat/phan-quyen' },
+    { maChucNang: 'HT_QDI', tenChucNang: 'Thay đổi quy định', tenManHinhDuocLoad: '/admin/cai-dat/quy-dinh' },
+    { maChucNang: 'HT_BAK', tenChucNang: 'Sao lưu và phục hồi dữ liệu', tenManHinhDuocLoad: 'scripts/db-backup.js;scripts/db-restore.js' },
+  ]
+
+  for (const cn of chucNangs) {
+    await prisma.chucNang.upsert({
+      where: { maChucNang: cn.maChucNang },
+      update: { tenChucNang: cn.tenChucNang, tenManHinhDuocLoad: cn.tenManHinhDuocLoad },
+      create: cn,
+    })
+  }
+
+  const staffPermissions = new Set(['DM_SP', 'DM_KH', 'GD_BAN', 'DV_LAP', 'DV_TRA', 'BC_TON'])
+  for (const cn of chucNangs) {
+    await prisma.bangPhanQuyen.upsert({
+      where: { maNhom_maChucNang: { maNhom: 'QUANLY', maChucNang: cn.maChucNang } },
+      update: {},
+      create: { maNhom: 'QUANLY', maChucNang: cn.maChucNang },
+    })
+    if (staffPermissions.has(cn.maChucNang)) {
+      await prisma.bangPhanQuyen.upsert({
+        where: { maNhom_maChucNang: { maNhom: 'NHANVI', maChucNang: cn.maChucNang } },
+        update: {},
+        create: { maNhom: 'NHANVI', maChucNang: cn.maChucNang },
+      })
+    }
+  }
 
   // ── 7. Tham Số ──────────────────────────────────────────────
-  await prisma.thamSo.upsert({ where: { id: 1 }, update: {}, create: { id: 1, phanTramLoiNhuanToiThieu: 5.0, soLuongTonKhoToiThieu: 1, tiLeTraTruocToiThieu: 50.0 } })
+  await prisma.thamSo.upsert({ where: { id: 1 }, update: {}, create: { id: 1, phanTramLoiNhuanToiThieu: 5.0, soLuongTonKhoToiThieu: 1, soLuongNhapToiThieu: 1, tiLeTraTruocToiThieu: 50.0 } })
 
   // ── Helper for Names ──────────────────────────────────────
   const ho = ['Nguyễn', 'Trần', 'Lê', 'Phạm', 'Hoàng', 'Huỳnh', 'Phan', 'Vũ', 'Võ', 'Đặng']
@@ -75,7 +130,33 @@ async function main() {
 
   const getRandomName = () => `${ho[Math.floor(Math.random() * ho.length)]} ${lot[Math.floor(Math.random() * lot.length)]} ${ten[Math.floor(Math.random() * ten.length)]}`
 
-  // ── 8. Phiếu Bán Hàng & Chi Tiết (30 bản ghi) ────────────────
+  // ── 8. Khách Hàng ────────────────────────────────────────────
+  const customerNames = [
+    'Nguyễn Minh Châu',
+    'Trần Quốc Bảo',
+    'Lê Hoàng Kim',
+    'Phạm Thanh Ngọc',
+    'Vũ Gia Hân',
+    'Đặng Bảo Anh',
+  ]
+
+  for (let i = 0; i < customerNames.length; i++) {
+    await prisma.khachHang.upsert({
+      where: { maKH: `KH${(i + 1).toString().padStart(4, '0')}` },
+      update: {},
+      create: {
+        maKH: `KH${(i + 1).toString().padStart(4, '0')}`,
+        hoTen: customerNames[i],
+        soDienThoai: `09${(10000000 + i * 234567).toString().slice(0, 8)}`,
+        email: `khachhang${i + 1}@aquamarine.local`,
+        diaChi: `${i + 12} Nguyễn Huệ, Quận ${i + 1}, TP.HCM`,
+        hangThanhVien: i >= 4 ? 'KimCuong' : i >= 2 ? 'Vang' : i === 1 ? 'Bac' : 'Thuong',
+        ghiChu: 'Khách hàng mẫu phục vụ demo và kiểm thử nghiệp vụ.',
+      } as any,
+    })
+  }
+
+  // ── 9. Phiếu Bán Hàng & Chi Tiết (30 bản ghi) ────────────────
   console.log('Seeding 30 sales orders...')
   for (let i = 1; i <= 30; i++) {
     const soPhieu = `PBH${i.toString().padStart(7, '0')}`
@@ -110,7 +191,7 @@ async function main() {
     })
   }
 
-  // ── 9. Phiếu Mua Hàng & Chi Tiết (10 bản ghi) ────────────────
+  // ── 10. Phiếu Mua Hàng & Chi Tiết (10 bản ghi) ────────────────
   console.log('Seeding 10 purchase orders...')
   const nccCodes = ['NCC001', 'NCC002', 'NCC003', 'NCC005']
   for (let i = 1; i <= 10; i++) {
@@ -146,7 +227,7 @@ async function main() {
     })
   }
 
-  // ── 10. Phiếu Dịch Vụ & Chi Tiết (30 bản ghi) ────────────────
+  // ── 11. Phiếu Dịch Vụ & Chi Tiết (30 bản ghi) ────────────────
   console.log('Seeding 30 service vouchers...')
   for (let i = 1; i <= 30; i++) {
     const soPhieu = `PDV${i.toString().padStart(7, '0')}`

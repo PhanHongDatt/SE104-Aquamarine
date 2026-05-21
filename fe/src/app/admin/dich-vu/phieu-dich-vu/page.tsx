@@ -7,8 +7,15 @@ export const metadata = { title: "Phiếu dịch vụ – Admin | Aquamarine Jew
 
 export default async function AdminPhieuDichVuPage() {
   const data = await prisma.phieuDichVu.findMany({
+    include: { chiTietDichVu: true },
     orderBy: { ngayLap: 'desc' }
   });
+  const computedData = data.map((phieu) => ({
+    ...phieu,
+    tinhTrang: phieu.chiTietDichVu.length > 0 && phieu.chiTietDichVu.every((ct) => ct.ngayGiao)
+      ? "HoanThanh"
+      : "ChuaHoanThanh",
+  }));
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -30,7 +37,7 @@ export default async function AdminPhieuDichVuPage() {
         </div>
       </div>
 
-      <ServiceSearchList initialData={JSON.parse(JSON.stringify(data))} isAdmin={true} />
+      <ServiceSearchList initialData={JSON.parse(JSON.stringify(computedData))} isAdmin={true} />
     </div>
   );
 }

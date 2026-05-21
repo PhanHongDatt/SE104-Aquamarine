@@ -50,6 +50,8 @@ export function Header() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const crumbs = buildBreadcrumbs(pathname);
+  const accountHref = session?.user?.role === "QUAN_LY" ? "/admin/tai-khoan" : "/nhan-vien/tai-khoan";
+  const settingsHref = session?.user?.role === "QUAN_LY" ? "/admin/cai-dat" : "/nhan-vien/cai-dat";
 
   return (
     <header className="h-16 bg-white/70 backdrop-blur-md border-b border-zinc-200/80 flex items-center justify-between px-6 sticky top-0 z-30 transition-shadow">
@@ -124,12 +126,19 @@ export function Header() {
              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-zinc-100 
                              opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right scale-95 group-hover:scale-100">
                <div className="p-2 space-y-1">
-                 <button className="w-full text-left px-3 py-2 text-sm text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 rounded-lg transition-colors font-medium">
+	                 <Link
+	                   href={accountHref}
+	                   prefetch={true}
+	                   className="block w-full text-left px-3 py-2 text-sm text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 rounded-lg transition-colors font-medium"
+	                 >
                    Tài khoản
-                 </button>
-                 <button className="w-full text-left px-3 py-2 text-sm text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 rounded-lg transition-colors font-medium">
+                 </Link>
+                 <Link
+                   href={settingsHref}
+                   className="block w-full text-left px-3 py-2 text-sm text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 rounded-lg transition-colors font-medium"
+                 >
                    Cài đặt
-                 </button>
+                 </Link>
                  <div className="h-[1px] bg-zinc-100 my-1"></div>
                  <button 
                    onClick={() => signOut({ callbackUrl: "/dang-nhap" })}
