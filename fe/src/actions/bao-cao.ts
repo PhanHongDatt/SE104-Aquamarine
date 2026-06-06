@@ -28,7 +28,7 @@ function serialize(data: any) {
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasPermission, PERMISSIONS } from "@/lib/permissions";
+import { hasPermission, PERMISSIONS, ACTIONS } from "@/lib/permissions";
 
 export interface BaoCaoDoanhThuDetailedResult {
   dailyData: BaoCaoDoanhThuItem[];
@@ -40,7 +40,7 @@ export interface BaoCaoDoanhThuDetailedResult {
 export async function getBaoCaoDoanhThuDetailed(thang: number, nam: number): Promise<BaoCaoDoanhThuDetailedResult> {
   try {
 	    const session = await getServerSession(authOptions);
-	    if (session?.user?.role !== "QUAN_LY" || !(await hasPermission(PERMISSIONS.BAO_CAO_DOANH_THU, session))) {
+	    if (!(await hasPermission(PERMISSIONS.BAO_CAO_DOANH_THU, ACTIONS.VIEW, session))) {
 	      throw new Error("Từ chối truy cập: Bạn không có quyền xem báo cáo doanh thu");
 	    }
 
@@ -119,7 +119,7 @@ export interface BaoCaoTonKhoDetailedItem {
 export async function getBaoCaoTonKhoDetailed(thang: number, nam: number): Promise<BaoCaoTonKhoDetailedItem[]> {
   try {
     const session = await getServerSession(authOptions);
-    if (!(await hasPermission(PERMISSIONS.BAO_CAO_TON_KHO, session))) {
+    if (!(await hasPermission(PERMISSIONS.BAO_CAO_TON_KHO, ACTIONS.VIEW, session))) {
       throw new Error("Từ chối truy cập: Bạn không có quyền xem báo cáo tồn kho");
     }
 

@@ -1,18 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import {
   LayoutDashboard, Package, Box, Ruler, Truck,
   ShoppingCart, Tag, Wrench, Search, BarChart3,
   LineChart, Users, Settings, Gem, ChevronRight, UserCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getMyPermissions } from "@/actions/permissions.action";
 
-const navGroups = [
+type NavItem = {
+  href: string;
+  icon: any;
+  label: string;
+  permission?: string;
+};
+
+type NavGroup = {
+  title: string;
+  items: NavItem[];
+};
+
+const navGroups: NavGroup[] = [
   {
     title: "Chính",
     items: [
@@ -23,31 +37,31 @@ const navGroups = [
   {
     title: "Danh mục (Xem)",
     items: [
-      { href: "/nhan-vien/danh-muc/san-pham", icon: Package, label: "Sản phẩm" },
-      { href: "/nhan-vien/danh-muc/loai-san-pham", icon: Box, label: "Loại sản phẩm" },
-      { href: "/nhan-vien/danh-muc/don-vi-tinh", icon: Ruler, label: "Đơn vị tính" },
-      { href: "/nhan-vien/danh-muc/khach-hang", icon: Users, label: "Khách hàng" },
-      { href: "/nhan-vien/danh-muc/nha-cung-cap", icon: Truck, label: "Nhà cung cấp" },
+      { href: "/nhan-vien/danh-muc/san-pham", icon: Package, label: "Sản phẩm", permission: "DM_SP" },
+      { href: "/nhan-vien/danh-muc/loai-san-pham", icon: Box, label: "Loại sản phẩm", permission: "DM_LSP" },
+      { href: "/nhan-vien/danh-muc/don-vi-tinh", icon: Ruler, label: "Đơn vị tính", permission: "DM_DVT" },
+      { href: "/nhan-vien/danh-muc/khach-hang", icon: Users, label: "Khách hàng", permission: "DM_KH" },
+      { href: "/nhan-vien/danh-muc/nha-cung-cap", icon: Truck, label: "Nhà cung cấp", permission: "DM_NCC" },
     ],
   },
   {
     title: "Giao dịch",
     items: [
-      { href: "/nhan-vien/giao-dich/ban-hang", icon: Tag, label: "Phiếu bán" },
-      { href: "/nhan-vien/giao-dich/mua-hang", icon: ShoppingCart, label: "Phiếu mua" },
+      { href: "/nhan-vien/giao-dich/ban-hang", icon: Tag, label: "Phiếu bán", permission: "GD_BAN" },
+      { href: "/nhan-vien/giao-dich/mua-hang", icon: ShoppingCart, label: "Phiếu mua", permission: "GD_MUA" },
     ],
   },
   {
     title: "Dịch vụ",
     items: [
-      { href: "/nhan-vien/dich-vu/lap-phieu", icon: Wrench, label: "Lập phiếu" },
-      { href: "/nhan-vien/dich-vu/tra-cuu", icon: Search, label: "Tra cứu & Trả đồ" },
+      { href: "/nhan-vien/dich-vu/lap-phieu", icon: Wrench, label: "Lập phiếu", permission: "DV_LAP" },
+      { href: "/nhan-vien/dich-vu/tra-cuu", icon: Search, label: "Tra cứu & Trả đồ", permission: "DV_TRA" },
     ],
   },
   {
     title: "Báo cáo",
     items: [
-      { href: "/nhan-vien/bao-cao/ton-kho", icon: BarChart3, label: "Báo cáo tồn kho" },
+      { href: "/nhan-vien/bao-cao/ton-kho", icon: BarChart3, label: "Báo cáo tồn kho", permission: "BC_TON" },
     ],
   },
 ];
@@ -57,9 +71,72 @@ const COLLAPSED_W = 72;
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const [dbPermissions, setDbPermissions] = useState<string[] | null>(null);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
   const role = session?.user?.role;
+
+  // Lấy quyền real-time từ DB (luôn mới nhất, không依赖 JWT cache)
+  const fetchPermissions = useCallback(async () => {
+    const result = await getMyPermissions();
+    if (result.success) {
+      setDbPermissions(result.permissions);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPermissions();
+  }, [fetchPermissions]);
+
+  // Tự động refresh quyền khi user quay lại tab (phát hiện admin vừa đổi quyền)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchPermissions();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", fetchPermissions);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", fetchPermissions);
+    };
+  }, [fetchPermissions]);
+
+  // Hiển thị thông báo khi bị middleware redirect do thiếu quyền
+  useEffect(() => {
+    if (searchParams.get("error") === "unauthorized") {
+      toast.error("Bạn không có quyền truy cập trang này", {
+        description: "Liên hệ Quản lý để được cấp quyền nếu cần.",
+        duration: 5000,
+      });
+      const url = new URL(window.location.href);
+      url.searchParams.delete("error");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [searchParams]);
+
+  // Ưu tiên quyền từ DB (real-time), fallback về JWT nếu DB chưa load
+  const effectivePermissions = dbPermissions ?? (session?.user as any)?.permissions;
+
+  // Lọc nhóm nav: chỉ hiển thị item mà nhân viên có quyền XEM
+  const filteredGroups = navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        if (!item.permission) return true;
+        if (role === "QUAN_LY") return true;
+        if (effectivePermissions && effectivePermissions.length > 0) {
+          // Kiểm tra quyền XEM: tìm "DM_SP:XEM" hoặc "DM_SP" (backward compat)
+          return effectivePermissions.some(
+            (p: string) => p === `${item.permission}:XEM` || p === item.permission
+          );
+        }
+        return true;
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <motion.aside
@@ -104,7 +181,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 px-3 py-6 overflow-y-auto scrollbar-hidden space-y-6 relative z-10">
-        {navGroups.map((group) => (
+        {filteredGroups.map((group) => (
           <div key={group.title} className="relative">
             <AnimatePresence initial={false}>
               {!collapsed && (

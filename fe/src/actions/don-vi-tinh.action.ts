@@ -6,12 +6,11 @@ import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { donViTinhSchema, type DonViTinhInput } from "@/schemas/don-vi-tinh.schema";
 import { nextSequentialIdFromValidCodes, withUniqueRetry } from "@/lib/id-generation";
-import { hasPermission, PERMISSIONS } from "@/lib/permissions";
+import { hasPermission, PERMISSIONS, ACTIONS } from "@/lib/permissions";
 
-async function canManageDonViTinh() {
+async function canManageDonViTinh(hanhDong: string = ACTIONS.VIEW) {
   const session = await getServerSession(authOptions);
-  if (session?.user?.role !== "QUAN_LY") return false;
-  return hasPermission(PERMISSIONS.DON_VI_TINH, session);
+  return hasPermission(PERMISSIONS.DON_VI_TINH, hanhDong, session);
 }
 
 function serialize(data: any) {
@@ -74,14 +73,15 @@ export async function getDonViTinhs() {
 
 export async function createDonViTinh(data: DonViTinhInput) {
   try {
-    if (!(await canManageDonViTinh())) {
+    if (!(await canManageDonViTinh(ACTIONS.CREATE))) {
       return { success: false, message: "Bạn không có quyền thực hiện thao tác này" };
     }
 
     const validated = donViTinhSchema.parse(data);
 
-    const existing = await prisma.donViTinh.findUnique({
-      where: { tenDVT: validated.tenDVT },
+    // Kiểm tra trùng tên (không phân biệt hoa/thường)
+    const existing = await prisma.donViTinh.findFirst({
+      where: { tenDVT: { equals: validated.tenDVT, mode: "insensitive" } },
     });
     if (existing) {
       return { success: false, message: "Tên đơn vị tính đã tồn tại" };
@@ -109,14 +109,15 @@ export async function createDonViTinh(data: DonViTinhInput) {
 
 export async function updateDonViTinh(maDVT: string, data: DonViTinhInput) {
   try {
-    if (!(await canManageDonViTinh())) {
+    if (!(await canManageDonViTinh(ACTIONS.UPDATE))) {
       return { success: false, message: "Bạn không có quyền thực hiện thao tác này" };
     }
 
     const validated = donViTinhSchema.parse(data);
 
+    // Kiểm tra trùng tên (không phân biệt hoa/thường)
     const existing = await prisma.donViTinh.findFirst({
-      where: { tenDVT: validated.tenDVT, NOT: { maDVT: maDVT } },
+      where: { tenDVT: { equals: validated.tenDVT, mode: "insensitive" }, NOT: { maDVT: maDVT } },
     });
     if (existing) {
       return { success: false, message: "Tên đơn vị tính đã tồn tại" };
@@ -140,7 +141,7 @@ export async function updateDonViTinh(maDVT: string, data: DonViTinhInput) {
 
 export async function deleteDonViTinh(maDVT: string) {
   try {
-    if (!(await canManageDonViTinh())) {
+    if (!(await canManageDonViTinh(ACTIONS.DELETE))) {
       return { success: false, message: "Bạn không có quyền thực hiện thao tác này" };
     }
 

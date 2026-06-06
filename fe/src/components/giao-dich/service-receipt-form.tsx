@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { 
   Trash2, Save, Search, X, Check, Wrench, Info
@@ -17,13 +17,57 @@ import { lapPhieuDichVu } from "@/actions/service.action";
 
 interface ServiceReceiptFormProps {
   serviceTypes: any[];
+  customers?: any[];
   nextSoPhieu: string;
   redirectPath?: string;
   minPrepaymentPercent?: number;
 }
 
-export function ServiceReceiptForm({ 
-  serviceTypes, 
+/**
+ * Input số: type="text" + inputMode="numeric" → nhập tự do, không spinner.
+ * Chỉ cập nhật giá khi blur.
+ */
+function InlineNumberInput({
+  value,
+  onCommit,
+  min = 0,
+  className,
+}: {
+  value: number;
+  onCommit: (val: number) => void;
+  min?: number;
+  className?: string;
+}) {
+  const [local, setLocal] = useState(String(value));
+
+  useEffect(() => {
+    setLocal(String(value));
+  }, [value]);
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={local}
+      onChange={(e) => {
+        // Chỉ cho phép nhập số
+        const raw = e.target.value.replace(/[^0-9]/g, "");
+        setLocal(raw);
+      }}
+      onBlur={() => {
+        const num = Number(local);
+        const final = isNaN(num) || num < min ? min : num;
+        setLocal(String(final));
+        onCommit(final);
+      }}
+      className={className}
+    />
+  );
+}
+
+export function ServiceReceiptForm({
+  serviceTypes,
+  customers = [],
   nextSoPhieu,
   redirectPath = "/dich-vu/tra-cuu",
   minPrepaymentPercent = 50,
@@ -31,6 +75,7 @@ export function ServiceReceiptForm({
   const router = useRouter();
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
 
   const {
     register,
@@ -58,15 +103,40 @@ export function ServiceReceiptForm({
     name: "chiTietDichVu",
   });
 
-  const items = watch("chiTietDichVu");
+  // useWatch detect nested field changes (watch() doesn't)
+  const items = useWatch({ control, name: "chiTietDichVu" }) || [];
+  const selectedCustomerId = watch("maKH");
+
+  // Customer search
+  const filteredCustomers = customers
+    .filter((c) => {
+      const kw = customerSearch.trim().toLowerCase();
+      if (!kw) return true;
+      return [c.maKH, c.hoTen, c.soDienThoai].filter(Boolean).some((v) => String(v).toLowerCase().includes(kw));
+    })
+    .slice(0, 6);
+
+  const selectCustomer = (customer: any) => {
+    setValue("maKH", customer.maKH);
+    setValue("tenKhachHang", customer.hoTen);
+    setValue("soDienThoai", customer.soDienThoai || "");
+    setCustomerSearch(`${customer.hoTen} - ${customer.soDienThoai}`);
+  };
+
+  const clearCustomer = () => {
+    setValue("maKH", "");
+    setValue("tenKhachHang", "");
+    setValue("soDienThoai", "");
+    setCustomerSearch("");
+  };
 
   // Calculate totals automatically
   const totalAmount = useMemo(() => {
-    return items.reduce((sum, item) => sum + (item.thanhTien || 0), 0);
+    return items.reduce((sum: number, item: any) => sum + (item.thanhTien || 0), 0);
   }, [items]);
 
   const totalPrepayment = useMemo(() => {
-    return items.reduce((sum, item) => sum + (item.traTruoc || 0), 0);
+    return items.reduce((sum: number, item: any) => sum + (item.traTruoc || 0), 0);
   }, [items]);
 
   const totalRemaining = useMemo(() => {
@@ -74,12 +144,12 @@ export function ServiceReceiptForm({
   }, [totalAmount, totalPrepayment]);
 
   useEffect(() => {
-    setValue("tongTien", totalAmount);
-    setValue("tongTraTruoc", totalPrepayment);
-    setValue("tongConLai", totalRemaining);
+    setValue("tongTien", totalAmount, { shouldDirty: true });
+    setValue("tongTraTruoc", totalPrepayment, { shouldDirty: true });
+    setValue("tongConLai", totalRemaining, { shouldDirty: true });
   }, [totalAmount, totalPrepayment, totalRemaining, setValue]);
 
-  const filteredServices = serviceTypes.filter(s => 
+  const filteredServices = serviceTypes.filter(s =>
     s.tenDV.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.maDV.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -88,17 +158,23 @@ export function ServiceReceiptForm({
     // Check if service already in list (optional, maybe customer wants 2 of same service with different costs)
     // For now, let's allow multiple entries of same service type if needed, or just append.
     
+    const donGiaDV = Number(s.donGiaDV);
+    // Đơn giá được tính = Đơn giá DV + 0 (QĐ6)
+    const donGiaDuocTinh = donGiaDV; // chiPhiPhatSinh = 0
+    // Thành tiền = Số lượng × Đơn giá được tính (QĐ6)
+    const thanhTien = donGiaDuocTinh * 1; // soLuong = 1
+    const traTruoc = Math.round(thanhTien * (minPrepaymentPercent / 100));
     append({
       maDV: s.maDV,
       tenDV: s.tenDV,
       nhomDV: s.nhomDV,
-      donGiaDV: Number(s.donGiaDV),
+      donGiaDV,
       chiPhiPhatSinh: 0,
-      donGiaDuocTinh: Number(s.donGiaDV),
+      donGiaDuocTinh,
       soLuong: 1,
-      thanhTien: Number(s.donGiaDV),
-	      traTruoc: Math.round(Number(s.donGiaDV) * (minPrepaymentPercent / 100)),
-	      conLai: Number(s.donGiaDV) - Math.round(Number(s.donGiaDV) * (minPrepaymentPercent / 100)),
+      thanhTien,
+      traTruoc,
+      conLai: thanhTien - traTruoc,
     });
     setIsServiceModalOpen(false);
   };
@@ -106,42 +182,54 @@ export function ServiceReceiptForm({
   const [globalPrepayPercent, setGlobalPrepayPercent] = useState<number>(minPrepaymentPercent);
 
   const applyGlobalPrepayment = (percent: number) => {
-    setGlobalPrepayPercent(percent);
-    // Create a new array to ensure watch() detects the change immediately
-    const updatedDetails = items.map((item) => {
+    // Toggle: nếu đang chọn % này thì bỏ chọn (set 0%)
+    const newPercent = globalPrepayPercent === percent ? 0 : percent;
+    setGlobalPrepayPercent(newPercent);
+    const updatedDetails = items.map((item: any) => {
       const thanhTien = Number(item.thanhTien || 0);
-      const newTraTruoc = Math.round(thanhTien * (percent / 100));
+      const newTraTruoc = newPercent > 0 ? Math.round(thanhTien * (newPercent / 100)) : 0;
       return {
         ...item,
         traTruoc: newTraTruoc,
         conLai: thanhTien - newTraTruoc
       };
     });
-    setValue("chiTietDichVu", updatedDetails);
-    toast.info(`Đã áp dụng trả trước ${percent}% cho tất cả dịch vụ`);
+    setValue("chiTietDichVu", updatedDetails, { shouldDirty: true });
+    if (newPercent > 0) {
+      toast.info(`Đã áp dụng trả trước ${newPercent}% cho tất cả dịch vụ`);
+    } else {
+      toast.info("Đã bỏ chọn mức trả trước nhanh");
+    }
   };
 
   const updateItem = (index: number, updates: Partial<any>) => {
     const currentItem = items[index];
     const item = { ...currentItem, ...updates };
-    
+
+    // Đơn giá được tính = Đơn giá DV + Chi phí phát sinh (QĐ6)
     const donGiaDuocTinh = Number(item.donGiaDV) + Number(item.chiPhiPhatSinh || 0);
+    // Thành tiền = Số lượng × Đơn giá được tính (QĐ6)
     const thanhTien = donGiaDuocTinh * (item.soLuong || 1);
-    
-    setValue(`chiTietDichVu.${index}.donGiaDuocTinh`, donGiaDuocTinh);
-    setValue(`chiTietDichVu.${index}.thanhTien`, thanhTien);
-    
+
     let currentTraTruoc = Number(item.traTruoc || 0);
-    
-    // If it's a new item or major change, apply the current global percentage
+
+    // If it's a new item or quantity changed without explicit traTruoc: auto-apply global percentage
     if (updates.hasOwnProperty('maDV') || (updates.soLuong && !updates.hasOwnProperty('traTruoc'))) {
        currentTraTruoc = Math.round(thanhTien * (globalPrepayPercent / 100));
     } else if (updates.hasOwnProperty('traTruoc')) {
        currentTraTruoc = Number(updates.traTruoc || 0);
     }
-    
-    setValue(`chiTietDichVu.${index}.traTruoc`, currentTraTruoc);
-    setValue(`chiTietDichVu.${index}.conLai`, thanhTien - currentTraTruoc);
+
+    // Set toàn bộ array để useWatch detect thay đổi
+    const newItems = [...items];
+    newItems[index] = {
+      ...item,
+      donGiaDuocTinh,
+      thanhTien,
+      traTruoc: currentTraTruoc,
+      conLai: thanhTien - currentTraTruoc,
+    };
+    setValue("chiTietDichVu", newItems, { shouldDirty: true, shouldTouch: true });
   };
 
   const onSubmit = async (data: ServiceReceiptFormValues) => {
@@ -213,6 +301,49 @@ export function ServiceReceiptForm({
                     className="cursor-default bg-zinc-50"
                   />
                 </div>
+              </div>
+
+              <input type="hidden" {...register("maKH")} />
+
+              <div className="space-y-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-[38px] w-4 h-4 text-zinc-400" />
+                  <Input
+                    label="Tìm khách hàng"
+                    placeholder="Mã, SĐT hoặc tên khách hàng"
+                    className="pl-10 pr-10"
+                    value={customerSearch}
+                    onChange={(e) => setCustomerSearch(e.target.value)}
+                  />
+                  {selectedCustomerId && (
+                    <button
+                      type="button"
+                      onClick={clearCustomer}
+                      className="absolute right-3 top-[36px] p-1 text-zinc-400 hover:text-zinc-700"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                {customerSearch.trim() && !selectedCustomerId && (
+                  <div className="max-h-48 overflow-y-auto rounded-2xl border border-zinc-200 bg-white shadow-sm">
+                    {filteredCustomers.length === 0 ? (
+                      <div className="px-4 py-3 text-sm text-zinc-400">Không tìm thấy khách hàng</div>
+                    ) : (
+                      filteredCustomers.map((customer) => (
+                        <button
+                          key={customer.maKH}
+                          type="button"
+                          onClick={() => selectCustomer(customer)}
+                          className="w-full px-4 py-3 text-left hover:bg-zinc-50 transition-colors border-b border-zinc-100 last:border-b-0"
+                        >
+                          <div className="font-semibold text-sm text-zinc-900">{customer.hoTen}</div>
+                          <div className="text-xs text-zinc-500 font-mono">{customer.maKH} - {customer.soDienThoai}</div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
 
               <Input
@@ -326,7 +457,7 @@ export function ServiceReceiptForm({
                   <tr className="border-b border-zinc-100 bg-zinc-50/50 font-bold text-zinc-600 uppercase tracking-tighter text-[10px]">
                     <th className="px-4 py-4 w-8 text-center">STT</th>
                     <th className="px-4 py-4 min-w-[200px]">Loại dịch vụ</th>
-                    <th className="px-4 py-4 text-right">Đơn giá</th>
+                    <th className="px-4 py-4 text-right">Đơn giá dịch vụ</th>
                     <th className="px-4 py-4 text-right">Phát sinh</th>
                     <th className="px-4 py-4 text-right">Đơn giá được tính</th>
                     <th className="px-4 py-4 w-24 text-center">Số lượng</th>
@@ -376,12 +507,11 @@ export function ServiceReceiptForm({
                           {formatCurrency(items[index]?.donGiaDV || 0)}
                         </td>
                         <td className="px-2 py-4">
-                          <input
-                            type="number"
-                            min="0"
-                            step="1000"
-                            value={items[index]?.chiPhiPhatSinh}
-                            onChange={(e) => updateItem(index, { chiPhiPhatSinh: parseInt(e.target.value) || 0 })}
+                          <InlineNumberInput
+                            value={items[index]?.chiPhiPhatSinh ?? 0}
+                            min={0}
+
+                            onCommit={(val) => updateItem(index, { chiPhiPhatSinh: val })}
                             className="w-full h-9 bg-zinc-50 border border-zinc-200 rounded-lg text-right px-2 font-medium focus:ring-2 focus:ring-primary/20 transition-all"
                           />
                         </td>
@@ -389,11 +519,10 @@ export function ServiceReceiptForm({
                           {formatCurrency(items[index]?.donGiaDuocTinh || 0)}
                         </td>
                         <td className="px-2 py-4">
-                          <input
-                            type="number"
-                            min="1"
-                            value={items[index]?.soLuong}
-                            onChange={(e) => updateItem(index, { soLuong: parseInt(e.target.value) || 0 })}
+                          <InlineNumberInput
+                            value={items[index]?.soLuong ?? 1}
+                            min={1}
+                            onCommit={(val) => updateItem(index, { soLuong: val })}
                             className="w-full h-9 bg-zinc-100 border-none rounded-lg text-center font-bold focus:ring-2 focus:ring-primary/20 transition-all"
                           />
                         </td>
@@ -402,14 +531,14 @@ export function ServiceReceiptForm({
                         </td>
                         <td className="px-2 py-4">
                           <div className="space-y-1">
-                            <input
-                              type="number"
-                              step="1000"
-                              value={items[index]?.traTruoc}
-                              onChange={(e) => updateItem(index, { traTruoc: Number(e.target.value) || 0 })}
+                            <InlineNumberInput
+                              value={items[index]?.traTruoc ?? 0}
+                              min={0}
+  
+                              onCommit={(val) => updateItem(index, { traTruoc: val })}
                               className={`w-full h-9 rounded-lg text-right px-2 font-bold focus:ring-2 transition-all ${
 	                                (items[index]?.traTruoc || 0) < (items[index]?.thanhTien || 0) * (minPrepaymentPercent / 100)
-                                ? 'bg-red-50 border-red-200 text-red-600 focus:ring-red-200' 
+                                ? 'bg-red-50 border-red-200 text-red-600 focus:ring-red-200'
                                 : 'bg-green-50 border-green-200 text-green-700 focus:ring-green-200'
                               }`}
                             />

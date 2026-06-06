@@ -2,7 +2,19 @@
   "permissions": {
     "allow": [
       "Bash(xargs ls *)",
-      "Bash(test -f \"D:/study/UIT/[SE] - Nhập môn Công nghệ phần mềm/Đồ án/QuanLyCuaHangVangBacDaQuy/fe/src/middleware.ts\")"
+      "Bash(test -f \"D:/study/UIT/[SE] - Nhập môn Công nghệ phần mềm/Đồ án/QuanLyCuaHangVangBacDaQuy/fe/src/middleware.ts\")",
+      "Bash(docker-compose up *)",
+      "Bash(docker-compose down *)",
+      "Bash(/mnt/c/Program Files/Docker/Docker/Docker Desktop.exe *)",
+      "PowerShell(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\" -WindowStyle Hidden; Start-Sleep -Seconds 15; docker ps 2>&1)",
+      "Bash(docker version *)",
+      "Bash(docker info *)",
+      "Bash(docker compose *)",
+      "Bash(docker image prune *)",
+      "Bash(npx tsc *)",
+      "Bash(docker image ls *)",
+      "Bash(docker system df *)",
+      "Bash(docker builder prune *)"
     ]
   }
 }

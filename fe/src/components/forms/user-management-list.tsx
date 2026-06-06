@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { UserForm } from "@/components/forms/user-form";
 import { deleteNguoiDung } from "@/actions/user.action";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface UserManagementListProps {
   users: any[];
@@ -19,6 +20,10 @@ interface UserManagementListProps {
 export function UserManagementList({ users, groups }: UserManagementListProps) {
   const router = useRouter();
   const { data: session } = useSession();
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission("HT_USR", "THEM");
+  const canUpdate = hasPermission("HT_USR", "SUA");
+  const canDelete = hasPermission("HT_USR", "XOA");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -68,15 +73,17 @@ export function UserManagementList({ users, groups }: UserManagementListProps) {
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-2xl text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
           />
         </div>
-        <Button 
-          onClick={() => {
-            setSelectedUser(null);
-            setIsModalOpen(true);
-          }} 
-          className="rounded-2xl font-bold gap-2 h-11"
-        >
-          <UserPlus className="w-4 h-4" /> Tạo tài khoản mới
-        </Button>
+        {canCreate && (
+          <Button
+            onClick={() => {
+              setSelectedUser(null);
+              setIsModalOpen(true);
+            }}
+            className="rounded-2xl font-bold gap-2 h-11"
+          >
+            <UserPlus className="w-4 h-4" /> Tạo tài khoản mới
+          </Button>
+        )}
       </div>
 
       <div className="bg-white rounded-3xl border border-zinc-200 shadow-sm overflow-hidden">
@@ -122,23 +129,27 @@ export function UserManagementList({ users, groups }: UserManagementListProps) {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => handleEdit(u)}
-                          className="p-2 hover:bg-zinc-100 rounded-xl text-zinc-400 hover:text-primary transition-colors"
-                          title="Sửa thông tin"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(u.maND, u.hoTen)}
-                          className={`p-2 hover:bg-red-50 rounded-xl transition-colors ${
-                            session?.user?.id === u.maND ? 'text-zinc-200 cursor-not-allowed' : 'text-zinc-400 hover:text-red-600'
-                          }`}
-                          disabled={session?.user?.id === u.maND}
-                          title={session?.user?.id === u.maND ? "Không thể xóa chính mình" : "Xóa tài khoản"}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {canUpdate && (
+                          <button
+                            onClick={() => handleEdit(u)}
+                            className="p-2 hover:bg-zinc-100 rounded-xl text-zinc-400 hover:text-primary transition-colors"
+                            title="Sửa thông tin"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDelete(u.maND, u.hoTen)}
+                            className={`p-2 hover:bg-red-50 rounded-xl transition-colors ${
+                              session?.user?.id === u.maND ? 'text-zinc-200 cursor-not-allowed' : 'text-zinc-400 hover:text-red-600'
+                            }`}
+                            disabled={session?.user?.id === u.maND}
+                            title={session?.user?.id === u.maND ? "Không thể xóa chính mình" : "Xóa tài khoản"}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

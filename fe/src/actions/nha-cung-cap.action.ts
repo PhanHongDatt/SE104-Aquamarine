@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { nextSequentialIdFromValidCodes, withUniqueRetry } from "@/lib/id-generation";
-import { hasPermission, PERMISSIONS } from "@/lib/permissions";
+import { hasPermission, PERMISSIONS, ACTIONS } from "@/lib/permissions";
 import { nhaCungCapSchema, type NhaCungCapFormValues } from "@/schemas/nha-cung-cap.schema";
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
@@ -12,12 +12,9 @@ function serialize(data: any) {
   return JSON.parse(JSON.stringify(data));
 }
 
-async function requireSupplierPermission() {
+async function requireSupplierPermission(hanhDong: string = ACTIONS.VIEW) {
   const session = await getServerSession(authOptions);
-  if (session?.user?.role !== "QUAN_LY") {
-    return { allowed: false, message: "Chỉ vai trò Quản lý mới có quyền quản lý nhà cung cấp" };
-  }
-  if (!(await hasPermission(PERMISSIONS.NHA_CUNG_CAP, session))) {
+  if (!(await hasPermission(PERMISSIONS.NHA_CUNG_CAP, hanhDong, session))) {
     return { allowed: false, message: "Bạn không có quyền quản lý nhà cung cấp" };
   }
   return { allowed: true, message: "" };
@@ -33,7 +30,7 @@ async function generateSupplierId() {
 
 export async function createNhaCungCap(input: NhaCungCapFormValues) {
   try {
-    const auth = await requireSupplierPermission();
+    const auth = await requireSupplierPermission(ACTIONS.CREATE);
     if (!auth.allowed) return { success: false, message: auth.message };
 
     const validated = nhaCungCapSchema.parse(input);
@@ -63,7 +60,7 @@ export async function createNhaCungCap(input: NhaCungCapFormValues) {
 
 export async function updateNhaCungCap(maNCC: string, input: NhaCungCapFormValues) {
   try {
-    const auth = await requireSupplierPermission();
+    const auth = await requireSupplierPermission(ACTIONS.UPDATE);
     if (!auth.allowed) return { success: false, message: auth.message };
 
     const validated = nhaCungCapSchema.parse(input);
@@ -90,7 +87,7 @@ export async function updateNhaCungCap(maNCC: string, input: NhaCungCapFormValue
 
 export async function deleteNhaCungCap(maNCC: string) {
   try {
-    const auth = await requireSupplierPermission();
+    const auth = await requireSupplierPermission(ACTIONS.DELETE);
     if (!auth.allowed) return { success: false, message: auth.message };
 
     const usedInPurchase = await prisma.phieuMuaHang.findFirst({ where: { maNCC } });

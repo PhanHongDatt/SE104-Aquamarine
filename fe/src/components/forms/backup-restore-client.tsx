@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/modal";
 import { Database, RotateCcw } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface BackupFile {
   filename: string;
@@ -14,6 +15,9 @@ interface BackupFile {
 }
 
 export function BackupRestoreClient({ files }: { files: BackupFile[] }) {
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission("HT_BAK", "THEM");
+  const canUpdate = hasPermission("HT_BAK", "SUA");
   const [isPending, startTransition] = useTransition();
   const [selectedFile, setSelectedFile] = useState<BackupFile | null>(null);
   const [confirmText, setConfirmText] = useState("");
@@ -48,10 +52,12 @@ export function BackupRestoreClient({ files }: { files: BackupFile[] }) {
           <h2 className="text-base font-bold text-zinc-900">Sao lưu dữ liệu</h2>
           <p className="text-sm text-zinc-500 mt-1">Tạo file `.sql` mới trong thư mục backups của ứng dụng.</p>
         </div>
-        <Button onClick={handleBackup} loading={isPending} className="w-full sm:w-auto">
-          <Database className="w-4 h-4 mr-2" />
-          Sao lưu ngay
-        </Button>
+        {canCreate && (
+          <Button onClick={handleBackup} loading={isPending} className="w-full sm:w-auto">
+            <Database className="w-4 h-4 mr-2" />
+            Sao lưu ngay
+          </Button>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
@@ -68,10 +74,12 @@ export function BackupRestoreClient({ files }: { files: BackupFile[] }) {
                   <p className="font-mono text-sm font-semibold text-zinc-900">{file.filename}</p>
                   <p className="text-xs text-zinc-500 mt-1">{file.size} - {file.modifiedAt}</p>
                 </div>
-                <Button type="button" variant="outline" size="sm" onClick={() => setSelectedFile(file)}>
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  Phục hồi
-                </Button>
+                {canUpdate && (
+                  <Button type="button" variant="outline" size="sm" onClick={() => setSelectedFile(file)}>
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Phục hồi
+                  </Button>
+                )}
               </div>
             ))}
           </div>

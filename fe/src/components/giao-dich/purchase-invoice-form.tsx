@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { 
   Trash2, Save, Search, X, Check, ShoppingBag, Plus
@@ -52,12 +52,14 @@ export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu, minPurch
     name: "chiTietMuaHang",
   });
 
-  const items = watch("chiTietMuaHang");
   const selectedSupplierId = watch("maNCC");
   const selectedSupplier = suppliers.find((supplier) => supplier.maNCC === selectedSupplierId);
 
+  // useWatch detect nested field changes (watch() doesn't)
+  const items = useWatch({ control, name: "chiTietMuaHang" }) || [];
+
   const totalAmount = useMemo(() => {
-    return items.reduce((sum, item) => sum + (item.thanhTien || 0), 0);
+    return items.reduce((sum: number, item: any) => sum + (item.thanhTien || 0), 0);
   }, [items]);
 
   useEffect(() => {
@@ -90,9 +92,9 @@ export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu, minPurch
   };
 
   const updateItem = (index: number, qty: number, price: number) => {
-    setValue(`chiTietMuaHang.${index}.soLuong`, qty);
-    setValue(`chiTietMuaHang.${index}.donGiaMua`, price);
-    setValue(`chiTietMuaHang.${index}.thanhTien`, qty * price);
+    setValue(`chiTietMuaHang.${index}.soLuong`, qty, { shouldDirty: true, shouldTouch: true });
+    setValue(`chiTietMuaHang.${index}.donGiaMua`, price, { shouldDirty: true, shouldTouch: true });
+    setValue(`chiTietMuaHang.${index}.thanhTien`, qty * price, { shouldDirty: true, shouldTouch: true });
   };
 
   const onSubmit = async (values: PurchaseInvoiceFormValues) => {

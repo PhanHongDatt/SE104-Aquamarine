@@ -1,9 +1,9 @@
-import SanPhamStaffView from "@/components/danh-muc/san-pham-staff-view";
+import SanPhamAdminClient from "@/components/danh-muc/san-pham-admin-client";
 
 export const metadata = {
   title: "Sản Phẩm – Aquamarine Jewelry & Luxury",
 };
 
 export default function Page() {
-  return <SanPhamStaffView />;
+  return <SanPhamAdminClient />;
 }

@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasPermission, PERMISSIONS } from "@/lib/permissions";
+import { hasPermission, PERMISSIONS, ACTIONS } from "@/lib/permissions";
 import { systemSettingsSchema } from "@/schemas/system-settings.schema";
 
 function serialize(data: any) {
@@ -21,7 +21,7 @@ export async function updateSystemSettings(data: any) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (session?.user?.role !== "QUAN_LY" || !(await hasPermission(PERMISSIONS.QUY_DINH, session))) {
+    if (!(await hasPermission(PERMISSIONS.QUY_DINH, ACTIONS.UPDATE, session))) {
       return {
         success: false,
         message: "Bạn không có quyền thay đổi quy định."

@@ -2,14 +2,21 @@ import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
 export default withAuth(
-  function middleware(req) {
+  async function middleware(req) {
     const { token } = req.nextauth;
     const { pathname } = req.nextUrl;
-    const permissions = Array.isArray(token?.permissions) ? token.permissions : [];
+    const jwtPermissions = Array.isArray(token?.permissions) ? token.permissions : [];
+
+    // Helper: redirect về /nhan-vien kèm thông báo lỗi
+    function denyAccess() {
+      const url = new URL("/nhan-vien", req.url);
+      url.searchParams.set("error", "unauthorized");
+      return NextResponse.redirect(url);
+    }
 
     // 1. Chặn truy cập Admin nếu không phải QUAN_LY
     if (pathname.startsWith("/admin") && token?.role !== "QUAN_LY") {
-      return NextResponse.redirect(new URL("/nhan-vien", req.url));
+      return denyAccess();
     }
 
     // 2. Chặn truy cập các báo cáo/cài đặt nhạy cảm nếu là NHAN_VIEN
@@ -20,7 +27,7 @@ export default withAuth(
     ];
 
     if (restrictedStaffRoutes.some(route => pathname.startsWith(route)) && token?.role !== "QUAN_LY") {
-      return NextResponse.redirect(new URL("/nhan-vien", req.url));
+      return denyAccess();
     }
 
     const staffPermissionRoutes = [
@@ -37,8 +44,31 @@ export default withAuth(
     ];
 
     const matchedStaffRoute = staffPermissionRoutes.find(item => pathname.startsWith(item.route));
-    if (token?.role === "NHAN_VIEN" && matchedStaffRoute && !permissions.includes(matchedStaffRoute.permission)) {
-      return NextResponse.redirect(new URL("/nhan-vien", req.url));
+    if (token?.role === "NHAN_VIEN" && matchedStaffRoute) {
+      const viewPerm = `${matchedStaffRoute.permission}:XEM`;
+
+      // Kiểm tra JWT — hỗ trợ cả format mới "DM_SP:XEM" và cũ "DM_SP"
+      if (jwtPermissions.some((p: string) => p === viewPerm || p === matchedStaffRoute.permission)) {
+        return; // Có quyền trong JWT → cho qua
+      }
+
+      // JWT không có quyền → gọi API route kiểm tra DB (real-time, admin vừa cấp quyền)
+      // Không dùng Prisma trực tiếp vì Edge Runtime không hỗ trợ
+      try {
+        const apiUrl = new URL(`/api/auth/permissions-check`, req.url);
+        apiUrl.searchParams.set("maNhom", token?.maNhom as string);
+        apiUrl.searchParams.set("maChucNang", matchedStaffRoute.permission);
+        apiUrl.searchParams.set("hanhDong", "XEM");
+        const res = await fetch(apiUrl.toString());
+        const data = await res.json();
+        if (data.allowed) {
+          return; // DB có quyền → cho qua (admin vừa cấp, JWT chưa cập nhật)
+        }
+      } catch (e) {
+        console.error("[Middleware] DB permission check failed:", e);
+      }
+
+      return denyAccess();
     }
   },
   {

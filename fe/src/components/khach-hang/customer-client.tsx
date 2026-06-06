@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useSession } from "next-auth/react";
 import { Edit2, Loader2, Plus, Search, Trash2, UserRound, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -21,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { usePermissions } from "@/hooks/use-permissions";
 
 type Customer = {
   maKH: string;
@@ -53,9 +53,11 @@ function toDateInputValue(value?: string | null) {
   return new Date(value).toISOString().slice(0, 10);
 }
 
-export function CustomerClient({ readonly = false }: { readonly?: boolean }) {
-  const { data: session } = useSession();
-  const isAdmin = session?.user?.role === "QUAN_LY";
+export function CustomerClient() {
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission("DM_KH", "THEM");
+  const canUpdate = hasPermission("DM_KH", "SUA");
+  const canDelete = hasPermission("DM_KH", "XOA");
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -157,7 +159,7 @@ export function CustomerClient({ readonly = false }: { readonly?: boolean }) {
             Lưu thông tin khách mua trang sức, hỗ trợ tra cứu khi bán hàng, bảo hành và chăm sóc khách hàng.
           </p>
         </div>
-        {!readonly && (
+        {canCreate && (
           <Button onClick={openCreateModal} className="h-11 rounded-xl px-6 shadow-lg shadow-primary/20">
             <Plus className="h-4 w-4" />
             Thêm khách hàng
@@ -239,7 +241,7 @@ export function CustomerClient({ readonly = false }: { readonly?: boolean }) {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex justify-end gap-2">
-                        {!readonly && (
+                        {canUpdate && (
                           <button
                             type="button"
                             onClick={() => openEditModal(customer)}
@@ -249,7 +251,7 @@ export function CustomerClient({ readonly = false }: { readonly?: boolean }) {
                             Sửa
                           </button>
                         )}
-                        {isAdmin && (
+                        {canDelete && (
                           <button
                             type="button"
                             onClick={() => setDeleteConfirm({ id: customer.maKH, name: customer.hoTen })}

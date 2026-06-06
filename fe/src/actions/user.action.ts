@@ -5,23 +5,23 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import { nextSequentialId, withUniqueRetry } from "@/lib/id-generation";
-import { hasPermission, PERMISSIONS } from "@/lib/permissions";
+import { hasPermission, PERMISSIONS, ACTIONS } from "@/lib/permissions";
 import { changePasswordSchema, registerUserSchema, userSchema, userUpdateSchema } from "@/schemas/user.schema";
 
 function serialize(data: any) {
   return JSON.parse(JSON.stringify(data));
 }
 
-async function canManageUsers() {
+async function canManageUsers(hanhDong: string = ACTIONS.VIEW) {
   const session = await getServerSession(authOptions);
   return {
     session,
-    allowed: await hasPermission(PERMISSIONS.USER_MGMT, session),
+    allowed: await hasPermission(PERMISSIONS.USER_MGMT, hanhDong, session),
   };
 }
 
 export async function getDanhSachNguoiDung() {
-  const auth = await canManageUsers();
+  const auth = await canManageUsers(ACTIONS.VIEW);
   if (!auth.allowed) return [];
 
   const data = await prisma.nguoiDung.findMany({
@@ -32,7 +32,7 @@ export async function getDanhSachNguoiDung() {
 }
 
 export async function getDanhSachNhomNguoiDung() {
-  const auth = await canManageUsers();
+  const auth = await canManageUsers(ACTIONS.VIEW);
   if (!auth.allowed) return [];
 
   const data = await prisma.nhomNguoiDung.findMany({
@@ -43,7 +43,7 @@ export async function getDanhSachNhomNguoiDung() {
 
 export async function createNguoiDung(data: any) {
   try {
-    const auth = await canManageUsers();
+    const auth = await canManageUsers(ACTIONS.CREATE);
     if (!auth.allowed) {
       return { success: false, message: "Bạn không có quyền thực hiện thao tác này" };
     }
@@ -78,6 +78,12 @@ export async function createNguoiDung(data: any) {
 
 export async function registerNguoiDung(data: any) {
   try {
+    // Chỉ Quản lý mới có quyền tạo tài khoản mới
+    const session = await getServerSession(authOptions);
+    if (!(await hasPermission(PERMISSIONS.USER_MGMT, ACTIONS.CREATE, session))) {
+      return { success: false, message: "Bạn không có quyền tạo tài khoản" };
+    }
+
     const validated = registerUserSchema.parse(data);
     const hashedPassword = await bcrypt.hash(validated.matKhau, 10);
 
@@ -168,7 +174,7 @@ export async function updateOwnPassword(data: any) {
 
 export async function updateNguoiDung(maND: string, data: any) {
   try {
-    const auth = await canManageUsers();
+    const auth = await canManageUsers(ACTIONS.UPDATE);
     if (!auth.allowed) {
       return { success: false, message: "Bạn không có quyền thực hiện thao tác này" };
     }
@@ -196,7 +202,7 @@ export async function updateNguoiDung(maND: string, data: any) {
 
 export async function deleteNguoiDung(maND: string) {
   try {
-    const auth = await canManageUsers();
+    const auth = await canManageUsers(ACTIONS.DELETE);
     if (!auth.allowed) {
       return { success: false, message: "Bạn không có quyền thực hiện thao tác này" };
     }

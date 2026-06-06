@@ -5,16 +5,16 @@ import { authOptions } from "@/lib/auth";
 import { khachHangSchema, type KhachHangInput } from "@/schemas/khach-hang.schema";
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
-import { hasPermission, PERMISSIONS } from "@/lib/permissions";
+import { hasPermission, PERMISSIONS, ACTIONS } from "@/lib/permissions";
 import { nextSequentialId, withUniqueRetry } from "@/lib/id-generation";
 
 function serialize(data: any) {
   return JSON.parse(JSON.stringify(data));
 }
 
-async function requireCustomerPermission() {
+async function requireCustomerPermission(hanhDong: string = ACTIONS.VIEW) {
   const session = await getServerSession(authOptions);
-  if (!(await hasPermission(PERMISSIONS.KHACH_HANG, session))) {
+  if (!(await hasPermission(PERMISSIONS.KHACH_HANG, hanhDong, session))) {
     return { allowed: false, message: "Bạn không có quyền quản lý khách hàng" };
   }
   return { allowed: true, message: "" };
@@ -63,7 +63,7 @@ export async function getKhachHangs(query?: string) {
 
 export async function createKhachHang(input: KhachHangInput) {
   try {
-    const auth = await requireCustomerPermission();
+    const auth = await requireCustomerPermission(ACTIONS.CREATE);
     if (!auth.allowed) return { success: false, message: auth.message };
 
     const validated = khachHangSchema.parse(input);
@@ -91,7 +91,7 @@ export async function createKhachHang(input: KhachHangInput) {
 
 export async function updateKhachHang(maKH: string, input: KhachHangInput) {
   try {
-    const auth = await requireCustomerPermission();
+    const auth = await requireCustomerPermission(ACTIONS.UPDATE);
     if (!auth.allowed) return { success: false, message: auth.message };
 
     const validated = khachHangSchema.parse(input);
@@ -113,8 +113,10 @@ export async function updateKhachHang(maKH: string, input: KhachHangInput) {
 
 export async function deleteKhachHang(maKH: string) {
   try {
-    const auth = await requireCustomerPermission();
-    if (!auth.allowed) return { success: false, message: auth.message };
+    const session = await getServerSession(authOptions);
+    if (!(await hasPermission(PERMISSIONS.KHACH_HANG, ACTIONS.DELETE, session))) {
+      return { success: false, message: "Bạn không có quyền xóa khách hàng" };
+    }
 
     await prisma.khachHang.update({
       where: { maKH },

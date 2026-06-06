@@ -115,6 +115,7 @@ export function SalesInvoiceList({ data }: SalesInvoiceListProps) {
         isOpen={!!selectedPhieu}
         onClose={() => setSelectedPhieu(null)}
         title="Chi tiết phiếu bán hàng"
+        size="lg"
       >
         {selectedPhieu && (
           <div className="space-y-6">

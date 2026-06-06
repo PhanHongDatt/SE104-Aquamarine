@@ -9,9 +9,16 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: ReactNode;
+  size?: "sm" | "md" | "lg";
 }
 
-export function Modal({ isOpen, onClose, title, children }: ModalProps) {
+const SIZE_CLASSES: Record<string, string> = {
+  sm: "max-w-lg",
+  md: "max-w-2xl",
+  lg: "max-w-4xl",
+};
+
+export function Modal({ isOpen, onClose, title, children, size = "sm" }: ModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -31,7 +38,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden"
+          className={`relative w-full ${SIZE_CLASSES[size]} bg-white rounded-3xl shadow-2xl overflow-hidden`}
         >
           <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
             <h3 className="text-lg font-bold text-zinc-900">{title}</h3>

@@ -10,6 +10,7 @@ import { systemSettingsSchema, type SystemSettingsFormValues } from "@/schemas/s
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { updateSystemSettings } from "@/actions/settings.action";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface SystemSettingsFormProps {
   initialData: any;
@@ -17,6 +18,8 @@ interface SystemSettingsFormProps {
 
 export function SystemSettingsForm({ initialData }: SystemSettingsFormProps) {
   const router = useRouter();
+  const { hasPermission } = usePermissions();
+  const canUpdate = hasPermission("HT_QDI", "SUA");
 
   const {
     register,
@@ -154,10 +157,12 @@ export function SystemSettingsForm({ initialData }: SystemSettingsFormProps) {
           </div>
 
           <div className="p-6 bg-zinc-50 border-t border-zinc-100 flex justify-end">
-            <Button type="submit" loading={isSubmitting} className="rounded-xl px-8 font-bold shadow-lg shadow-primary/20">
-              <Save className="w-4 h-4 mr-2" />
-              Lưu thay đổi quy định
-            </Button>
+            {canUpdate && (
+              <Button type="submit" loading={isSubmitting} className="rounded-xl px-8 font-bold shadow-lg shadow-primary/20">
+                <Save className="w-4 h-4 mr-2" />
+                Lưu thay đổi quy định
+              </Button>
+            )}
           </div>
         </form>
       </div>

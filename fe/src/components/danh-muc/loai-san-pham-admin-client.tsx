@@ -17,6 +17,7 @@ import { loaiSanPhamSchema, type LoaiSanPhamInput } from "@/schemas/loai-san-pha
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { usePermissions } from "@/hooks/use-permissions";
 
 const getUnitColor = (unitName: string) => {
   const name = unitName?.toLowerCase() || "";
@@ -30,6 +31,10 @@ const getUnitColor = (unitName: string) => {
 };
 
 export default function AdminLoaiSanPhamPage() {
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission("DM_LSP", "THEM");
+  const canUpdate = hasPermission("DM_LSP", "SUA");
+  const canDelete = hasPermission("DM_LSP", "XOA");
   const [data, setData] = useState<any[]>([]);
   const [units, setUnits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,8 +42,9 @@ export default function AdminLoaiSanPhamPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // State cho Custom Delete Dialog
-  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: string | null; name: string }>({
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: string | null; name: string; error: string | null }>({
     isOpen: false,
+    error: null,
     id: null,
     name: "",
   });
@@ -110,26 +116,28 @@ export default function AdminLoaiSanPhamPage() {
       isOpen: true,
       id: item.maLSP,
       name: item.tenLSP,
+      error: null,
     });
   };
 
   const closeDeleteDialog = () => {
-    setDeleteConfirm({ isOpen: false, id: null, name: "" });
+    setDeleteConfirm({ isOpen: false, id: null, name: "", error: null });
   };
 
   const handleConfirmDelete = async () => {
     if (!deleteConfirm.id) return;
-    
+
     const loadingToast = toast.loading("Đang thực hiện xóa...");
     try {
       const res = await deleteLoaiSanPham(deleteConfirm.id);
       toast.dismiss(loadingToast);
-      
+
       if (res.success) {
         toast.success(res.message);
         loadData();
         closeDeleteDialog();
       } else {
+        setDeleteConfirm((prev) => ({ ...prev, error: res.message }));
         toast.error(res.message);
       }
     } catch (e) {
@@ -154,12 +162,14 @@ export default function AdminLoaiSanPhamPage() {
             </div>
           </div>
         </div>
-        <Button 
-          onClick={() => { setEditingId(null); reset(); setIsModalOpen(true); }}
-          className="flex items-center gap-2 rounded-xl shadow-md shadow-primary/20 h-11"
-        >
-          <Plus className="w-4 h-4" /> Thêm loại mới
-        </Button>
+        {canCreate && (
+          <Button
+            onClick={() => { setEditingId(null); reset(); setIsModalOpen(true); }}
+            className="flex items-center gap-2 rounded-xl shadow-md shadow-primary/20 h-11"
+          >
+            <Plus className="w-4 h-4" /> Thêm loại mới
+          </Button>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
@@ -202,20 +212,24 @@ export default function AdminLoaiSanPhamPage() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">
-                          <button 
-                            onClick={() => handleEdit(item)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 text-primary hover:bg-primary hover:text-white rounded-lg transition-all duration-200 font-semibold text-xs border border-primary/10 shadow-sm"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                            Sửa
-                          </button>
-                          <button 
-                            onClick={() => openDeleteDialog(item)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white rounded-lg transition-all duration-200 font-semibold text-xs border border-red-100 shadow-sm"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            Xóa
-                          </button>
+                          {canUpdate && (
+                            <button
+                              onClick={() => handleEdit(item)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 text-primary hover:bg-primary hover:text-white rounded-lg transition-all duration-200 font-semibold text-xs border border-primary/10 shadow-sm"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                              Sửa
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              onClick={() => openDeleteDialog(item)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white rounded-lg transition-all duration-200 font-semibold text-xs border border-red-100 shadow-sm"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              Xóa
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -303,32 +317,52 @@ export default function AdminLoaiSanPhamPage() {
       {/* Custom Delete Dialog */}
       {deleteConfirm.isOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-zinc-950/20 backdrop-blur-[2px] p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200 border border-zinc-200/50">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 border border-zinc-200/50">
             <div className="p-8 text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto text-red-500 mb-2">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-2 ${deleteConfirm.error ? "bg-amber-50 text-amber-500" : "bg-red-50 text-red-500"}`}>
                 <AlertTriangle className="w-8 h-8" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-bold text-zinc-900 font-montserrat">Xác nhận xóa?</h3>
-                <p className="text-sm text-zinc-500 leading-relaxed">
-                  Bạn có chắc chắn muốn xóa loại sản phẩm <span className="font-bold text-zinc-800">&quot;{deleteConfirm.name}&quot;</span>?
-                  <br />Hành động này không thể hoàn tác.
-                </p>
+                <h3 className="text-xl font-bold text-zinc-900 font-montserrat">
+                  {deleteConfirm.error ? "Không thể xóa" : "Xác nhận xóa?"}
+                </h3>
+
+                {deleteConfirm.error ? (
+                  <div className="text-sm text-left bg-red-50 border border-red-100 rounded-xl p-4 space-y-2">
+                    <p className="text-red-700 font-medium">{deleteConfirm.error}</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-zinc-500 leading-relaxed">
+                    Bạn có chắc chắn muốn xóa loại sản phẩm <span className="font-bold text-zinc-800">&quot;{deleteConfirm.name}&quot;</span>?
+                    <br />Hành động này không thể hoàn tác.
+                  </p>
+                )}
               </div>
-              
+
               <div className="flex flex-col gap-2 pt-4">
-                <button 
-                  onClick={handleConfirmDelete}
-                  className="w-full h-12 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-bold transition-all shadow-lg shadow-red-200 active:scale-[0.98]"
-                >
-                  Đồng ý xóa
-                </button>
-                <button 
-                  onClick={closeDeleteDialog}
-                  className="w-full h-12 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-2xl font-bold transition-all active:scale-[0.98]"
-                >
-                  Hủy bỏ
-                </button>
+                {deleteConfirm.error ? (
+                  <button
+                    onClick={closeDeleteDialog}
+                    className="w-full h-12 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-2xl font-bold transition-all active:scale-[0.98]"
+                  >
+                    Đã hiểu
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleConfirmDelete}
+                      className="w-full h-12 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-bold transition-all shadow-lg shadow-red-200 active:scale-[0.98]"
+                    >
+                      Đồng ý xóa
+                    </button>
+                    <button
+                      onClick={closeDeleteDialog}
+                      className="w-full h-12 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-2xl font-bold transition-all active:scale-[0.98]"
+                    >
+                      Hủy bỏ
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

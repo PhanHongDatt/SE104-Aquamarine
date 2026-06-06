@@ -7,12 +7,11 @@ import { revalidatePath } from "next/cache";
 import { sanPhamSchema, type SanPhamInput } from "@/schemas/san-pham.schema";
 import { assertDvtValidForLoaiSP, calculateSellPrice } from "@/lib/business-rules";
 import { nextSequentialIdFromValidCodes, withUniqueRetry } from "@/lib/id-generation";
-import { hasPermission, PERMISSIONS } from "@/lib/permissions";
+import { hasPermission, PERMISSIONS, ACTIONS } from "@/lib/permissions";
 
-async function canManageSanPham() {
+async function canManageSanPham(hanhDong: string = ACTIONS.VIEW) {
   const session = await getServerSession(authOptions) as any;
-  if (session?.user?.role !== "QUAN_LY") return false;
-  return hasPermission(PERMISSIONS.SAN_PHAM, session);
+  return hasPermission(PERMISSIONS.SAN_PHAM, hanhDong, session);
 }
 
 function serialize(data: any) {
@@ -44,7 +43,7 @@ export async function getSanPhams() {
 // 3. Thêm mới Sản phẩm (Thuật toán 2.2.3.4)
 export async function createSanPham(data: SanPhamInput) {
   try {
-    if (!(await canManageSanPham())) {
+    if (!(await canManageSanPham(ACTIONS.CREATE))) {
       return { success: false, message: "Bạn không có quyền thực hiện chức năng này" };
     }
 
@@ -99,7 +98,7 @@ export async function createSanPham(data: SanPhamInput) {
 // 4. Sửa Sản phẩm (Thuật toán 2.2.3.5)
 export async function updateSanPham(maSP: string, data: SanPhamInput) {
   try {
-    if (!(await canManageSanPham())) {
+    if (!(await canManageSanPham(ACTIONS.UPDATE))) {
       return { success: false, message: "Bạn không có quyền thực hiện chức năng này" };
     }
 
@@ -140,7 +139,7 @@ export async function updateSanPham(maSP: string, data: SanPhamInput) {
 // 5. Xóa Sản phẩm
 export async function deleteSanPham(maSP: string) {
   try {
-    if (!(await canManageSanPham())) {
+    if (!(await canManageSanPham(ACTIONS.DELETE))) {
       return { success: false, message: "Bạn không có quyền thực hiện chức năng này" };
     }
 

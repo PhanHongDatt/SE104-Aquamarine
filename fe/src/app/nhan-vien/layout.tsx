@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { SessionProvider } from "@/components/providers/session-provider";
@@ -16,7 +17,9 @@ export default async function DashboardLayout({
   return (
     <SessionProvider session={session}>
       <div className="flex h-screen overflow-hidden">
-        <Sidebar />
+        <Suspense fallback={<div className="w-[260px] bg-primary h-screen flex-shrink-0" />}>
+          <Sidebar />
+        </Suspense>
 
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden relative">
           {/* Dynamic mesh background */}

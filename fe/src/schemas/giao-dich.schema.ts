@@ -19,6 +19,7 @@ export const salesInvoiceSchema = z.object({
   ngayLap: z.date(),
   maKH: z.string().optional(),
   tenKhachHang: z.string().min(1, "Vui lòng nhập tên khách hàng"),
+  soDienThoai: z.string().optional(),
   chiTietBanHang: z.array(salesInvoiceItemSchema).min(1, "Phiếu phải có ít nhất 1 sản phẩm"),
   tongTien: z.coerce.number().gt(0, "Tổng tiền phải lớn hơn 0"),
 });

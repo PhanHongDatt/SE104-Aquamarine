@@ -8,9 +8,10 @@ import { nextSequentialIdFromValidCodes } from "@/lib/id-generation";
 export const metadata = { title: "Lập Phiếu Dịch Vụ – Aquamarine Jewelry & Luxury" };
 
 export default async function LapPhieuDichVuPage() {
-  const [serviceTypes, thamSo] = await Promise.all([
+  const [serviceTypes, thamSo, customers] = await Promise.all([
     getDanhSachLoaiDichVu(),
     prisma.thamSo.findFirst({ where: { id: 1 } }),
+    prisma.khachHang.findMany({ where: { deletedAt: null }, orderBy: { maKH: "asc" } }),
   ]);
   
   // Generate next soPhieu: PDV + 7 digits
@@ -43,6 +44,7 @@ export default async function LapPhieuDichVuPage() {
       <div className="grid grid-cols-1 gap-6">
         <ServiceReceiptForm
           serviceTypes={serviceTypes}
+          customers={JSON.parse(JSON.stringify(customers))}
           nextSoPhieu={nextSoPhieu}
           minPrepaymentPercent={Number(thamSo?.tiLeTraTruocToiThieu ?? 50)}
         />

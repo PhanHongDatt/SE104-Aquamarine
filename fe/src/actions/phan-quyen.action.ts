@@ -21,39 +21,68 @@ export async function getChucNangs() {
   const data = await prisma.chucNang.findMany({
     orderBy: { maChucNang: "asc" },
   });
-  return serialize(data);
+  // Trim Char(6) padding từ DB
+  return serialize(data).map((item: any) => ({
+    ...item,
+    maChucNang: item.maChucNang.trim(),
+  }));
 }
 
+/**
+ * Lấy quyền hiện tại của một nhóm.
+ * Trả về mảng chuỗi "maChucNang:hanhDong" (VD: "DM_SP:XEM").
+ */
 export async function getBangPhanQuyen(maNhom: string) {
   await requireManager();
   const data = await prisma.bangPhanQuyen.findMany({
     where: { maNhom },
-    select: { maChucNang: true },
-    orderBy: { maChucNang: "asc" },
+    select: { maChucNang: true, hanhDong: true },
+    orderBy: [{ maChucNang: "asc" }, { hanhDong: "asc" }],
   });
-  return data.map((item) => item.maChucNang);
+  const result = data.map((item) => `${item.maChucNang.trim()}:${item.hanhDong.trim()}`);
+  console.log(`[getBangPhanQuyen] maNhom=${maNhom}, count=${result.length}`);
+  return result;
 }
 
-export async function setBangPhanQuyen(maNhom: string, maChucNangs: string[]) {
+/**
+ * Lưu quyền cho một nhóm.
+ * @param maNhom - Mã nhóm (VD: "QUANLY", "NHANVI")
+ * @param permissions - Mảng chuỗi "maChucNang:hanhDong" (VD: ["DM_SP:XEM", "DM_SP:THEM"])
+ */
+export async function setBangPhanQuyen(maNhom: string, permissions: string[]) {
   try {
     await requireManager();
 
-    const uniquePermissions = Array.from(new Set(maChucNangs));
+    const uniquePermissions = Array.from(new Set(permissions));
+
+    console.log(`[setBangPhanQuyen] maNhom=${maNhom}, input=${permissions.length}, unique=${uniquePermissions.length}`);
 
     await prisma.$transaction(async (tx) => {
-      await tx.bangPhanQuyen.deleteMany({ where: { maNhom } });
+      const deleted = await tx.bangPhanQuyen.deleteMany({ where: { maNhom } });
+      console.log(`[setBangPhanQuyen] deleted ${deleted.count} old records`);
 
       if (uniquePermissions.length > 0) {
+        // Trim cả maChucNang và hanhDong để tránh Char padding issues
+        const records = uniquePermissions.map((perm) => {
+          const [maChucNang, hanhDong] = perm.split(":");
+          return { maNhom, maChucNang: maChucNang.trim(), hanhDong: hanhDong.trim() };
+        });
+        console.log(`[setBangPhanQuyen] inserting ${records.length} records`);
         await tx.bangPhanQuyen.createMany({
-          data: uniquePermissions.map((maChucNang) => ({ maNhom, maChucNang })),
+          data: records,
           skipDuplicates: true,
         });
       }
     });
 
+    // Verify sau khi lưu
+    const verify = await prisma.bangPhanQuyen.findMany({ where: { maNhom } });
+    console.log(`[setBangPhanQuyen] verify: DB now has ${verify.length} records for ${maNhom}`);
+
     revalidatePath("/admin/cai-dat/phan-quyen");
     return { success: true, message: "Cập nhật phân quyền thành công" };
   } catch (error: any) {
+    console.error(`[setBangPhanQuyen] ERROR:`, error);
     return { success: false, message: error.message || "Lỗi khi cập nhật phân quyền" };
   }
 }

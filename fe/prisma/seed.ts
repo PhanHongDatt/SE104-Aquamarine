@@ -104,19 +104,57 @@ async function main() {
     })
   }
 
-  const staffPermissions = new Set(['DM_SP', 'DM_KH', 'GD_BAN', 'DV_LAP', 'DV_TRA', 'BC_TON'])
+  // ── Phân quyền chi tiết theo hành động ─────────────────────
+  // Định nghĩa hành động hợp lệ cho từng chức năng
+  const ACTIONS = ['XEM', 'THEM', 'SUA', 'XOA'] as const
+  const actionMap: Record<string, readonly string[]> = {
+    DM_DVT: ['XEM', 'THEM', 'SUA', 'XOA'],
+    DM_LSP: ['XEM', 'THEM', 'SUA', 'XOA'],
+    DM_SP:  ['XEM', 'THEM', 'SUA', 'XOA'],
+    DM_KH:  ['XEM', 'THEM', 'SUA', 'XOA'],
+    DM_NCC: ['XEM', 'THEM', 'SUA', 'XOA'],
+    GD_BAN: ['XEM', 'THEM'],
+    GD_MUA: ['XEM', 'THEM'],
+    DV_LAP: ['XEM', 'THEM'],
+    DV_TRA: ['XEM', 'SUA'],
+    BC_TON: ['XEM'],
+    BC_DTH: ['XEM'],
+    HT_USR: ['XEM', 'THEM', 'SUA', 'XOA'],
+    HT_PHQ: ['XEM', 'SUA'],
+    HT_QDI: ['XEM', 'SUA'],
+    HT_BAK: ['XEM', 'THEM'],
+  }
+
+  // Quyền nhân viên: chỉ định từng hành động
+  const staffActionMap: Record<string, string[]> = {
+    DM_SP:  ['XEM'],
+    DM_KH:  ['XEM', 'THEM', 'SUA'],
+    GD_BAN: ['XEM', 'THEM'],
+    DV_LAP: ['XEM', 'THEM'],
+    DV_TRA: ['XEM', 'SUA'],
+    BC_TON: ['XEM'],
+  }
+
   for (const cn of chucNangs) {
-    await prisma.bangPhanQuyen.upsert({
-      where: { maNhom_maChucNang: { maNhom: 'QUANLY', maChucNang: cn.maChucNang } },
-      update: {},
-      create: { maNhom: 'QUANLY', maChucNang: cn.maChucNang },
-    })
-    if (staffPermissions.has(cn.maChucNang)) {
+    const validActions = actionMap[cn.maChucNang] || ['XEM']
+    // Quản lý: tất cả hành động cho tất cả chức năng
+    for (const action of validActions) {
       await prisma.bangPhanQuyen.upsert({
-        where: { maNhom_maChucNang: { maNhom: 'NHANVI', maChucNang: cn.maChucNang } },
+        where: { maNhom_maChucNang_hanhDong: { maNhom: 'QUANLY', maChucNang: cn.maChucNang, hanhDong: action } },
         update: {},
-        create: { maNhom: 'NHANVI', maChucNang: cn.maChucNang },
+        create: { maNhom: 'QUANLY', maChucNang: cn.maChucNang, hanhDong: action },
       })
+    }
+    // Nhân viên: chỉ hành động được chỉ định
+    const staffActions = staffActionMap[cn.maChucNang]
+    if (staffActions) {
+      for (const action of staffActions) {
+        await prisma.bangPhanQuyen.upsert({
+          where: { maNhom_maChucNang_hanhDong: { maNhom: 'NHANVI', maChucNang: cn.maChucNang, hanhDong: action } },
+          update: {},
+          create: { maNhom: 'NHANVI', maChucNang: cn.maChucNang, hanhDong: action },
+        })
+      }
     }
   }
 

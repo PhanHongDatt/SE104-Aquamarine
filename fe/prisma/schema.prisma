@@ -265,11 +265,12 @@ model NhomNguoiDung {
 model BangPhanQuyen {
   maNhom       String @db.Char(6)
   maChucNang   String @db.Char(6)
+  hanhDong     String @db.Char(4)  // XEM, THEM, SUA, XOA
 
   nhomNguoiDung NhomNguoiDung @relation(fields: [maNhom], references: [maNhom])
   chucNang      ChucNang      @relation(fields: [maChucNang], references: [maChucNang])
 
-  @@id([maNhom, maChucNang])
+  @@id([maNhom, maChucNang, hanhDong])
 }
 
 model NguoiDung {

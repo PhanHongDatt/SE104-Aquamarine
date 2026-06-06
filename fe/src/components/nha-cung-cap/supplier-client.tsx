@@ -12,14 +12,17 @@ import { Modal } from "@/components/ui/modal";
 import { SupplierForm } from "./supplier-form";
 import { createNhaCungCap, updateNhaCungCap } from "@/actions/nha-cung-cap.action";
 import { type NhaCungCapFormValues } from "@/schemas/nha-cung-cap.schema";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface SupplierClientProps {
   initialData: NhaCungCap[];
-  isAdmin: boolean;
 }
 
-export function SupplierClient({ initialData, isAdmin }: SupplierClientProps) {
+export function SupplierClient({ initialData }: SupplierClientProps) {
   const router = useRouter();
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission("DM_NCC", "THEM");
+  const canUpdate = hasPermission("DM_NCC", "SUA");
   const [data, setData] = useState<NhaCungCap[]>(initialData);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -33,8 +36,8 @@ export function SupplierClient({ initialData, isAdmin }: SupplierClientProps) {
   );
 
   const handleAdd = () => {
-    if (!isAdmin) {
-      toast.error("Chỉ vai trò Quản lý mới có quyền thực hiện chức năng này.");
+    if (!canCreate) {
+      toast.error("Bạn không có quyền thực hiện chức năng này.");
       return;
     }
     setEditingSupplier(null);
@@ -42,8 +45,8 @@ export function SupplierClient({ initialData, isAdmin }: SupplierClientProps) {
   };
 
   const handleEdit = (supplier: NhaCungCap) => {
-    if (!isAdmin) {
-      toast.error("Chỉ vai trò Quản lý mới có quyền thực hiện chức năng này.");
+    if (!canUpdate) {
+      toast.error("Bạn không có quyền thực hiện chức năng này.");
       return;
     }
     setEditingSupplier(supplier);
@@ -87,10 +90,12 @@ export function SupplierClient({ initialData, isAdmin }: SupplierClientProps) {
           </h1>
           <p className="text-sm text-zinc-500 mt-1">Danh sách các đối tác cung ứng vàng bạc đá quý</p>
         </div>
-        <Button onClick={handleAdd} className="w-full sm:w-auto">
-          <Plus className="w-4 h-4 mr-2" />
-          Thêm nhà cung cấp
-        </Button>
+        {canCreate && (
+          <Button onClick={handleAdd} className="w-full sm:w-auto">
+            <Plus className="w-4 h-4 mr-2" />
+            Thêm nhà cung cấp
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -159,13 +164,15 @@ export function SupplierClient({ initialData, isAdmin }: SupplierClientProps) {
 	                    </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        <button 
-                          onClick={() => handleEdit(item)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 text-primary hover:bg-primary hover:text-white rounded-lg transition-all duration-200 font-semibold text-xs border border-primary/10 shadow-sm"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                          Sửa
-                        </button>
+                        {canUpdate && (
+                          <button
+                            onClick={() => handleEdit(item)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 text-primary hover:bg-primary hover:text-white rounded-lg transition-all duration-200 font-semibold text-xs border border-primary/10 shadow-sm"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            Sửa
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

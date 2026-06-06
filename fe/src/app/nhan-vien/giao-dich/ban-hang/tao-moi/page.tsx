@@ -54,7 +54,7 @@ export default async function StaffTaoPhieuBanHangPage() {
         </div>
       </div>
 
-      <SalesInvoiceForm products={serializedProducts} customers={serializedCustomers} nextSoPhieu={nextSoPhieu} />
+      <SalesInvoiceForm products={serializedProducts} customers={serializedCustomers} nextSoPhieu={nextSoPhieu} returnUrl="/nhan-vien/giao-dich/ban-hang" />
     </div>
   );
 }

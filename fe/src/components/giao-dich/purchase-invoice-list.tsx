@@ -111,6 +111,7 @@ export function PurchaseInvoiceList({ data }: PurchaseInvoiceListProps) {
       <Modal
         isOpen={!!selectedPhieu}
         onClose={() => setSelectedPhieu(null)}
+        size="lg"
         title="Chi tiết phiếu mua hàng"
       >
         {selectedPhieu && (

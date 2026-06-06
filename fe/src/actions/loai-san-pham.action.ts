@@ -7,12 +7,11 @@ import { revalidatePath } from "next/cache";
 import { loaiSanPhamSchema, type LoaiSanPhamInput } from "@/schemas/loai-san-pham.schema";
 import { calculateSellPrice } from "@/lib/business-rules";
 import { nextSequentialIdFromValidCodes, withUniqueRetry } from "@/lib/id-generation";
-import { hasPermission, PERMISSIONS } from "@/lib/permissions";
+import { hasPermission, PERMISSIONS, ACTIONS } from "@/lib/permissions";
 
-async function canManageLoaiSanPham() {
+async function canManageLoaiSanPham(hanhDong: string = ACTIONS.VIEW) {
   const session = await getServerSession(authOptions);
-  if (session?.user?.role !== "QUAN_LY") return false;
-  return hasPermission(PERMISSIONS.LOAI_SAN_PHAM, session);
+  return hasPermission(PERMISSIONS.LOAI_SAN_PHAM, hanhDong, session);
 }
 
 function serialize(data: any) {
@@ -51,7 +50,7 @@ export async function getLoaiSanPhams() {
 // 3. Thêm mới Loại sản phẩm
 export async function createLoaiSanPham(data: LoaiSanPhamInput) {
   try {
-    if (!(await canManageLoaiSanPham())) {
+    if (!(await canManageLoaiSanPham(ACTIONS.CREATE))) {
       return { success: false, message: "Bạn không có quyền thực hiện chức năng này" };
     }
 
@@ -61,9 +60,9 @@ export async function createLoaiSanPham(data: LoaiSanPhamInput) {
       return { success: false, message: "Đơn vị tính không hợp lệ" };
     }
 
-    // Kiểm tra trùng tên
-    const existing = await prisma.loaiSanPham.findUnique({
-      where: { tenLSP: validated.tenLSP },
+    // Kiểm tra trùng tên (không phân biệt hoa/thường)
+    const existing = await prisma.loaiSanPham.findFirst({
+      where: { tenLSP: { equals: validated.tenLSP, mode: "insensitive" } },
     });
     if (existing) {
       return { success: false, message: "Tên loại sản phẩm đã tồn tại" };
@@ -92,7 +91,7 @@ export async function createLoaiSanPham(data: LoaiSanPhamInput) {
 // 4. Sửa Loại sản phẩm & Tự động tính lại giá bán
 export async function updateLoaiSanPham(maLSP: string, data: LoaiSanPhamInput) {
   try {
-    if (!(await canManageLoaiSanPham())) {
+    if (!(await canManageLoaiSanPham(ACTIONS.UPDATE))) {
       return { success: false, message: "Bạn không có quyền thực hiện chức năng này" };
     }
 
@@ -102,9 +101,9 @@ export async function updateLoaiSanPham(maLSP: string, data: LoaiSanPhamInput) {
       return { success: false, message: "Đơn vị tính không hợp lệ" };
     }
 
-    // Kiểm tra trùng tên (trừ chính nó)
+    // Kiểm tra trùng tên (không phân biệt hoa/thường, trừ chính nó)
     const existing = await prisma.loaiSanPham.findFirst({
-      where: { tenLSP: validated.tenLSP, NOT: { maLSP: maLSP } },
+      where: { tenLSP: { equals: validated.tenLSP, mode: "insensitive" }, NOT: { maLSP: maLSP } },
     });
     if (existing) {
       return { success: false, message: "Tên loại sản phẩm đã tồn tại" };
@@ -150,14 +149,22 @@ export async function updateLoaiSanPham(maLSP: string, data: LoaiSanPhamInput) {
 // 5. Xóa Loại sản phẩm
 export async function deleteLoaiSanPham(maLSP: string) {
   try {
-    if (!(await canManageLoaiSanPham())) {
+    if (!(await canManageLoaiSanPham(ACTIONS.DELETE))) {
       return { success: false, message: "Bạn không có quyền thực hiện chức năng này" };
     }
 
     // Kiểm tra xem có sản phẩm nào đang thuộc loại này không
-    const usedInSP = await prisma.sanPham.findFirst({ where: { maLSP, deletedAt: null } });
-    if (usedInSP) {
-      return { success: false, message: "Không thể xóa loại sản phẩm đang chứa sản phẩm" };
+    const usedInSP = await prisma.sanPham.findMany({
+      where: { maLSP, deletedAt: null },
+      select: { maSP: true, tenSP: true },
+      orderBy: { maSP: "asc" },
+    });
+    if (usedInSP.length > 0) {
+      const spList = usedInSP.map((sp) => `${sp.maSP} - ${sp.tenSP}`).join(", ");
+      return {
+        success: false,
+        message: `Không thể xóa loại sản phẩm đang chứa ${usedInSP.length} sản phẩm: ${spList}`,
+      };
     }
 
     await prisma.loaiSanPham.delete({ where: { maLSP } });

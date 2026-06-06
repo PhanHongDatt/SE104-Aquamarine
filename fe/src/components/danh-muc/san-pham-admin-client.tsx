@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { getAllowedDvtNamesForLoaiSP, isDvtValidForLoaiSP } from "@/lib/business-rules";
+import { usePermissions } from "@/hooks/use-permissions";
 
 const formatCurrency = (v: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v);
 
@@ -34,6 +35,11 @@ const HAM_LUONG_STYLE: Record<string, string> = {
 };
 
 export default function AdminSanPhamPage() {
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission("DM_SP", "THEM");
+  const canUpdate = hasPermission("DM_SP", "SUA");
+  const canDelete = hasPermission("DM_SP", "XOA");
+
   const [data, setData] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [units, setUnits] = useState<any[]>([]);
@@ -167,9 +173,11 @@ export default function AdminSanPhamPage() {
             </div>
           </div>
         </div>
-        <Button onClick={() => { setEditingId(null); reset(); setIsModalOpen(true); }} className="rounded-xl h-11 px-6 shadow-lg shadow-primary/20 bg-primary text-white">
-          <Plus className="w-4 h-4 mr-2" /> Thêm sản phẩm
-        </Button>
+        {canCreate && (
+          <Button onClick={() => { setEditingId(null); reset(); setIsModalOpen(true); }} className="rounded-xl h-11 px-6 shadow-lg shadow-primary/20 bg-primary text-white">
+            <Plus className="w-4 h-4 mr-2" /> Thêm sản phẩm
+          </Button>
+        )}
       </div>
 
       {/* Table */}
@@ -236,20 +244,24 @@ export default function AdminSanPhamPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        <button 
-                          onClick={() => handleEdit(item)} 
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 text-primary hover:bg-primary hover:text-white rounded-lg transition-all duration-200 font-semibold text-xs border border-primary/10 shadow-sm"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                          Sửa
-                        </button>
-                        <button 
-                          onClick={() => openDeleteDialog(item)} 
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white rounded-lg transition-all duration-200 font-semibold text-xs border border-red-100 shadow-sm"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          Xóa
-                        </button>
+                        {canUpdate && (
+                          <button
+                            onClick={() => handleEdit(item)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 text-primary hover:bg-primary hover:text-white rounded-lg transition-all duration-200 font-semibold text-xs border border-primary/10 shadow-sm"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            Sửa
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => openDeleteDialog(item)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white rounded-lg transition-all duration-200 font-semibold text-xs border border-red-100 shadow-sm"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Xóa
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

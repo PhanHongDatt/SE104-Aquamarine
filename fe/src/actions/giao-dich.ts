@@ -5,7 +5,7 @@ import type { PhieuBanHang, PhieuMuaHang } from '@/types/model';
 import { assertPurchaseQuantityMeetsMinimum, calculateLineTotal, calculateSellPrice, canSellQuantity } from '@/lib/business-rules';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { hasPermission, PERMISSIONS } from '@/lib/permissions';
+import { hasPermission, PERMISSIONS, ACTIONS } from '@/lib/permissions';
 import { nextSequentialIdFromValidCodes, withUniqueRetry } from '@/lib/id-generation';
 import { salesInvoiceSchema } from '@/schemas/giao-dich.schema';
 import { purchaseInvoiceSchema } from '@/schemas/purchase.schema';
@@ -130,7 +130,7 @@ export async function lapPhieuBanHang(
 ): Promise<{ success: boolean; message: string; data?: any }> {
   try {
     const session = await getServerSession(authOptions) as any;
-    if (!(await hasPermission(PERMISSIONS.BAN_HANG, session))) {
+    if (!(await hasPermission(PERMISSIONS.BAN_HANG, ACTIONS.CREATE, session))) {
       return { success: false, message: "Bạn không có quyền lập phiếu bán hàng" };
     }
 
@@ -147,7 +147,7 @@ export async function lapPhieuBanHang(
         throw new Error(`Sản phẩm ${duplicatedProduct.maSP} bị nhập trùng trong phiếu bán`);
       }
 
-      const khachHang = validated.maKH
+      let khachHang = validated.maKH
         ? await tx.khachHang.findFirst({
             where: { maKH: validated.maKH, deletedAt: null },
             select: { maKH: true, hoTen: true },
@@ -156,6 +156,35 @@ export async function lapPhieuBanHang(
 
       if (validated.maKH && !khachHang) {
         throw new Error("Khách hàng không hợp lệ");
+      }
+
+      // Nếu chưa chọn KH có sẵn nhưng có SĐT → tìm hoặc tạo mới
+      if (!khachHang && validated.soDienThoai && validated.soDienThoai.trim()) {
+        const sdt = validated.soDienThoai.trim();
+        const existing = await tx.khachHang.findFirst({
+          where: { soDienThoai: sdt, deletedAt: null },
+          select: { maKH: true, hoTen: true },
+        });
+        if (existing) {
+          khachHang = existing;
+        } else {
+          // Tạo khách hàng mới
+          const lastKH = await tx.khachHang.findFirst({
+            orderBy: { maKH: "desc" },
+            select: { maKH: true },
+          });
+          const nextNum = lastKH ? parseInt(lastKH.maKH.replace("KH", ""), 10) + 1 : 1;
+          const newMaKH = `KH${nextNum.toString().padStart(4, "0")}`;
+          const newKH = await tx.khachHang.create({
+            data: {
+              maKH: newMaKH,
+              hoTen: validated.tenKhachHang,
+              soDienThoai: sdt,
+            },
+            select: { maKH: true, hoTen: true },
+          });
+          khachHang = newKH;
+        }
       }
 
       const chiTietDaTinh = [];
@@ -280,7 +309,7 @@ export async function lapPhieuMuaHang(
 ): Promise<{ success: boolean; message: string; data?: any }> {
   try {
     const session = await getServerSession(authOptions) as any;
-    if (!(await hasPermission(PERMISSIONS.MUA_HANG, session))) {
+    if (!(await hasPermission(PERMISSIONS.MUA_HANG, ACTIONS.CREATE, session))) {
       return { success: false, message: "Bạn không có quyền lập phiếu mua hàng" };
     }
 

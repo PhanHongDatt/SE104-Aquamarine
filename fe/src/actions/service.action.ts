@@ -10,7 +10,7 @@ import {
   isPrepaidEnough,
   validateServiceDelivery,
 } from "@/lib/business-rules";
-import { hasPermission, PERMISSIONS } from "@/lib/permissions";
+import { hasPermission, PERMISSIONS, ACTIONS } from "@/lib/permissions";
 import { nextSequentialIdFromValidCodes, withUniqueRetry } from "@/lib/id-generation";
 import { serviceTypeSchema } from "@/schemas/service-type.schema";
 import { serviceReceiptSchema } from "@/schemas/service.schema";
@@ -38,7 +38,7 @@ export async function getDanhSachLoaiDichVu() {
 export async function createLoaiDichVu(data: any) {
   try {
     const session = await getServerSession(authOptions) as any;
-    if (!(await hasPermission(PERMISSIONS.LAP_DICH_VU, session))) {
+    if (!(await hasPermission(PERMISSIONS.LAP_DICH_VU, ACTIONS.CREATE, session))) {
       return { success: false, message: "Bạn không có quyền thực hiện thao tác này" };
     }
     const validated = serviceTypeSchema.parse(data);
@@ -63,7 +63,7 @@ export async function createLoaiDichVu(data: any) {
 export async function updateLoaiDichVu(maDV: string, data: any) {
   try {
     const session = await getServerSession(authOptions) as any;
-    if (!(await hasPermission(PERMISSIONS.LAP_DICH_VU, session))) {
+    if (!(await hasPermission(PERMISSIONS.LAP_DICH_VU, ACTIONS.UPDATE, session))) {
       return { success: false, message: "Bạn không có quyền thực hiện thao tác này" };
     }
     const validated = serviceTypeSchema.parse({ ...data, maDV });
@@ -85,7 +85,7 @@ export async function updateLoaiDichVu(maDV: string, data: any) {
 export async function deleteLoaiDichVu(maDV: string) {
   try {
     const session = await getServerSession(authOptions) as any;
-    if (!(await hasPermission(PERMISSIONS.LAP_DICH_VU, session))) {
+    if (!(await hasPermission(PERMISSIONS.LAP_DICH_VU, ACTIONS.DELETE, session))) {
       return { success: false, message: "Bạn không có quyền thực hiện thao tác này" };
     }
 
@@ -113,7 +113,7 @@ export async function deleteLoaiDichVu(maDV: string) {
 export async function lapPhieuDichVu(data: any) {
   try {
     const session = await getServerSession(authOptions) as any;
-    if (!(await hasPermission(PERMISSIONS.LAP_DICH_VU, session))) {
+    if (!(await hasPermission(PERMISSIONS.LAP_DICH_VU, ACTIONS.CREATE, session))) {
       return { success: false, message: "Bạn không có quyền lập phiếu dịch vụ" };
     }
 
@@ -136,7 +136,9 @@ export async function lapPhieuDichVu(data: any) {
         }
 
         const donGiaDV = Number(loaiDichVu.donGiaDV);
+        // Đơn giá được tính = Đơn giá DV + Chi phí phát sinh (QĐ6)
         const donGiaDuocTinh = calculateServiceUnitPrice(donGiaDV, Number(ct.chiPhiPhatSinh || 0));
+        // Thành tiền = Số lượng × Đơn giá được tính (QĐ6)
         const thanhTien = calculateLineTotal(Number(ct.soLuong), donGiaDuocTinh);
         if (!isPrepaidEnough(Number(ct.traTruoc), thanhTien, tiLeToiThieu)) {
           throw new Error(`Dịch vụ ${loaiDichVu.tenDV} yêu cầu trả trước tối thiểu ${tiLeToiThieu}%`);
@@ -221,7 +223,7 @@ export async function getPhieuDichVuChiTiet(soPhieu: string) {
 export async function updateTinhTrangDichVu(soPhieu: string, chiTietUpdates: any[]) {
   try {
     const session = await getServerSession(authOptions) as any;
-    if (!(await hasPermission(PERMISSIONS.TRA_CUU_DICH_VU, session))) {
+    if (!(await hasPermission(PERMISSIONS.TRA_CUU_DICH_VU, ACTIONS.UPDATE, session))) {
       return { success: false, message: "Bạn không có quyền cập nhật tình trạng dịch vụ" };
     }
 

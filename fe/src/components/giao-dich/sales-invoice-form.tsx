@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { 
   Trash2, Save, Printer, Search, X, Check
@@ -20,9 +20,10 @@ interface SalesInvoiceFormProps {
   products: any[];
   customers?: any[];
   nextSoPhieu: string;
+  returnUrl?: string;
 }
 
-export function SalesInvoiceForm({ products, customers = [], nextSoPhieu }: SalesInvoiceFormProps) {
+export function SalesInvoiceForm({ products, customers = [], nextSoPhieu, returnUrl = "/admin/giao-dich/ban-hang" }: SalesInvoiceFormProps) {
   const router = useRouter();
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -52,12 +53,14 @@ export function SalesInvoiceForm({ products, customers = [], nextSoPhieu }: Sale
     name: "chiTietBanHang",
   });
 
-  const items = watch("chiTietBanHang");
   const selectedCustomerId = watch("maKH");
+
+  // useWatch detect nested field changes (watch() doesn't)
+  const items = useWatch({ control, name: "chiTietBanHang" }) || [];
 
   // Calculate total automatically
   const totalAmount = useMemo(() => {
-    return items.reduce((sum, item) => sum + (item.thanhTien || 0), 0);
+    return items.reduce((sum: number, item: any) => sum + (item.thanhTien || 0), 0);
   }, [items]);
 
   useEffect(() => {
@@ -125,8 +128,8 @@ export function SalesInvoiceForm({ products, customers = [], nextSoPhieu }: Sale
       return;
     }
     const giaBan = Number(item.donGiaBan);
-    setValue(`chiTietBanHang.${index}.soLuong`, qty);
-    setValue(`chiTietBanHang.${index}.thanhTien`, calculateLineTotal(qty, giaBan));
+    setValue(`chiTietBanHang.${index}.soLuong`, qty, { shouldDirty: true, shouldTouch: true });
+    setValue(`chiTietBanHang.${index}.thanhTien`, calculateLineTotal(qty, giaBan), { shouldDirty: true, shouldTouch: true });
   };
 
   const onSubmit = async (data: SalesInvoiceFormValues) => {
@@ -134,7 +137,7 @@ export function SalesInvoiceForm({ products, customers = [], nextSoPhieu }: Sale
       const res = await lapPhieuBanHang(data as any);
       if (res.success) {
         toast.success(res.message);
-        router.push("/admin/giao-dich/ban-hang");
+        router.push(returnUrl);
         router.refresh();
       } else {
         toast.error(res.message);
@@ -230,6 +233,14 @@ export function SalesInvoiceForm({ products, customers = [], nextSoPhieu }: Sale
                 error={errors.tenKhachHang?.message}
                 {...register("tenKhachHang")}
               />
+
+              {!selectedCustomerId && (
+                <Input
+                  label="Số điện thoại"
+                  placeholder="Nhập SĐT để lưu hồ sơ khách hàng"
+                  {...register("soDienThoai")}
+                />
+              )}
             </div>
           </div>
 
