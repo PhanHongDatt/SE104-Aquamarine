@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -12,8 +12,21 @@ import {
   Wrench, Shield, Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getMyPermissions } from "@/actions/permissions.action";
 
-const adminNavGroups = [
+type NavItem = {
+  href: string;
+  icon: any;
+  label: string;
+  permission?: string;
+};
+
+type NavGroup = {
+  title: string;
+  items: NavItem[];
+};
+
+const adminNavGroups: NavGroup[] = [
   {
     title: "Chính",
     items: [
@@ -24,41 +37,41 @@ const adminNavGroups = [
   {
     title: "Danh mục",
     items: [
-      { href: "/admin/danh-muc/san-pham", icon: Package, label: "Sản phẩm" },
-      { href: "/admin/danh-muc/loai-san-pham", icon: Box, label: "Loại sản phẩm" },
-      { href: "/admin/danh-muc/don-vi-tinh", icon: Ruler, label: "Đơn vị tính" },
-      { href: "/admin/danh-muc/khach-hang", icon: Users, label: "Khách hàng" },
-      { href: "/admin/danh-muc/nha-cung-cap", icon: Truck, label: "Nhà cung cấp" },
+      { href: "/admin/danh-muc/san-pham", icon: Package, label: "Sản phẩm", permission: "DM_SP" },
+      { href: "/admin/danh-muc/loai-san-pham", icon: Box, label: "Loại sản phẩm", permission: "DM_LSP" },
+      { href: "/admin/danh-muc/don-vi-tinh", icon: Ruler, label: "Đơn vị tính", permission: "DM_DVT" },
+      { href: "/admin/danh-muc/khach-hang", icon: Users, label: "Khách hàng", permission: "DM_KH" },
+      { href: "/admin/danh-muc/nha-cung-cap", icon: Truck, label: "Nhà cung cấp", permission: "DM_NCC" },
     ],
   },
   {
     title: "Giao dịch",
     items: [
-      { href: "/admin/giao-dich/mua-hang", icon: ShoppingCart, label: "Mua hàng" },
-      { href: "/admin/giao-dich/ban-hang", icon: Tag, label: "Bán hàng" },
+      { href: "/admin/giao-dich/mua-hang", icon: ShoppingCart, label: "Mua hàng", permission: "GD_MUA" },
+      { href: "/admin/giao-dich/ban-hang", icon: Tag, label: "Bán hàng", permission: "GD_BAN" },
     ],
   },
   {
     title: "Dịch vụ",
     items: [
-      { href: "/admin/dich-vu/phieu-dich-vu", icon: FileText, label: "Phiếu dịch vụ" },
-      { href: "/admin/dich-vu/loai-dich-vu", icon: ListChecks, label: "Loại dịch vụ" },
+      { href: "/admin/dich-vu/phieu-dich-vu", icon: FileText, label: "Phiếu dịch vụ", permission: "DV_LAP" },
+      { href: "/admin/dich-vu/loai-dich-vu", icon: ListChecks, label: "Loại dịch vụ", permission: "DV_LDV" },
     ],
   },
   {
     title: "Báo cáo",
     items: [
-      { href: "/admin/bao-cao/ton-kho", icon: BarChart3, label: "Tồn kho" },
-      { href: "/admin/bao-cao/doanh-thu", icon: LineChart, label: "Doanh thu" },
+      { href: "/admin/bao-cao/ton-kho", icon: BarChart3, label: "Tồn kho", permission: "BC_TON" },
+      { href: "/admin/bao-cao/doanh-thu", icon: LineChart, label: "Doanh thu", permission: "BC_DTH" },
     ],
   },
   {
     title: "Cài đặt",
     items: [
       { href: "/admin/cai-dat", icon: Settings, label: "Cài đặt hệ thống" },
-      { href: "/admin/cai-dat/quy-dinh", icon: Wrench, label: "Thay đổi quy định" },
-      { href: "/admin/cai-dat/phan-quyen", icon: Shield, label: "Phân quyền" },
-      { href: "/admin/cai-dat/sao-luu-phuc-hoi", icon: Database, label: "Sao lưu/Phục hồi" },
+      { href: "/admin/cai-dat/quy-dinh", icon: Wrench, label: "Thay đổi quy định", permission: "HT_QDI" },
+      { href: "/admin/cai-dat/phan-quyen", icon: Shield, label: "Phân quyền", permission: "HT_PHQ" },
+      { href: "/admin/cai-dat/sao-luu-phuc-hoi", icon: Database, label: "Sao lưu/Phục hồi", permission: "HT_BAK" },
     ],
   },
 ];
@@ -68,8 +81,54 @@ const COLLAPSED_W = 72;
 
 export function AdminSidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const [dbPermissions, setDbPermissions] = useState<string[] | null>(null);
   const pathname = usePathname();
   const { data: session } = useSession();
+  const role = session?.user?.role;
+
+  // Lấy quyền real-time từ DB
+  const fetchPermissions = useCallback(async () => {
+    const result = await getMyPermissions();
+    if (result.success) {
+      setDbPermissions(result.permissions);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPermissions();
+  }, [fetchPermissions]);
+
+  // Tự động refresh quyền khi user quay lại tab
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchPermissions();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", fetchPermissions);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", fetchPermissions);
+    };
+  }, [fetchPermissions]);
+
+  // Ưu tiên quyền từ DB, fallback về JWT
+  const effectivePermissions = dbPermissions ?? (session?.user as any)?.permissions;
+
+  // Lọc nhóm nav: chỉ hiển thị item mà người dùng có quyền XEM
+  const filteredGroups = adminNavGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        if (!item.permission) return true;
+        if (role === "QUAN_LY") return true;
+        return Array.isArray(effectivePermissions) && effectivePermissions.some(
+          (p: string) => p === `${item.permission}:XEM` || p === item.permission
+        );
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <motion.aside
@@ -114,7 +173,7 @@ export function AdminSidebar() {
       </div>
 
       <nav className="flex-1 px-3 py-6 overflow-y-auto scrollbar-hidden space-y-6 relative z-10">
-        {adminNavGroups.map((group) => (
+        {filteredGroups.map((group) => (
           <div key={group.title} className="relative">
             <AnimatePresence initial={false}>
               {!collapsed && (

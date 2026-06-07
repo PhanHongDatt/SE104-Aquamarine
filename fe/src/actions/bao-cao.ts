@@ -123,10 +123,9 @@ export async function getBaoCaoTonKhoDetailed(thang: number, nam: number): Promi
       throw new Error("Từ chối truy cập: Bạn không có quyền xem báo cáo tồn kho");
     }
 
-    // 1. Lấy danh sách tất cả sản phẩm
     const products = await prisma.sanPham.findMany({
       where: { deletedAt: null },
-      include: { loaiSanPham: { include: { donViTinh: true } } }
+      include: { donViTinh: true }
     });
 
     const reportData: BaoCaoTonKhoDetailedItem[] = [];
@@ -136,7 +135,7 @@ export async function getBaoCaoTonKhoDetailed(thang: number, nam: number): Promi
     const endDate = new Date(nam, thang, 0, 23, 59, 59);
 
     for (const p of products) {
-      // 3.1: Tính tổng mua vào trong tháng
+      // 3.1: Tổng mua vào trong tháng
       const muaVao = await prisma.chiTietMuaHang.aggregate({
         where: {
           maSP: p.maSP,
@@ -146,7 +145,7 @@ export async function getBaoCaoTonKhoDetailed(thang: number, nam: number): Promi
       });
       const slMuaVao = muaVao._sum.soLuong || 0;
 
-      // 3.2: Tính tổng bán ra trong tháng
+      // 3.2: Tổng bán ra trong tháng
       const banRa = await prisma.chiTietBanHang.aggregate({
         where: {
           maSP: p.maSP,
@@ -156,43 +155,47 @@ export async function getBaoCaoTonKhoDetailed(thang: number, nam: number): Promi
       });
       const slBanRa = banRa._sum.soLuong || 0;
 
-      // 3.3: Xác định tồn đầu kỳ bằng snapshot gần nhất trước kỳ báo cáo.
-      // Nếu dữ liệu cũ chưa có snapshot, rollback từ tồn kho hiện tại theo phát sinh trong kỳ đang xem.
-      const previousSnapshot = await prisma.baoCaoTonKho.findFirst({
-        where: {
-          maSP: p.maSP,
-          OR: [
-            { nam: { lt: nam } },
-            { nam, thang: { lt: thang } },
-          ],
-        },
-        orderBy: [
-          { nam: 'desc' },
-          { thang: 'desc' },
-          { ngay: 'desc' },
-        ],
-      });
+      const productCreatedAfterReport = p.createdAt > endDate;
+      let tonCuoi = 0;
+      let tonDau = 0;
 
-      const tonDau = previousSnapshot
-        ? previousSnapshot.tonCuoi
-        : p.tonKho - slMuaVao + slBanRa;
+      if (!productCreatedAfterReport) {
+        const [muaSauKy, banSauKy] = await Promise.all([
+          prisma.chiTietMuaHang.aggregate({
+            where: {
+              maSP: p.maSP,
+              phieuMuaHang: { ngayLap: { gt: endDate } },
+            },
+            _sum: { soLuong: true },
+          }),
+          prisma.chiTietBanHang.aggregate({
+            where: {
+              maSP: p.maSP,
+              phieuBanHang: { ngayLap: { gt: endDate } },
+            },
+            _sum: { soLuong: true },
+          }),
+        ]);
 
-      // 3.4: Tính tồn cuối
-      const tonCuoi = tonDau + slMuaVao - slBanRa;
+        const slMuaSauKy = muaSauKy._sum.soLuong || 0;
+        const slBanSauKy = banSauKy._sum.soLuong || 0;
 
-      // 3.5: Cảnh báo tồn thấp
-      const tonToiThieu = p.tonToiThieu;
-      const canhBao = tonCuoi < tonToiThieu;
+        // Tồn cuối kỳ = tồn hiện tại - mua sau kỳ + bán sau kỳ.
+        tonCuoi = Number(p.tonKho) - Number(slMuaSauKy) + Number(slBanSauKy);
+        tonDau = tonCuoi - Number(slMuaVao) + Number(slBanRa);
+      }
+
+      const canhBao = Number(tonCuoi) < p.tonToiThieu;
 
       reportData.push({
         maSP: p.maSP,
         tenSP: p.tenSP,
-        tenDVT: p.loaiSanPham.donViTinh.tenDVT,
+        tenDVT: p.donViTinh.tenDVT,
         tonDau,
         slMuaVao,
         slBanRa,
         tonCuoi,
-        tonToiThieu,
+        tonToiThieu: p.tonToiThieu,
         canhBao
       });
     }

@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { 
-  Trash2, Save, Search, X, Check, Wrench, Info
+import {
+  Trash2, Save, Search, X, Check, Wrench, Info, Minus, Plus
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -31,11 +31,15 @@ function InlineNumberInput({
   value,
   onCommit,
   min = 0,
+  id,
+  name,
   className,
 }: {
   value: number;
   onCommit: (val: number) => void;
   min?: number;
+  id: string;
+  name: string;
   className?: string;
 }) {
   const [local, setLocal] = useState(String(value));
@@ -46,6 +50,8 @@ function InlineNumberInput({
 
   return (
     <input
+      id={id}
+      name={name}
       type="text"
       inputMode="numeric"
       value={local}
@@ -104,8 +110,12 @@ export function ServiceReceiptForm({
   });
 
   // useWatch detect nested field changes (watch() doesn't)
-  const items = useWatch({ control, name: "chiTietDichVu" }) || [];
+  const watchedItems = useWatch({ control, name: "chiTietDichVu" });
+  const items = useMemo(() => watchedItems || [], [watchedItems]);
   const selectedCustomerId = watch("maKH");
+  const detailError =
+    (errors.chiTietDichVu as any)?.message ||
+    (errors.chiTietDichVu as any)?.root?.message;
 
   // Customer search
   const filteredCustomers = customers
@@ -213,11 +223,10 @@ export function ServiceReceiptForm({
 
     let currentTraTruoc = Number(item.traTruoc || 0);
 
-    // If it's a new item or quantity changed without explicit traTruoc: auto-apply global percentage
-    if (updates.hasOwnProperty('maDV') || (updates.soLuong && !updates.hasOwnProperty('traTruoc'))) {
+    // Chỉ tự động tính trả trước khi THÊM MỚI dịch vụ
+    // Các trường hợp khác (đổi SL, đổi chi phí, user nhập tay) → giữ nguyên giá trị hiện tại
+    if (updates.hasOwnProperty('maDV') && !updates.hasOwnProperty('traTruoc')) {
        currentTraTruoc = Math.round(thanhTien * (globalPrepayPercent / 100));
-    } else if (updates.hasOwnProperty('traTruoc')) {
-       currentTraTruoc = Number(updates.traTruoc || 0);
     }
 
     // Set toàn bộ array để useWatch detect thay đổi
@@ -239,15 +248,16 @@ export function ServiceReceiptForm({
       return;
     }
 
-    // 2. Client-side validation for each item's prepayment (minimum 50%)
+    // 2. Client-side validation: trả trước từ minPrepaymentPercent% đến 100% thành tiền
     for (let i = 0; i < data.chiTietDichVu.length; i++) {
       const item = data.chiTietDichVu[i];
-      if (item.traTruoc < item.thanhTien * (minPrepaymentPercent / 100)) {
-        toast.error(`Dịch vụ "${item.tenDV}" yêu cầu trả trước tối thiểu ${minPrepaymentPercent}% (${formatCurrency(item.thanhTien * (minPrepaymentPercent / 100))})`);
+      const minTraTruoc = Math.round(item.thanhTien * (minPrepaymentPercent / 100));
+      if (item.traTruoc < minTraTruoc) {
+        toast.error(`"${item.tenDV}": trả trước tối thiểu ${formatCurrency(minTraTruoc)} (${minPrepaymentPercent}% × ${formatCurrency(item.thanhTien)})`);
         return;
       }
       if (item.traTruoc > item.thanhTien) {
-        toast.error(`Tiền trả trước cho "${item.tenDV}" không được lớn hơn thành tiền`);
+        toast.error(`"${item.tenDV}": trả trước tối đa ${formatCurrency(item.thanhTien)} (100% thành tiền)`);
         return;
       }
     }
@@ -508,6 +518,8 @@ export function ServiceReceiptForm({
                         </td>
                         <td className="px-2 py-4">
                           <InlineNumberInput
+                            id={`service-item-extra-cost-${index}`}
+                            name={`serviceItemExtraCost${index}`}
                             value={items[index]?.chiPhiPhatSinh ?? 0}
                             min={0}
 
@@ -519,12 +531,37 @@ export function ServiceReceiptForm({
                           {formatCurrency(items[index]?.donGiaDuocTinh || 0)}
                         </td>
                         <td className="px-2 py-4">
-                          <InlineNumberInput
-                            value={items[index]?.soLuong ?? 1}
-                            min={1}
-                            onCommit={(val) => updateItem(index, { soLuong: val })}
-                            className="w-full h-9 bg-zinc-100 border-none rounded-lg text-center font-bold focus:ring-2 focus:ring-primary/20 transition-all"
-                          />
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const cur = items[index]?.soLuong ?? 1;
+                                if (cur > 1) updateItem(index, { soLuong: cur - 1 });
+                              }}
+                              className="w-7 h-7 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              disabled={(items[index]?.soLuong ?? 1) <= 1}
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+                            <InlineNumberInput
+                              id={`service-item-quantity-${index}`}
+                              name={`serviceItemQuantity${index}`}
+                              value={items[index]?.soLuong ?? 1}
+                              min={1}
+                              onCommit={(val) => updateItem(index, { soLuong: val })}
+                              className="w-14 h-9 bg-zinc-100 border-none rounded-lg text-center font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const cur = items[index]?.soLuong ?? 1;
+                                updateItem(index, { soLuong: cur + 1 });
+                              }}
+                              className="w-7 h-7 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 hover:bg-primary/10 hover:text-primary transition-colors"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                         <td className="px-2 py-4 text-right font-bold text-zinc-900">
                           {formatCurrency(items[index]?.thanhTien || 0)}
@@ -532,6 +569,8 @@ export function ServiceReceiptForm({
                         <td className="px-2 py-4">
                           <div className="space-y-1">
                             <InlineNumberInput
+                              id={`service-item-prepayment-${index}`}
+                              name={`serviceItemPrepayment${index}`}
                               value={items[index]?.traTruoc ?? 0}
                               min={0}
   
@@ -572,6 +611,9 @@ export function ServiceReceiptForm({
               </table>
             </div>
           </div>
+          {detailError && (
+            <p className="text-sm font-medium text-red-600">{detailError}</p>
+          )}
         </div>
       </div>
 

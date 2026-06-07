@@ -80,7 +80,6 @@ export default async function SanPhamPage() {
                   <th className="px-6 py-4 font-bold text-center">Hàm lượng</th>
                   <th className="px-6 py-4 font-bold text-right">Trọng lượng</th>
                   <th className="px-6 py-4 font-bold text-center">Đơn vị tính</th>
-                  <th className="px-6 py-4 font-bold text-right">Tồn tối thiểu</th>
                   <th className="px-6 py-4 font-bold text-right">Đơn giá nhập</th>
                   <th className="px-6 py-4 font-bold text-right">% Lợi nhuận</th>
                   <th className="px-6 py-4 font-bold text-right text-primary">Đơn giá bán</th>
@@ -106,11 +105,6 @@ export default async function SanPhamPage() {
                     </td>
                     <td className="px-6 py-4 text-right font-mono text-zinc-600">{Number(item.trongLuong).toLocaleString("vi-VN")}</td>
                     <td className="px-6 py-4 text-center font-bold text-zinc-700">{item.donViTinh?.tenDVT}</td>
-                    <td className="px-6 py-4 text-right">
-                      <span className={cn("font-bold text-sm", item.tonKho < item.tonToiThieu ? "text-amber-500" : "text-zinc-700")}>
-                        {item.tonToiThieu}
-                      </span>
-                    </td>
                     <td className="px-6 py-4 text-right font-semibold text-zinc-700">
                       {formatCurrency(Number(item.donGiaNhap))}
                     </td>

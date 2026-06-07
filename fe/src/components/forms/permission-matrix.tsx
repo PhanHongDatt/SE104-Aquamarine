@@ -24,13 +24,14 @@ const ACTION_MAP: Record<string, string[]> = {
   GD_BAN: ["XEM", "THEM"],
   GD_MUA: ["XEM", "THEM"],
   DV_LAP: ["XEM", "THEM"],
+  DV_LDV: ["XEM", "THEM", "SUA", "XOA"],
   DV_TRA: ["XEM", "SUA"],
   BC_TON: ["XEM"],
   BC_DTH: ["XEM"],
   HT_USR: ["XEM", "THEM", "SUA", "XOA"],
   HT_PHQ: ["XEM", "SUA"],
   HT_QDI: ["XEM", "SUA"],
-  HT_BAK: ["XEM", "THEM"],
+  HT_BAK: ["XEM", "THEM", "SUA"],
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -45,11 +46,17 @@ const ACTION_ORDER = ["XEM", "THEM", "SUA", "XOA"];
 // Map đường dẫn admin → đường dẫn nhân viên
 const STAFF_ROUTE_MAP: Record<string, string> = {
   "/admin/danh-muc/san-pham": "/nhan-vien/danh-muc/san-pham",
+  "/admin/danh-muc/don-vi-tinh": "/nhan-vien/danh-muc/don-vi-tinh",
+  "/admin/danh-muc/loai-san-pham": "/nhan-vien/danh-muc/loai-san-pham",
   "/admin/danh-muc/khach-hang": "/nhan-vien/danh-muc/khach-hang",
+  "/admin/danh-muc/nha-cung-cap": "/nhan-vien/danh-muc/nha-cung-cap",
   "/admin/giao-dich/ban-hang": "/nhan-vien/giao-dich/ban-hang",
-  "/admin/dich-vu/lap-phieu": "/nhan-vien/dich-vu/lap-phieu",
-  "/admin/dich-vu/tra-cuu": "/nhan-vien/dich-vu/tra-cuu",
+  "/admin/giao-dich/mua-hang": "/nhan-vien/giao-dich/mua-hang",
+  "/admin/dich-vu/phieu-dich-vu/tao-moi": "/nhan-vien/dich-vu/lap-phieu",
+  "/admin/dich-vu/loai-dich-vu": "/nhan-vien/dich-vu/loai-dich-vu",
+  "/admin/dich-vu/phieu-dich-vu": "/nhan-vien/dich-vu/tra-cuu",
   "/admin/bao-cao/ton-kho": "/nhan-vien/bao-cao/ton-kho",
+  "/admin/bao-cao/doanh-thu": "/nhan-vien/bao-cao/doanh-thu",
 };
 
 function getDisplayRoute(tenManHinhDuocLoad: string, isStaffGroup: boolean): string {
@@ -67,8 +74,9 @@ export function PermissionMatrix({ groups, permissions, initialPermissions }: Pe
   const selectedValues = useMemo(() => new Set(checked[selectedGroup] ?? []), [checked, selectedGroup]);
   const isStaffGroup = useMemo(() => {
     const group = groups.find((g: any) => g.maNhom === selectedGroup);
-    return group?.tenNhom === "NHAN_VIEN";
+    return group?.maNhom !== "QUANLY";
   }, [selectedGroup, groups]);
+  const isManagerGroup = selectedGroup === "QUANLY";
 
   const togglePermission = (key: string) => {
     setChecked((current) => {
@@ -84,7 +92,7 @@ export function PermissionMatrix({ groups, permissions, initialPermissions }: Pe
 
   // Toggle tất cả hành động của một chức năng
   const toggleAllActions = (maChucNang: string) => {
-    const validActions = ACTION_MAP[maChucNang] || ["XEM"];
+    const validActions = ACTION_MAP[maChucNang] || ["XEM", "THEM", "SUA", "XOA"];
     const allKeys = validActions.map((a) => `${maChucNang}:${a}`);
     const allChecked = allKeys.every((k) => selectedValues.has(k));
 
@@ -134,22 +142,24 @@ export function PermissionMatrix({ groups, permissions, initialPermissions }: Pe
             Bảng phân quyền chức năng
           </h2>
           <p className="text-sm text-zinc-500 mt-1">
-            Quyền được áp dụng khi người dùng <strong>đăng nhập lại</strong> hoặc <strong>reload trang</strong>.
+            Quyền truy cập được kiểm tra lại từ cơ sở dữ liệu ở mỗi lần mở trang.
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
           <select
+            id="permission-group"
+            name="permissionGroup"
             value={selectedGroup}
             onChange={(event) => setSelectedGroup(event.target.value)}
             className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
           >
             {groups.map((group) => (
               <option key={group.maNhom} value={group.maNhom}>
-                {group.tenNhom === "QUAN_LY" ? "Quản lý" : "Nhân viên"} ({group.maNhom})
+                {group.tenNhom} ({group.maNhom})
               </option>
             ))}
           </select>
-          <Button onClick={handleSave} disabled={isSaving} className="rounded-xl gap-2">
+          <Button onClick={handleSave} disabled={isSaving || isManagerGroup} className="rounded-xl gap-2">
             <Save className="w-4 h-4" />
             {isSaving ? "Đang lưu..." : "Lưu phân quyền"}
           </Button>
@@ -172,7 +182,7 @@ export function PermissionMatrix({ groups, permissions, initialPermissions }: Pe
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {permissions.map((permission, index) => {
-              const validActions = ACTION_MAP[permission.maChucNang] || ["XEM"];
+              const validActions = ACTION_MAP[permission.maChucNang] || ["XEM", "THEM", "SUA", "XOA"];
               const displayRoute = getDisplayRoute(permission.tenManHinhDuocLoad, isStaffGroup);
               const isAccessible = displayRoute !== "—";
 
@@ -185,14 +195,21 @@ export function PermissionMatrix({ groups, permissions, initialPermissions }: Pe
                   {/* 4 cột hành động */}
                   {ACTION_ORDER.map((action) => {
                     const key = `${permission.maChucNang}:${action}`;
-                    const isValid = validActions.includes(action);
+                    const managerOnly =
+                      (["DM_DVT", "DM_LSP", "DM_NCC"].includes(permission.maChucNang) && action !== "XEM")
+                      || ["HT_USR", "HT_PHQ", "HT_QDI", "HT_BAK"].includes(permission.maChucNang);
+                    const isValid = validActions.includes(action) && (!isStaffGroup || !managerOnly);
+                    const checkboxId = `permission-${selectedGroup}-${key}`.replace(/[^a-zA-Z0-9_-]/g, "-");
                     return (
                       <td key={action} className="px-4 py-3 text-center">
                         {isValid ? (
                           <input
+                            id={checkboxId}
+                            name="permissions"
                             type="checkbox"
                             checked={selectedValues.has(key)}
                             onChange={() => togglePermission(key)}
+                            disabled={isManagerGroup}
                             className="h-4 w-4 rounded border-zinc-300 text-primary focus:ring-primary cursor-pointer"
                           />
                         ) : (
@@ -220,7 +237,7 @@ export function PermissionMatrix({ groups, permissions, initialPermissions }: Pe
           <div>
             <p className="text-sm font-bold text-amber-800">Đã lưu phân quyền</p>
             <p className="text-sm text-amber-700 mt-1">
-              Quyền đã được cập nhật vào cơ sở dữ liệu. Nhân viên cần <strong>reload trang</strong> hoặc <strong>đăng nhập lại</strong> để áp dụng quyền mới.
+              Quyền truy cập mới có hiệu lực ngay ở lần mở trang tiếp theo. Reload để cập nhật menu đang hiển thị.
             </p>
           </div>
         </div>

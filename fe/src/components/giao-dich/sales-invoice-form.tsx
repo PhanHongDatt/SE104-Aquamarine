@@ -54,9 +54,13 @@ export function SalesInvoiceForm({ products, customers = [], nextSoPhieu, return
   });
 
   const selectedCustomerId = watch("maKH");
+  const detailError =
+    (errors.chiTietBanHang as any)?.message ||
+    (errors.chiTietBanHang as any)?.root?.message;
 
   // useWatch detect nested field changes (watch() doesn't)
-  const items = useWatch({ control, name: "chiTietBanHang" }) || [];
+  const watchedItems = useWatch({ control, name: "chiTietBanHang" });
+  const items = useMemo(() => watchedItems || [], [watchedItems]);
 
   // Calculate total automatically
   const totalAmount = useMemo(() => {
@@ -321,6 +325,8 @@ export function SalesInvoiceForm({ products, customers = [], nextSoPhieu, return
                       </td>
                       <td className="px-4 py-4">
                         <input
+                          id={`sales-item-quantity-${index}`}
+                          name={`salesItemQuantity${index}`}
                           type="number"
                           min="1"
                           value={items[index]?.soLuong}
@@ -353,6 +359,9 @@ export function SalesInvoiceForm({ products, customers = [], nextSoPhieu, return
               </tbody>
             </table>
           </div>
+          {detailError && (
+            <p className="text-sm font-medium text-red-600">{detailError}</p>
+          )}
         </div>
       </div>
 

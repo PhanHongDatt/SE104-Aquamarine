@@ -63,8 +63,8 @@ model SanPham {
   hamLuong      HamLuong
   trongLuong    Decimal   @db.Decimal(10, 3)
   maDVT         String    @db.Char(6)
-  tonToiThieu   Int       @default(0)
   tonKho        Int       @default(0)
+  tonToiThieu   Int       @default(1)
   donGiaNhap    Decimal   @db.Decimal(18, 0)
   donGiaBan     Decimal   @db.Decimal(18, 0)
 
@@ -224,10 +224,10 @@ model BaoCaoTonKho {
   nam        Int
   maSP       String   @db.Char(5)
 
-  tonDau     Int
-  slMuaVao   Int
-  slBanRa    Int
-  tonCuoi    Int
+  tonDau     Int      @default(0)
+  slMuaVao   Int      @default(0)
+  slBanRa    Int      @default(0)
+  tonCuoi    Int      @default(0)
 
   sanPham SanPham @relation(fields: [maSP], references: [maSP])
 
@@ -291,9 +291,16 @@ model ThamSo {
 
   phanTramLoiNhuanToiThieu    Decimal  @default(0) @db.Decimal(5, 2)
   soLuongTonKhoToiThieu       Int      @default(1)
-  soLuongNhapToiThieu         Int      @default(1)
   tiLeTraTruocToiThieu        Decimal  @default(50) @db.Decimal(5, 2)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model LichSuThayDoiQuyDinh {
+  id          Int      @id @default(autoincrement())
+  maND        String?  @db.Char(6)
+  giaTriCu    Json
+  giaTriMoi   Json
+  createdAt   DateTime @default(now())
 }

@@ -39,6 +39,7 @@ export function SalesInvoiceList({ data }: SalesInvoiceListProps) {
       <html>
         <head>
           <title>HoaDon_${selectedPhieu?.soPhieu || 'SalesInvoice'}</title>
+          <base href="${window.location.origin}" />
           ${styles}
           <style>
             @media print {
@@ -193,7 +194,7 @@ export function SalesInvoiceList({ data }: SalesInvoiceListProps) {
                 className="flex items-center justify-center gap-2 px-6 py-2.5 bg-zinc-100 text-zinc-600 rounded-xl text-sm font-bold hover:bg-zinc-200 transition-all"
               >
                 <Download className="w-4 h-4" />
-                Tải xuống (PDF)
+                In / lưu PDF
               </button>
               <button
                 onClick={() => setSelectedPhieu(null)}

@@ -22,6 +22,7 @@ export const PERMISSIONS = {
   BAN_HANG: "GD_BAN",
   MUA_HANG: "GD_MUA",
   LAP_DICH_VU: "DV_LAP",
+  LOAI_DICH_VU: "DV_LDV",
   TRA_CUU_DICH_VU: "DV_TRA",
   BAO_CAO_TON_KHO: "BC_TON",
   BAO_CAO_DOANH_THU: "BC_DTH",
@@ -33,9 +34,28 @@ export const PERMISSIONS = {
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
+export const MANAGER_GROUP_CODE = "QUANLY";
+export const STAFF_GROUP_CODE = "NHANVI";
+export const SYSTEM_GROUP_CODES = [MANAGER_GROUP_CODE, STAFF_GROUP_CODE] as const;
+export const CORE_PERMISSION_CODES = Object.values(PERMISSIONS);
+
+const MANAGER_ONLY_ACTIONS: Partial<Record<PermissionCode, readonly string[]>> = {
+  [PERMISSIONS.DON_VI_TINH]: [ACTIONS.CREATE, ACTIONS.UPDATE, ACTIONS.DELETE],
+  [PERMISSIONS.LOAI_SAN_PHAM]: [ACTIONS.CREATE, ACTIONS.UPDATE, ACTIONS.DELETE],
+  [PERMISSIONS.NHA_CUNG_CAP]: [ACTIONS.CREATE, ACTIONS.UPDATE, ACTIONS.DELETE],
+  [PERMISSIONS.USER_MGMT]: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.UPDATE, ACTIONS.DELETE],
+  [PERMISSIONS.PHAN_QUYEN]: [ACTIONS.VIEW, ACTIONS.UPDATE],
+  [PERMISSIONS.QUY_DINH]: [ACTIONS.VIEW, ACTIONS.UPDATE],
+  [PERMISSIONS.BACKUP_RESTORE]: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.UPDATE],
+};
+
+export function isManagerOnlyAction(maChucNang: string, hanhDong: string) {
+  return MANAGER_ONLY_ACTIONS[maChucNang as PermissionCode]?.includes(hanhDong) ?? false;
+}
+
 type PermissionSession = {
   user?: {
-    role: "QUAN_LY" | "NHAN_VIEN";
+    role: string;
     maNhom: string;
     permissions?: string[]; // backward compat
   } | null;
@@ -55,8 +75,9 @@ export async function hasPermission(
   const session = existingSession ?? (await getServerSession(authOptions) as PermissionSession);
   if (!session?.user?.maNhom) return false;
 
-  // Quản lý luôn có tất cả quyền
-  if (session.user.role === "QUAN_LY") return true;
+  // Mã nhóm hệ thống là định danh ổn định; tên nhóm chỉ dùng để hiển thị.
+  if (session.user.maNhom === MANAGER_GROUP_CODE) return true;
+  if (isManagerOnlyAction(maChucNang, hanhDong)) return false;
 
   // Kiểm tra DB trực tiếp (real-time)
   // CHAR(4) padding: DB lưu "XEM " (4 chars) nên cần pad input
@@ -79,10 +100,7 @@ export async function hasPermission(
   });
 
   if (permissionCount === 0) {
-    const defaultPerms = getDefaultPermissionsByRole(session.user.role);
-    return defaultPerms.some(
-      (p) => p.maChucNang === maChucNang && p.hanhDong.trim() === hanhDong
-    );
+    return false;
   }
 
   return false;
@@ -104,31 +122,29 @@ export async function hasViewPermission(
  */
 export async function getCurrentPermissions(): Promise<string[]> {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.maNhom) return [];
+  const user = session?.user as { maNhom?: string; role?: string } | undefined;
+  if (!user?.maNhom) return [];
 
   // Quản lý → trả về tất cả
-  if ((session.user as any)?.role === "QUAN_LY") {
+  if (user.maNhom === MANAGER_GROUP_CODE) {
     return ALL_PERMISSIONS;
   }
 
   const records = await prisma.bangPhanQuyen.findMany({
-    where: { maNhom: session.user.maNhom },
+    where: { maNhom: user.maNhom },
     select: { maChucNang: true, hanhDong: true },
   });
 
   if (records.length > 0) {
-    return records.map((r) => `${r.maChucNang.trim()}:${r.hanhDong.trim()}`);
+    return records
+      .filter((r) => !isManagerOnlyAction(r.maChucNang.trim(), r.hanhDong.trim()))
+      .map((r) => `${r.maChucNang.trim()}:${r.hanhDong.trim()}`);
   }
 
-  // Fallback defaults
-  return getDefaultPermissionsByRole((session.user as any)?.role).map(
-    (p) => `${p.maChucNang}:${p.hanhDong}`
-  );
+  return [];
 }
 
 // ── Default permissions ──────────────────────────────────────
-type PermEntry = { maChucNang: string; hanhDong: string };
-
 const ALL_PERMISSIONS: string[] = [];
 const ALL_ACTIONS_MAP: Record<string, string[]> = {
   DM_DVT: ["XEM", "THEM", "SUA", "XOA"],
@@ -139,13 +155,14 @@ const ALL_ACTIONS_MAP: Record<string, string[]> = {
   GD_BAN: ["XEM", "THEM"],
   GD_MUA: ["XEM", "THEM"],
   DV_LAP: ["XEM", "THEM"],
+  DV_LDV: ["XEM", "THEM", "SUA", "XOA"],
   DV_TRA: ["XEM", "SUA"],
   BC_TON: ["XEM"],
   BC_DTH: ["XEM"],
   HT_USR: ["XEM", "THEM", "SUA", "XOA"],
   HT_PHQ: ["XEM", "SUA"],
   HT_QDI: ["XEM", "SUA"],
-  HT_BAK: ["XEM", "THEM"],
+  HT_BAK: ["XEM", "THEM", "SUA"],
 };
 
 // Build ALL_PERMISSIONS at module load
@@ -153,26 +170,4 @@ for (const [code, actions] of Object.entries(ALL_ACTIONS_MAP)) {
   for (const action of actions) {
     ALL_PERMISSIONS.push(`${code}:${action}`);
   }
-}
-
-const DEFAULT_MANAGER_PERMS: PermEntry[] = Object.entries(ALL_ACTIONS_MAP).flatMap(
-  ([code, actions]) => actions.map((a) => ({ maChucNang: code, hanhDong: a }))
-);
-
-const DEFAULT_STAFF_PERMS: PermEntry[] = [
-  { maChucNang: "DM_SP", hanhDong: "XEM" },
-  { maChucNang: "DM_KH", hanhDong: "XEM" },
-  { maChucNang: "DM_KH", hanhDong: "THEM" },
-  { maChucNang: "DM_KH", hanhDong: "SUA" },
-  { maChucNang: "GD_BAN", hanhDong: "XEM" },
-  { maChucNang: "GD_BAN", hanhDong: "THEM" },
-  { maChucNang: "DV_LAP", hanhDong: "XEM" },
-  { maChucNang: "DV_LAP", hanhDong: "THEM" },
-  { maChucNang: "DV_TRA", hanhDong: "XEM" },
-  { maChucNang: "DV_TRA", hanhDong: "SUA" },
-  { maChucNang: "BC_TON", hanhDong: "XEM" },
-];
-
-function getDefaultPermissionsByRole(role: string): PermEntry[] {
-  return role === "QUAN_LY" ? DEFAULT_MANAGER_PERMS : DEFAULT_STAFF_PERMS;
 }

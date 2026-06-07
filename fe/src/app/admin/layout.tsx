@@ -12,7 +12,7 @@ export default async function AdminLayout({
 }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/dang-nhap");
-  if (session.user.role !== "QUAN_LY") redirect("/");
+  if (session.user.maNhom !== "QUANLY") redirect("/");
 
   return (
     <SessionProvider session={session}>

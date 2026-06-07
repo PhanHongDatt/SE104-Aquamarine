@@ -6,11 +6,15 @@ interface DatePickerProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
-  ({ label, error, ...props }, ref) => {
+  ({ label, error, id, ...props }, ref) => {
+    const generatedId = React.useId();
+    const inputId = id || `date-picker-${generatedId.replace(/:/g, "")}`;
+
     return (
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium">{label}</label>
+        <label htmlFor={inputId} className="text-sm font-medium">{label}</label>
         <input
+          id={inputId}
           type="date"
           ref={ref}
           className="rounded-md border p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"

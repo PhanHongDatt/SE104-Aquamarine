@@ -4,7 +4,7 @@ const { closeSync, existsSync, openSync } = require("node:fs");
 const databaseUrl = process.env.DATABASE_URL;
 const backupFile = process.env.BACKUP_FILE;
 const confirm = process.env.RESTORE_CONFIRM;
-const dbContainer = process.env.DB_CONTAINER || "fe_db_1";
+const dbContainer = process.env.DB_CONTAINER || "quan_ly_vang_bac_db";
 
 if (!databaseUrl) {
   console.error("DATABASE_URL is required for database restore.");

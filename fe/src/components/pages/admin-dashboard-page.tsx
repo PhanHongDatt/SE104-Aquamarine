@@ -37,8 +37,8 @@ export default async function AdminDashboardPage() {
     }),
     prisma.$queryRaw<{ count: bigint }[]>`
       SELECT COUNT(*)::bigint AS count
-      FROM "SanPham"
-      WHERE "deletedAt" IS NULL AND "tonKho" < "tonToiThieu"
+      FROM "SanPham" sp
+      WHERE sp."deletedAt" IS NULL AND sp."tonKho" < sp."tonToiThieu"
     `
   ]);
   const lowStockTotal = toCount(lowStockCount[0]?.count);

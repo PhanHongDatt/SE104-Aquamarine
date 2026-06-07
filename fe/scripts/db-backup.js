@@ -4,7 +4,7 @@ const { join } = require("node:path");
 
 const databaseUrl = process.env.DATABASE_URL;
 const backupDir = process.env.BACKUP_DIR || "backups";
-const dbContainer = process.env.DB_CONTAINER || "fe_db_1";
+const dbContainer = process.env.DB_CONTAINER || "quan_ly_vang_bac_db";
 
 if (!databaseUrl) {
   console.error("DATABASE_URL is required for database backup.");

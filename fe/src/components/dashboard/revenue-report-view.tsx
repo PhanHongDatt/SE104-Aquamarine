@@ -3,25 +3,25 @@
 import { useState, useRef } from "react";
 import { Search, Printer, FileText, Download, Loader2, TrendingUp, ShoppingCart, Wrench } from "lucide-react";
 import { toast } from "sonner";
-import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { getBaoCaoDoanhThuDetailed, BaoCaoDoanhThuDetailedResult } from "@/actions/bao-cao";
 import { PrintableRevenueReport } from "./printable-revenue-report";
+import { usePermissions } from "@/hooks/use-permissions";
 
 export function RevenueReportView() {
-  const { data: session } = useSession();
+  const { hasPermission, loading: permLoading } = usePermissions();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<BaoCaoDoanhThuDetailedResult | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [hasSearched, setHasSearched] = useState(false);
-  
+
   const printRef = useRef<HTMLDivElement>(null);
 
-  // Requirement: Only Managers/Admins can view revenue reports
-  const isManager = session?.user?.role === "QUAN_LY";
+  // Kiểm tra quyền BC_DTH:XEM từ phân quyền động
+  const canView = hasPermission("BC_DTH", "XEM");
 
-  if (!isManager) {
+  if (!permLoading && !canView) {
     return (
       <div className="bg-white rounded-3xl border border-zinc-200 shadow-sm p-12 text-center">
         <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -29,7 +29,7 @@ export function RevenueReportView() {
         </div>
         <h2 className="text-xl font-bold text-zinc-900">Từ chối truy cập</h2>
         <p className="text-zinc-500 mt-2 max-w-md mx-auto">
-          Chỉ tài khoản có quyền Quản lý mới có thể lập và xem báo cáo doanh thu chi tiết của cửa hàng.
+          Bạn không có quyền xem báo cáo doanh thu. Liên hệ Quản lý để được cấp quyền.
         </p>
       </div>
     );
@@ -70,6 +70,7 @@ export function RevenueReportView() {
       <html>
         <head>
           <title>BaoCaoDoanhThu_${selectedMonth}_${selectedYear}</title>
+          <base href="${window.location.origin}" />
           ${styles}
           <style>
             @media print {
@@ -142,7 +143,7 @@ export function RevenueReportView() {
                   <Printer className="w-4 h-4" /> In
                 </Button>
                 <Button variant="outline" onClick={handlePrint} className="rounded-2xl h-11 gap-2 bg-zinc-100 border-none hover:bg-zinc-200 font-bold text-zinc-600">
-                  <Download className="w-4 h-4" /> PDF
+                  <Download className="w-4 h-4" /> In / lưu PDF
                 </Button>
               </>
             )}

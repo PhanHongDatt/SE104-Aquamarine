@@ -11,6 +11,10 @@ function serialize(data: any) {
 }
 
 export async function getSystemSettings() {
+  const session = await getServerSession(authOptions) as any;
+  if (!(await hasPermission(PERMISSIONS.QUY_DINH, ACTIONS.VIEW, session))) {
+    return null;
+  }
   const settings = await prisma.thamSo.findFirst({
     where: { id: 1 }
   });
@@ -19,7 +23,7 @@ export async function getSystemSettings() {
 
 export async function updateSystemSettings(data: any) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions) as any;
     
     if (!(await hasPermission(PERMISSIONS.QUY_DINH, ACTIONS.UPDATE, session))) {
       return {
@@ -31,22 +35,22 @@ export async function updateSystemSettings(data: any) {
 
     // Step 2 & 3: Update ThamSo in DB
     const result = await prisma.$transaction(async (tx) => {
+      const oldSettings = await tx.thamSo.findUnique({ where: { id: 1 } });
       const updated = await tx.thamSo.update({
         where: { id: 1 },
         data: {
-          phanTramLoiNhuanToiThieu: validated.phanTramLoiNhuanToiThieu,
           soLuongTonKhoToiThieu: validated.soLuongTonKhoToiThieu,
-          soLuongNhapToiThieu: validated.soLuongNhapToiThieu,
           tiLeTraTruocToiThieu: validated.tiLeTraTruocToiThieu,
         }
       });
 
-      // QĐ2: Cập nhật lại đơn giá bán của các LOẠI sản phẩm dựa trên tỷ lệ mới (nếu cần)
-      // Theo schema, donGiaBan nằm ở LoaiSanPham
-      // Tuy nhiên, việc tự động tính lại đơn giá bán cần biết giá mua. 
-      // Nếu dự án có cơ chế giá bán = giá mua * (1 + tỷ lệ lợi nhuận), ta sẽ thực hiện ở đây.
-      // Vì schema hiện tại không lưu 'giaMua' cố định trên LoaiSanPham (thường lấy từ giá mua gần nhất),
-      // nên ta sẽ đảm bảo các logic lập phiếu bán hàng sau này sẽ lấy tỷ lệ mới từ ThamSo.
+      await tx.lichSuThayDoiQuyDinh.create({
+        data: {
+          maND: session?.user?.id ?? null,
+          giaTriCu: serialize(oldSettings ?? {}),
+          giaTriMoi: serialize(updated),
+        },
+      });
 
       return updated;
     });

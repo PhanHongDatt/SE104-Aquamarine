@@ -1,21 +1,12 @@
 import { FileText, Plus } from "lucide-react";
-import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { ServiceSearchList } from "@/components/giao-dich/service-search-list";
+import { getDanhSachPhieuDichVu } from "@/actions/service.action";
 
 export const metadata = { title: "Phiếu dịch vụ – Admin | Aquamarine Jewelry & Luxury" };
 
 export default async function AdminPhieuDichVuPage() {
-  const data = await prisma.phieuDichVu.findMany({
-    include: { chiTietDichVu: true },
-    orderBy: { ngayLap: 'desc' }
-  });
-  const computedData = data.map((phieu) => ({
-    ...phieu,
-    tinhTrang: phieu.chiTietDichVu.length > 0 && phieu.chiTietDichVu.every((ct) => ct.ngayGiao)
-      ? "HoanThanh"
-      : "ChuaHoanThanh",
-  }));
+  const data = await getDanhSachPhieuDichVu();
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -37,7 +28,7 @@ export default async function AdminPhieuDichVuPage() {
         </div>
       </div>
 
-      <ServiceSearchList initialData={JSON.parse(JSON.stringify(computedData))} isAdmin={true} />
+      <ServiceSearchList initialData={data} isAdmin={true} />
     </div>
   );
 }

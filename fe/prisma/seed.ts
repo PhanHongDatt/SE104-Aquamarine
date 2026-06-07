@@ -4,6 +4,11 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
+  if (process.argv.includes('--if-empty') && await prisma.nhomNguoiDung.count() > 0) {
+    console.log('Database already initialized; skipping seed.')
+    return
+  }
+
   console.log('Start seeding...')
 
   // ── 1. Đơn Vị Tính ──────────────────────────────────────────
@@ -25,19 +30,28 @@ async function main() {
 
   // ── 3. Sản Phẩm ─────────────────────────────────────────────
   const products = [
-    { maSP: 'SP001', tenSP: 'Nhẫn Vàng 9999 Trơn', maLSP: 'LSP001', hamLuong: 'K24', trongLuong: 2.5, maDVT: 'DVT001', tonToiThieu: 5, tonKho: 50, donGiaNhap: 18500000, donGiaBan: 20450000 },
-    { maSP: 'SP002', tenSP: 'Lắc Tay Vàng 18K Đính Đá', maLSP: 'LSP002', hamLuong: 'K18', trongLuong: 5.0, maDVT: 'DVT001', tonToiThieu: 3, tonKho: 30, donGiaNhap: 32000000, donGiaBan: 36000000 },
-    { maSP: 'SP003', tenSP: 'Dây Chuyền Bạc 925', maLSP: 'LSP003', hamLuong: 'K18', trongLuong: 8.0, maDVT: 'DVT002', tonToiThieu: 10, tonKho: 100, donGiaNhap: 450000, donGiaBan: 490000 },
-    { maSP: 'SP004', tenSP: 'Nhẫn Kim Cương Solitaire 0.5ct', maLSP: 'LSP004', hamLuong: 'K18', trongLuong: 3.2, maDVT: 'DVT003', tonToiThieu: 2, tonKho: 15, donGiaNhap: 85000000, donGiaBan: 106000000 },
-    { maSP: 'SP005', tenSP: 'Bông Tai Vàng 9999', maLSP: 'LSP001', hamLuong: 'K24', trongLuong: 1.8, maDVT: 'DVT003', tonToiThieu: 5, tonKho: 40, donGiaNhap: 13500000, donGiaBan: 14900000 },
-    { maSP: 'SP009', tenSP: 'Nhẫn Cưới Kim Cương Đôi', maLSP: 'LSP004', hamLuong: 'K18', trongLuong: 6.5, maDVT: 'DVT003', tonToiThieu: 2, tonKho: 10, donGiaNhap: 150000000, donGiaBan: 187500000 },
-    { maSP: 'SP010', tenSP: 'Dây Chuyền Vàng 24K 5 Chỉ', maLSP: 'LSP001', hamLuong: 'K24', trongLuong: 18.75, maDVT: 'DVT001', tonToiThieu: 2, tonKho: 5, donGiaNhap: 42000000, donGiaBan: 46200000 },
-    { maSP: 'SP011', tenSP: 'Vòng Cổ Ngọc Trai Biển', maLSP: 'LSP005', hamLuong: 'K14', trongLuong: 15.0, maDVT: 'DVT003', tonToiThieu: 3, tonKho: 20, donGiaNhap: 25000000, donGiaBan: 32500000 },
+    { maSP: 'SP001', tenSP: 'Nhẫn Vàng 9999 Trơn', maLSP: 'LSP001', hamLuong: 'K24', trongLuong: 2.5, maDVT: 'DVT001', tonKho: 50, donGiaNhap: 18500000, donGiaBan: 20450000 },
+    { maSP: 'SP002', tenSP: 'Lắc Tay Vàng 18K Đính Đá', maLSP: 'LSP002', hamLuong: 'K18', trongLuong: 5.0, maDVT: 'DVT001', tonKho: 30, donGiaNhap: 32000000, donGiaBan: 36000000 },
+    { maSP: 'SP003', tenSP: 'Dây Chuyền Bạc 925', maLSP: 'LSP003', hamLuong: 'K18', trongLuong: 8.0, maDVT: 'DVT002', tonKho: 100, donGiaNhap: 450000, donGiaBan: 490000 },
+    { maSP: 'SP004', tenSP: 'Nhẫn Kim Cương Solitaire 0.5ct', maLSP: 'LSP004', hamLuong: 'K18', trongLuong: 3.2, maDVT: 'DVT004', tonKho: 15, donGiaNhap: 85000000, donGiaBan: 106000000 },
+    { maSP: 'SP005', tenSP: 'Bông Tai Vàng 9999', maLSP: 'LSP001', hamLuong: 'K24', trongLuong: 1.8, maDVT: 'DVT001', tonKho: 40, donGiaNhap: 13500000, donGiaBan: 14900000 },
+    { maSP: 'SP009', tenSP: 'Nhẫn Cưới Kim Cương Đôi', maLSP: 'LSP004', hamLuong: 'K18', trongLuong: 6.5, maDVT: 'DVT004', tonKho: 10, donGiaNhap: 150000000, donGiaBan: 187500000 },
+    { maSP: 'SP010', tenSP: 'Dây Chuyền Vàng 24K 5 Chỉ', maLSP: 'LSP001', hamLuong: 'K24', trongLuong: 18.75, maDVT: 'DVT001', tonKho: 5, donGiaNhap: 42000000, donGiaBan: 46200000 },
+    { maSP: 'SP011', tenSP: 'Vòng Cổ Ngọc Trai Biển', maLSP: 'LSP005', hamLuong: 'K14', trongLuong: 15.0, maDVT: 'DVT004', tonKho: 20, donGiaNhap: 25000000, donGiaBan: 32500000 },
   ]
 
   for (const p of products) {
     await prisma.sanPham.upsert({ where: { maSP: p.maSP }, update: {}, create: p as any })
   }
+  await prisma.$executeRaw`
+    UPDATE "SanPham" sp
+    SET "maDVT" = lsp."maDVT"
+    FROM "LoaiSanPham" lsp
+    WHERE sp."maLSP" = lsp."maLSP" AND sp."maDVT" <> lsp."maDVT"
+  `
+  await prisma.$executeRawUnsafe('ALTER TABLE "SanPham" DROP CONSTRAINT IF EXISTS chk_sp_tontoithieu')
+  await prisma.$executeRawUnsafe('UPDATE "SanPham" SET "tonToiThieu" = LEAST(1000, GREATEST(0, "tonToiThieu"))')
+  await prisma.$executeRawUnsafe('ALTER TABLE "SanPham" ADD CONSTRAINT chk_sp_tontoithieu CHECK ("tonToiThieu" >= 0 AND "tonToiThieu" <= 1000)')
 
   // ── 4. Nhà Cung Cấp ─────────────────────────────────────────
   await Promise.all([
@@ -63,19 +77,26 @@ async function main() {
   // ── 6. Nhóm & Người Dùng ────────────────────────────────────
   await prisma.nhomNguoiDung.upsert({ where: { maNhom: 'QUANLY' }, update: {}, create: { maNhom: 'QUANLY', tenNhom: 'QUAN_LY' } })
   await prisma.nhomNguoiDung.upsert({ where: { maNhom: 'NHANVI' }, update: {}, create: { maNhom: 'NHANVI', tenNhom: 'NHAN_VIEN' } })
-  const [adminPassword, staffPassword] = await Promise.all([
+  await prisma.nhomNguoiDung.upsert({ where: { maNhom: 'KETOAN' }, update: {}, create: { maNhom: 'KETOAN', tenNhom: 'KE_TOAN' } })
+  const [adminPassword, staffPassword, accountantPassword] = await Promise.all([
     bcrypt.hash('Admin@123', 10),
     bcrypt.hash('Nhanvien@1', 10),
+    bcrypt.hash('Ketoan@1', 10),
   ])
   await prisma.nguoiDung.upsert({
     where: { tenDangNhap: 'admin' },
-    update: { matKhau: adminPassword },
+    update: {},
     create: { maND: 'ND0001', tenDangNhap: 'admin', matKhau: adminPassword, hoTen: 'Nguyễn Quản Lý', maNhom: 'QUANLY' }
   })
   await prisma.nguoiDung.upsert({
     where: { tenDangNhap: 'nhanvien' },
-    update: { matKhau: staffPassword },
+    update: {},
     create: { maND: 'ND0002', tenDangNhap: 'nhanvien', matKhau: staffPassword, hoTen: 'Trần Nhân Viên', maNhom: 'NHANVI' }
+  })
+  await prisma.nguoiDung.upsert({
+    where: { tenDangNhap: 'ketoan' },
+    update: {},
+    create: { maND: 'ND0003', tenDangNhap: 'ketoan', matKhau: accountantPassword, hoTen: 'Đặng Kế Toán', maNhom: 'KETOAN' }
   })
 
   const chucNangs = [
@@ -86,8 +107,9 @@ async function main() {
     { maChucNang: 'DM_NCC', tenChucNang: 'Quản lý nhà cung cấp', tenManHinhDuocLoad: '/admin/danh-muc/nha-cung-cap' },
     { maChucNang: 'GD_BAN', tenChucNang: 'Lập phiếu bán hàng', tenManHinhDuocLoad: '/admin/giao-dich/ban-hang' },
     { maChucNang: 'GD_MUA', tenChucNang: 'Lập phiếu mua hàng', tenManHinhDuocLoad: '/admin/giao-dich/mua-hang' },
-    { maChucNang: 'DV_LAP', tenChucNang: 'Lập phiếu dịch vụ', tenManHinhDuocLoad: '/admin/dich-vu/lap-phieu' },
-    { maChucNang: 'DV_TRA', tenChucNang: 'Tra cứu phiếu dịch vụ', tenManHinhDuocLoad: '/admin/dich-vu/tra-cuu' },
+    { maChucNang: 'DV_LAP', tenChucNang: 'Lập phiếu dịch vụ', tenManHinhDuocLoad: '/admin/dich-vu/phieu-dich-vu/tao-moi' },
+    { maChucNang: 'DV_LDV', tenChucNang: 'Quản lý loại dịch vụ', tenManHinhDuocLoad: '/admin/dich-vu/loai-dich-vu' },
+    { maChucNang: 'DV_TRA', tenChucNang: 'Tra cứu phiếu dịch vụ', tenManHinhDuocLoad: '/admin/dich-vu/phieu-dich-vu' },
     { maChucNang: 'BC_TON', tenChucNang: 'Báo cáo tồn kho', tenManHinhDuocLoad: '/admin/bao-cao/ton-kho' },
     { maChucNang: 'BC_DTH', tenChucNang: 'Báo cáo doanh thu', tenManHinhDuocLoad: '/admin/bao-cao/doanh-thu' },
     { maChucNang: 'HT_USR', tenChucNang: 'Quản lý tài khoản người dùng', tenManHinhDuocLoad: '/admin/tai-khoan' },
@@ -116,50 +138,78 @@ async function main() {
     GD_BAN: ['XEM', 'THEM'],
     GD_MUA: ['XEM', 'THEM'],
     DV_LAP: ['XEM', 'THEM'],
+    DV_LDV: ['XEM', 'THEM', 'SUA', 'XOA'],
     DV_TRA: ['XEM', 'SUA'],
     BC_TON: ['XEM'],
     BC_DTH: ['XEM'],
     HT_USR: ['XEM', 'THEM', 'SUA', 'XOA'],
     HT_PHQ: ['XEM', 'SUA'],
     HT_QDI: ['XEM', 'SUA'],
-    HT_BAK: ['XEM', 'THEM'],
+    HT_BAK: ['XEM', 'THEM', 'SUA'],
   }
 
-  // Quyền nhân viên: chỉ định từng hành động
+  // Quyền nhân viên: theo báo cáo đồ án
+  // QĐ1: Đơn vị tính → chỉ Xem
+  // QĐ2: Loại sản phẩm → chỉ Xem
+  // QĐ3: Sản phẩm → Xem, Thêm, Sửa
+  // QĐ4: Bán hàng → Xem, Thêm
+  // QĐ5: Mua hàng → Xem, Thêm
+  // QĐ6: Lập phiếu DV → Xem, Thêm
+  // QĐ7: Tra cứu DV → Xem, Sửa (cập nhật giao)
+  // QĐ8: Báo cáo tồn kho → Xem
+  // QĐ9: Nhà cung cấp → chỉ Xem
+  // QĐ10: Báo cáo doanh thu → không có quyền
+  // QĐ11: Quy định/Phân quyền/TK/Sao lưu → không có quyền
   const staffActionMap: Record<string, string[]> = {
-    DM_SP:  ['XEM'],
+    DM_DVT: ['XEM'],
+    DM_LSP: ['XEM'],
+    DM_SP:  ['XEM', 'THEM', 'SUA'],
     DM_KH:  ['XEM', 'THEM', 'SUA'],
+    DM_NCC: ['XEM'],
     GD_BAN: ['XEM', 'THEM'],
+    GD_MUA: ['XEM', 'THEM'],
     DV_LAP: ['XEM', 'THEM'],
     DV_TRA: ['XEM', 'SUA'],
     BC_TON: ['XEM'],
   }
 
-  for (const cn of chucNangs) {
-    const validActions = actionMap[cn.maChucNang] || ['XEM']
-    // Quản lý: tất cả hành động cho tất cả chức năng
-    for (const action of validActions) {
-      await prisma.bangPhanQuyen.upsert({
-        where: { maNhom_maChucNang_hanhDong: { maNhom: 'QUANLY', maChucNang: cn.maChucNang, hanhDong: action } },
-        update: {},
-        create: { maNhom: 'QUANLY', maChucNang: cn.maChucNang, hanhDong: action },
-      })
-    }
-    // Nhân viên: chỉ hành động được chỉ định
-    const staffActions = staffActionMap[cn.maChucNang]
-    if (staffActions) {
-      for (const action of staffActions) {
-        await prisma.bangPhanQuyen.upsert({
-          where: { maNhom_maChucNang_hanhDong: { maNhom: 'NHANVI', maChucNang: cn.maChucNang, hanhDong: action } },
-          update: {},
-          create: { maNhom: 'NHANVI', maChucNang: cn.maChucNang, hanhDong: action },
+  // Quyền kế toán: chỉ xem báo cáo + tra cứu dịch vụ
+  const accountantActionMap: Record<string, string[]> = {
+    BC_DTH: ['XEM'],
+    BC_TON: ['XEM'],
+    DV_TRA: ['XEM', 'SUA'],
+  }
+
+  // Chỉ tạo bộ quyền mặc định cho CSDL mới. Không ghi đè cấu hình quản lý đã lưu.
+  if (await prisma.bangPhanQuyen.count() === 0) {
+    for (const cn of chucNangs) {
+      const validActions = actionMap[cn.maChucNang] || ['XEM']
+      for (const action of validActions) {
+        await prisma.bangPhanQuyen.create({
+          data: { maNhom: 'QUANLY', maChucNang: cn.maChucNang, hanhDong: action },
         })
+      }
+      const staffActions = staffActionMap[cn.maChucNang]
+      if (staffActions) {
+        for (const action of staffActions) {
+          await prisma.bangPhanQuyen.create({
+            data: { maNhom: 'NHANVI', maChucNang: cn.maChucNang, hanhDong: action },
+          })
+        }
+      }
+      const accountantActions = accountantActionMap[cn.maChucNang]
+      if (accountantActions) {
+        for (const action of accountantActions) {
+          await prisma.bangPhanQuyen.create({
+            data: { maNhom: 'KETOAN', maChucNang: cn.maChucNang, hanhDong: action },
+          })
+        }
       }
     }
   }
 
   // ── 7. Tham Số ──────────────────────────────────────────────
-  await prisma.thamSo.upsert({ where: { id: 1 }, update: {}, create: { id: 1, phanTramLoiNhuanToiThieu: 5.0, soLuongTonKhoToiThieu: 1, soLuongNhapToiThieu: 1, tiLeTraTruocToiThieu: 50.0 } })
+  await prisma.thamSo.upsert({ where: { id: 1 }, update: {}, create: { id: 1, phanTramLoiNhuanToiThieu: 5.0, soLuongTonKhoToiThieu: 1, tiLeTraTruocToiThieu: 50.0 } })
 
   // ── Helper for Names ──────────────────────────────────────
   const ho = ['Nguyễn', 'Trần', 'Lê', 'Phạm', 'Hoàng', 'Huỳnh', 'Phan', 'Vũ', 'Võ', 'Đặng']
@@ -176,6 +226,7 @@ async function main() {
     'Phạm Thanh Ngọc',
     'Vũ Gia Hân',
     'Đặng Bảo Anh',
+    'Phan Anh Quốc',
   ]
 
   for (let i = 0; i < customerNames.length; i++) {
@@ -194,9 +245,9 @@ async function main() {
     })
   }
 
-  // ── 9. Phiếu Bán Hàng & Chi Tiết (30 bản ghi) ────────────────
-  console.log('Seeding 30 sales orders...')
-  for (let i = 1; i <= 30; i++) {
+  // ── 9. Phiếu Bán Hàng & Chi Tiết (31 bản ghi) ────────────────
+  console.log('Seeding 31 sales orders...')
+  for (let i = 1; i <= 31; i++) {
     const soPhieu = `PBH${i.toString().padStart(7, '0')}`
     const randomItemsCount = Math.floor(Math.random() * 3) + 1
     const selectedProducts = [...products].sort(() => 0.5 - Math.random()).slice(0, randomItemsCount)
@@ -265,9 +316,9 @@ async function main() {
     })
   }
 
-  // ── 11. Phiếu Dịch Vụ & Chi Tiết (30 bản ghi) ────────────────
-  console.log('Seeding 30 service vouchers...')
-  for (let i = 1; i <= 30; i++) {
+  // ── 11. Phiếu Dịch Vụ & Chi Tiết (33 bản ghi) ────────────────
+  console.log('Seeding 33 service vouchers...')
+  for (let i = 1; i <= 33; i++) {
     const soPhieu = `PDV${i.toString().padStart(7, '0')}`
     const randomItemsCount = Math.floor(Math.random() * 2) + 1
     const selectedServices = [...serviceTypes].sort(() => 0.5 - Math.random()).slice(0, randomItemsCount)

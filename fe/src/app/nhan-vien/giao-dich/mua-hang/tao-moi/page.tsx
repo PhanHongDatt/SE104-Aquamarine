@@ -9,7 +9,7 @@ export const metadata = {
 };
 
 export default async function StaffTaoPhieuMuaHangPage() {
-  const [productsRaw, suppliersRaw, existingReceipts, thamSo] = await Promise.all([
+  const [productsRaw, suppliersRaw, existingReceipts] = await Promise.all([
     prisma.sanPham.findMany({
       where: { deletedAt: null },
       include: { loaiSanPham: true, donViTinh: true },
@@ -22,12 +22,10 @@ export default async function StaffTaoPhieuMuaHangPage() {
       where: { soPhieu: { startsWith: "PMH" } },
       select: { soPhieu: true },
     }),
-    prisma.thamSo.findFirst({ where: { id: 1 } }),
   ]);
   const products = JSON.parse(JSON.stringify(productsRaw));
   const suppliers = JSON.parse(JSON.stringify(suppliersRaw));
   const nextSoPhieu = nextSequentialIdFromValidCodes(existingReceipts.map((receipt) => receipt.soPhieu), "PMH", 7);
-  const minPurchaseQuantity = thamSo?.soLuongNhapToiThieu ?? 1;
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -50,7 +48,6 @@ export default async function StaffTaoPhieuMuaHangPage() {
         products={products}
         suppliers={suppliers}
         nextSoPhieu={nextSoPhieu}
-        minPurchaseQuantity={minPurchaseQuantity}
       />
     </div>
   );

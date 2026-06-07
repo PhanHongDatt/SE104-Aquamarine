@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { PrismaClient } from "@prisma/client";
-import { assertPurchaseQuantityMeetsMinimum, calculateLineTotal, calculateSellPrice } from "../src/lib/business-rules";
+import { calculateLineTotal, calculateSellPrice } from "../src/lib/business-rules";
 
 const prisma = new PrismaClient();
 const PERMISSIONS = {
@@ -78,22 +78,17 @@ async function main() {
     thang: actionServiceDate.getMonth() + 1,
     nam: actionServiceDate.getFullYear(),
   };
-  let originalSoLuongNhapToiThieu: number | null = null;
   let shouldDeleteActionServiceReport = false;
+  let settingsLogMaxIdBefore: number | null = null;
   const actionCreatedProductIds: string[] = [];
   const actionPurchaseReceiptIds: string[] = [];
   const actionServiceReceiptIds: string[] = [];
 
   try {
-    const thamSo = await prisma.thamSo.upsert({
+    await prisma.thamSo.upsert({
       where: { id: 1 },
       update: {},
-      create: { id: 1, phanTramLoiNhuanToiThieu: 5, soLuongTonKhoToiThieu: 1, soLuongNhapToiThieu: 1, tiLeTraTruocToiThieu: 50 },
-    });
-    originalSoLuongNhapToiThieu = thamSo.soLuongNhapToiThieu;
-    await prisma.thamSo.update({
-      where: { id: 1 },
-      data: { soLuongNhapToiThieu: 5 },
+      create: { id: 1, phanTramLoiNhuanToiThieu: 5, soLuongTonKhoToiThieu: 1, tiLeTraTruocToiThieu: 50 },
     });
 
     await prisma.donViTinh.create({
@@ -123,7 +118,6 @@ async function main() {
           trongLuong: 1,
           maDVT: dvtId,
           tonKho: 10,
-          tonToiThieu: 1,
           donGiaNhap: 1000,
           donGiaBan: calculateSellPrice(1000, 20),
         },
@@ -135,7 +129,6 @@ async function main() {
           trongLuong: 1,
           maDVT: dvtId,
           tonKho: 1,
-          tonToiThieu: 1,
           donGiaNhap: 800,
           donGiaBan: calculateSellPrice(800, 25),
         },
@@ -180,18 +173,24 @@ async function main() {
     const { hasPermission } = await import("../src/lib/permissions");
 
     await prisma.bangPhanQuyen.create({
-      data: { maNhom: permissionGroupId, maChucNang: PERMISSIONS.DON_VI_TINH },
+      data: { maNhom: permissionGroupId, maChucNang: PERMISSIONS.DON_VI_TINH, hanhDong: "XEM" },
     });
     assert.equal(
-      await hasPermission(PERMISSIONS.DON_VI_TINH, fakeSession),
+      await hasPermission(PERMISSIONS.DON_VI_TINH, "XEM", fakeSession),
       true,
       "Nhóm được gán DM_DVT phải có quyền quản lý đơn vị tính",
     );
     await prisma.bangPhanQuyen.delete({
-      where: { maNhom_maChucNang: { maNhom: permissionGroupId, maChucNang: PERMISSIONS.DON_VI_TINH } },
+      where: {
+        maNhom_maChucNang_hanhDong: {
+          maNhom: permissionGroupId,
+          maChucNang: PERMISSIONS.DON_VI_TINH,
+          hanhDong: "XEM ",
+        },
+      },
     });
     assert.equal(
-      await hasPermission(PERMISSIONS.DON_VI_TINH, fakeSession),
+      await hasPermission(PERMISSIONS.DON_VI_TINH, "XEM", fakeSession),
       false,
       "Nhóm bị gỡ DM_DVT phải không còn quyền quản lý đơn vị tính",
     );
@@ -200,11 +199,37 @@ async function main() {
       { createSanPham, getSanPhams },
       { lapPhieuMuaHang },
       { lapPhieuDichVu, updateTinhTrangDichVu },
+      { updateNhomNguoiDung, deleteNhomNguoiDung },
+      { updateSystemSettings },
     ] = await Promise.all([
       import("../src/actions/san-pham.action"),
       import("../src/actions/giao-dich"),
       import("../src/actions/service.action"),
+      import("../src/actions/phan-quyen.action"),
+      import("../src/actions/settings.action"),
     ]);
+
+    const renameManagerGroup = await updateNhomNguoiDung("QUANLY", { tenNhom: "QUAN_LY_RENAMED" });
+    assert.equal(renameManagerGroup.success, false, "Không được đổi tên nhóm Quản lý hệ thống");
+    const deleteManagerGroup = await deleteNhomNguoiDung("QUANLY");
+    assert.equal(deleteManagerGroup.success, false, "Không được xóa nhóm Quản lý hệ thống");
+
+    const currentSettings = await prisma.thamSo.findUniqueOrThrow({ where: { id: 1 } });
+    settingsLogMaxIdBefore = (await prisma.lichSuThayDoiQuyDinh.findFirst({
+      orderBy: { id: "desc" },
+      select: { id: true },
+    }))?.id ?? 0;
+    const settingsLogCount = await prisma.lichSuThayDoiQuyDinh.count();
+    const settingsResult = await updateSystemSettings({
+      soLuongTonKhoToiThieu: currentSettings.soLuongTonKhoToiThieu,
+      tiLeTraTruocToiThieu: Number(currentSettings.tiLeTraTruocToiThieu),
+    });
+    assert.equal(settingsResult.success, true, "Quản lý phải thay đổi được quy định");
+    assert.equal(
+      await prisma.lichSuThayDoiQuyDinh.count(),
+      settingsLogCount + 1,
+      "Thay đổi quy định phải được ghi lịch sử",
+    );
 
     const invalidUnitProduct = await createSanPham({
       tenSP: `Test vàng miếng sai ĐVT ${invalidGoldLspId}`,
@@ -213,7 +238,6 @@ async function main() {
       trongLuong: 1,
       maDVT: gramDvtId,
       donGiaNhap: 1000,
-      tonToiThieu: 0,
     });
     assert.equal(invalidUnitProduct.success, false, "Vàng miếng dùng Gram phải bị server action từ chối");
     assert.match(invalidUnitProduct.message, /Lượng\/Chỉ/, "Thông báo lỗi phải nêu rõ đơn vị Lượng/Chỉ");
@@ -225,7 +249,6 @@ async function main() {
       trongLuong: 1,
       maDVT: luongDvtId,
       donGiaNhap: 1000,
-      tonToiThieu: 0,
     });
     assert.equal(validUnitProduct.success, true, "Vàng miếng dùng Lượng phải được tạo thành công");
     actionCreatedProductIds.push(validUnitProduct.data.maSP);
@@ -281,21 +304,6 @@ async function main() {
       (await prisma.baoCaoDoanhThu.findUniqueOrThrow({ where: { ngay_thang_nam: actionServiceReportDate } })).dtDichVu,
     );
     assert.equal(serviceRevenueAfterRollback, actionServiceRevenueBefore, "Rollback phiếu dịch vụ phải trừ lại doanh thu");
-
-    const purchaseActionLowQuantity = await lapPhieuMuaHang({
-      soPhieu: "PMH0000000",
-      ngayLap: new Date(),
-      maNCC: nccId,
-      tongTien: 3009,
-      chiTietMuaHang: [{
-        maSP: purchaseSpId,
-        soLuong: 3,
-        donGiaMua: 1003,
-        thanhTien: 3009,
-      }],
-    } as any);
-    assert.equal(purchaseActionLowQuantity.success, false, "Phiếu mua dưới soLuongNhapToiThieu phải bị từ chối");
-    assert.match(purchaseActionLowQuantity.message, /phải ≥ 5/, "Thông báo phiếu mua phải nêu rõ ngưỡng tối thiểu");
 
     const saleTotal = calculateLineTotal(2, calculateSellPrice(1000, 20));
     await prisma.$transaction(async (tx) => {
@@ -362,12 +370,6 @@ async function main() {
     const purchasedProduct = await prisma.sanPham.findUniqueOrThrow({ where: { maSP: purchaseSpId } });
     assert.equal(purchasedProduct.tonKho, 4, "Lập phiếu mua phải tăng tồn kho");
     assert.equal(Number(purchasedProduct.donGiaBan), calculateSellPrice(newPurchasePrice, 25), "Phiếu mua phải tính lại giá bán");
-    const updatedThamSo = await prisma.thamSo.findUniqueOrThrow({ where: { id: 1 } });
-    assert.throws(
-      () => assertPurchaseQuantityMeetsMinimum(purchasedProduct.tenSP, 3, updatedThamSo.soLuongNhapToiThieu),
-      /phải ≥ 5/,
-      "Phiếu mua có số lượng dưới soLuongNhapToiThieu phải bị từ chối",
-    );
 
     const purchaseActionValid = await lapPhieuMuaHang({
       soPhieu: "PMH0000000",
@@ -381,7 +383,7 @@ async function main() {
         thanhTien: 5015,
       }],
     } as any);
-    assert.equal(purchaseActionValid.success, true, "Phiếu mua bằng soLuongNhapToiThieu phải được chấp nhận");
+    assert.equal(purchaseActionValid.success, true, "Phiếu mua hợp lệ phải được chấp nhận");
     actionPurchaseReceiptIds.push(purchaseActionValid.data.soPhieu);
 
     const serviceTotal = 500_000;
@@ -493,6 +495,9 @@ async function main() {
 
     console.log("Integration tests passed.");
   } finally {
+    if (settingsLogMaxIdBefore !== null) {
+      await prisma.lichSuThayDoiQuyDinh.deleteMany({ where: { id: { gt: settingsLogMaxIdBefore } } });
+    }
     await prisma.baoCaoTonKho.deleteMany({ where: { maSP: { in: [saleSpId, purchaseSpId] } } });
     await prisma.baoCaoDoanhThu.deleteMany({ where: { OR: [saleReportDate, serviceReportDate] } });
     if (shouldDeleteActionServiceReport) {
@@ -514,12 +519,6 @@ async function main() {
     await prisma.bangPhanQuyen.deleteMany({ where: { maNhom: permissionGroupId } });
     await prisma.nhomNguoiDung.deleteMany({ where: { maNhom: permissionGroupId } });
     await prisma.donViTinh.deleteMany({ where: { maDVT: { in: [dvtId, gramDvtId, luongDvtId] } } });
-    if (originalSoLuongNhapToiThieu !== null) {
-      await prisma.thamSo.update({
-        where: { id: 1 },
-        data: { soLuongNhapToiThieu: originalSoLuongNhapToiThieu },
-      });
-    }
     await prisma.$disconnect();
   }
 }

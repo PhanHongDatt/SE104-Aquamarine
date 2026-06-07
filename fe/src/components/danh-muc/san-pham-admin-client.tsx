@@ -21,7 +21,6 @@ import { sanPhamSchema, type SanPhamInput, HAM_LUONG_ENUM } from "@/schemas/san-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { getAllowedDvtNamesForLoaiSP, isDvtValidForLoaiSP } from "@/lib/business-rules";
 import { usePermissions } from "@/hooks/use-permissions";
 
 const formatCurrency = (v: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v);
@@ -61,7 +60,7 @@ export default function AdminSanPhamPage() {
     formState: { errors, isSubmitting },
   } = useForm<SanPhamInput>({
     resolver: zodResolver(sanPhamSchema),
-    defaultValues: { tonToiThieu: 0 }
+    defaultValues: {}
   });
 
   const selectedLSP = watch("maLSP");
@@ -70,12 +69,12 @@ export default function AdminSanPhamPage() {
   const currentCategory = categories.find(c => c.maLSP === selectedLSP);
   const selectedDVT = watch("maDVT");
   const currentUnit = units.find(u => u.maDVT === selectedDVT);
-  const validUnits = useMemo(() => (
-    currentCategory
-      ? units.filter((unit) => isDvtValidForLoaiSP(currentCategory.tenLSP, unit.tenDVT))
-      : units
-  ), [currentCategory, units]);
-  const allowedUnitNames = currentCategory ? getAllowedDvtNamesForLoaiSP(currentCategory.tenLSP) : null;
+  const validUnits = useMemo(
+    () => currentCategory
+      ? units.filter((unit) => unit.maDVT === currentCategory.maDVT)
+      : [],
+    [currentCategory, units],
+  );
 
   useEffect(() => {
     if (!currentCategory || validUnits.length === 0) {
@@ -83,11 +82,10 @@ export default function AdminSanPhamPage() {
       return;
     }
 
-    const selectedUnit = units.find((unit) => unit.maDVT === selectedDVT);
-    if (!selectedUnit || !isDvtValidForLoaiSP(currentCategory.tenLSP, selectedUnit.tenDVT)) {
+    if (selectedDVT !== currentCategory.maDVT) {
       setValue("maDVT", validUnits[0].maDVT);
     }
-  }, [currentCategory, selectedDVT, setValue, units, validUnits]);
+  }, [currentCategory, selectedDVT, setValue, validUnits]);
 
   const sellingPricePreview = (() => {
     if (!importPrice || !currentCategory || importPrice < 0) return 0;
@@ -134,8 +132,8 @@ export default function AdminSanPhamPage() {
     setValue("maLSP", item.maLSP);
     setValue("hamLuong", item.hamLuong);
     setValue("trongLuong", Number(item.trongLuong));
+    setValue("tonToiThieu", Number(item.tonToiThieu));
     setValue("donGiaNhap", Number(item.donGiaNhap));
-    setValue("tonToiThieu", item.tonToiThieu);
     setValue("maDVT", item.maDVT);
     setIsModalOpen(true);
   };
@@ -226,11 +224,7 @@ export default function AdminSanPhamPage() {
                     </td>
                     <td className="px-6 py-4 text-right font-mono text-zinc-600">{Number(item.trongLuong).toLocaleString("vi-VN")}</td>
                     <td className="px-6 py-4 text-center font-bold text-zinc-700">{item.donViTinh?.tenDVT}</td>
-                    <td className="px-6 py-4 text-right">
-                      <span className={cn("font-bold text-sm", item.tonKho < item.tonToiThieu ? "text-amber-500" : "text-zinc-700")}>
-                        {item.tonToiThieu}
-                      </span>
-                    </td>
+                    <td className="px-6 py-4 text-right font-mono font-bold text-zinc-600">{item.tonToiThieu}</td>
                     <td className="px-6 py-4 text-right font-semibold text-zinc-700">
                       {formatCurrency(Number(item.donGiaNhap))}
                     </td>
@@ -332,11 +326,7 @@ export default function AdminSanPhamPage() {
                           </option>
                         ))}
                       </select>
-                      {allowedUnitNames && (
-                        <p className="text-[10px] text-zinc-400 mt-1">
-                          Hợp lệ: {allowedUnitNames.join(", ")}
-                        </p>
-                      )}
+                      <p className="text-[10px] text-zinc-400 mt-1">Theo đơn vị mặc định của loại sản phẩm.</p>
                       {errors.maDVT && <p className="text-xs text-red-500 mt-1 ml-1">{errors.maDVT.message}</p>}
                     </div>
                   </div>
@@ -357,6 +347,11 @@ export default function AdminSanPhamPage() {
                     <Input type="number" min="1000" error={errors.donGiaNhap?.message} {...register("donGiaNhap")} className="rounded-2xl h-12 font-mono font-bold text-primary shadow-sm" />
                   </div>
 
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-zinc-700 ml-1">Tồn tối thiểu</label>
+                    <Input type="number" min="0" max="1000" error={errors.tonToiThieu?.message} {...register("tonToiThieu")} className="rounded-2xl h-12 font-mono font-bold shadow-sm" />
+                  </div>
+
                   <div className="p-6 bg-primary/5 rounded-[24px] border border-primary/10 relative overflow-hidden">
                     <p className="text-[10px] font-black text-primary/60 uppercase tracking-widest mb-1.5">Giá bán tự tính (VNĐ)</p>
                     <p className="text-3xl font-black text-primary font-montserrat tracking-tighter leading-none">
@@ -374,7 +369,7 @@ export default function AdminSanPhamPage() {
                 <div className="flex items-center gap-2 text-zinc-400 font-montserrat">
                   <AlertCircle className="w-4 h-4" />
                   <p className="text-[11px] font-bold uppercase tracking-tight">
-                    {editingId ? `Đang sửa mã ${editingId}` : "Hệ thống sẽ tự sinh mã SP và gán tồn tối thiểu theo quy định"}
+                    {editingId ? `Đang sửa mã ${editingId}` : "Hệ thống sẽ tự sinh mã sản phẩm"}
                   </p>
                 </div>
                 <div className="flex gap-3">

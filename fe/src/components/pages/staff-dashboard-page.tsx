@@ -4,13 +4,17 @@ import { prisma } from "@/lib/prisma";
 import { PageTransition } from "@/components/providers/page-transition";
 import { AlertCircle, Clock, Package, Wrench, Search, PlusCircle } from "lucide-react";
 import Link from "next/link";
+import { getCurrentPermissions } from "@/lib/permissions";
 
 export const metadata = {
   title: "Dashboard Nhân viên – Aquamarine Jewelry & Luxury",
 };
 
 export default async function StaffDashboardPage() {
-  const session = await getServerSession(authOptions);
+  const [session, currentPermissions] = await Promise.all([
+    getServerSession(authOptions),
+    getCurrentPermissions(),
+  ]);
 
   const [unfinishedServices, lowStockProducts, lowStockCount] = await Promise.all([
     prisma.phieuDichVu.findMany({
@@ -34,8 +38,8 @@ export default async function StaffDashboardPage() {
     `,
     prisma.$queryRaw<Array<{ count: bigint }>>`
       SELECT COUNT(*)::bigint AS count
-      FROM "SanPham"
-      WHERE "deletedAt" IS NULL AND "tonKho" < "tonToiThieu"
+      FROM "SanPham" sp
+      WHERE sp."deletedAt" IS NULL AND sp."tonKho" < sp."tonToiThieu"
     `,
   ]);
   const lowStockTotal = Number(lowStockCount[0]?.count ?? 0);
@@ -43,6 +47,25 @@ export default async function StaffDashboardPage() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Chào buổi sáng" : hour < 18 ? "Chào buổi chiều" : "Chào buổi tối";
   const firstName = session?.user?.name?.split(" ").pop() ?? "";
+  const role = (session?.user as any)?.role;
+  const permissions = currentPermissions;
+  const can = (maChucNang: string, hanhDong = "XEM") =>
+    role === "QUAN_LY" ||
+    permissions.includes(`${maChucNang}:${hanhDong}`) ||
+    permissions.includes(maChucNang);
+  const canViewServices = can("DV_TRA", "XEM");
+  const canCreateSale = can("GD_BAN", "THEM");
+  const canViewSale = can("GD_BAN", "XEM");
+  const canViewPurchase = can("GD_MUA", "XEM");
+  const canCreateService = can("DV_LAP", "THEM");
+  const canViewProducts = can("DM_SP", "XEM");
+  const canViewInventory = can("BC_TON", "XEM");
+  const quickLinks = [
+    canViewSale && { href: "/nhan-vien/giao-dich/ban-hang", category: "Bán lẻ", label: "Phiếu bán hàng" },
+    canViewPurchase && { href: "/nhan-vien/giao-dich/mua-hang", category: "Nhập kho", label: "Phiếu mua hàng" },
+    canCreateService && { href: "/nhan-vien/dich-vu/lap-phieu", category: "Dịch vụ", label: "Lập phiếu gia công" },
+    canViewProducts && { href: "/nhan-vien/danh-muc/san-pham", category: "Tra cứu", label: "Danh mục sản phẩm" },
+  ].filter(Boolean) as Array<{ href: string; category: string; label: string }>;
 
   return (
     <PageTransition>
@@ -52,35 +75,42 @@ export default async function StaffDashboardPage() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">
-              {greeting}, {firstName} 👋
+              {greeting}, {firstName}
             </h1>
             <p className="text-sm text-zinc-500 mt-1 italic">
               Cửa hàng Aquamarine Jewelry & Luxury chúc bạn một ngày làm việc hiệu quả!
             </p>
           </div>
           <div className="flex items-center gap-3">
-             <Link href="/nhan-vien/dich-vu/tra-cuu" className="px-4 py-2 bg-white border border-zinc-200 text-sm font-medium text-zinc-700 rounded-lg shadow-sm hover:bg-zinc-50 transition-colors flex items-center gap-2">
-               <Search className="w-4 h-4" /> Tra cứu dịch vụ
-             </Link>
-             <Link href="/nhan-vien/giao-dich/ban-hang/tao-moi" className="px-4 py-2 bg-primary text-sm font-medium text-white rounded-lg shadow-sm hover:bg-primary/90 transition-colors flex items-center gap-2">
-               <PlusCircle className="w-4 h-4" /> Lập phiếu bán
-             </Link>
+             {canViewServices && (
+               <Link href="/nhan-vien/dich-vu/tra-cuu" className="px-4 py-2 bg-white border border-zinc-200 text-sm font-medium text-zinc-700 rounded-lg shadow-sm hover:bg-zinc-50 transition-colors flex items-center gap-2">
+                 <Search className="w-4 h-4" /> Tra cứu dịch vụ
+               </Link>
+             )}
+             {canCreateSale && (
+               <Link href="/nhan-vien/giao-dich/ban-hang/tao-moi" className="px-4 py-2 bg-primary text-sm font-medium text-white rounded-lg shadow-sm hover:bg-primary/90 transition-colors flex items-center gap-2">
+                 <PlusCircle className="w-4 h-4" /> Lập phiếu bán
+               </Link>
+             )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-5">
-            <p className="text-sm text-zinc-500 font-medium">Cần nhập thêm</p>
-            <div className="flex items-end justify-between mt-2">
-              <p className="text-2xl font-bold text-zinc-900">{lowStockTotal}</p>
-              <AlertCircle className="w-5 h-5 text-red-500" />
+        {canViewInventory && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-5">
+              <p className="text-sm text-zinc-500 font-medium">Cần nhập thêm</p>
+              <div className="flex items-end justify-between mt-2">
+                <p className="text-2xl font-bold text-zinc-900">{lowStockTotal}</p>
+                <AlertCircle className="w-5 h-5 text-red-500" />
+              </div>
+              <p className="text-xs text-red-500 font-medium mt-1">Sản phẩm dưới mức tối thiểu</p>
             </div>
-            <p className="text-xs text-red-500 font-medium mt-1">Sản phẩm dưới mức tối thiểu</p>
           </div>
-        </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Section 1: Unfinished Services */}
+          {canViewServices && (
           <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden flex flex-col">
             <div className="p-5 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
               <h2 className="text-sm font-bold text-zinc-900 flex items-center gap-2 uppercase tracking-tight">
@@ -115,8 +145,10 @@ export default async function StaffDashboardPage() {
               )}
             </div>
           </div>
+          )}
 
           {/* Section 2: Low Stock Alerts */}
+          {canViewInventory && (
           <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden flex flex-col">
             <div className="p-5 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
               <h2 className="text-sm font-bold text-zinc-900 flex items-center gap-2 uppercase tracking-tight">
@@ -151,27 +183,20 @@ export default async function StaffDashboardPage() {
               )}
             </div>
           </div>
+          )}
         </div>
 
         {/* Quick Links Group */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Link href="/nhan-vien/giao-dich/ban-hang" className="p-4 bg-white border border-zinc-200 rounded-2xl hover:border-primary hover:shadow-md transition-all group">
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 group-hover:text-primary transition-colors">Bán lẻ</p>
-            <p className="text-sm font-bold text-zinc-900">Phiếu bán hàng</p>
-          </Link>
-          <Link href="/nhan-vien/giao-dich/mua-hang" className="p-4 bg-white border border-zinc-200 rounded-2xl hover:border-primary hover:shadow-md transition-all group">
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 group-hover:text-primary transition-colors">Nhập kho</p>
-            <p className="text-sm font-bold text-zinc-900">Phiếu mua hàng</p>
-          </Link>
-          <Link href="/nhan-vien/dich-vu/lap-phieu" className="p-4 bg-white border border-zinc-200 rounded-2xl hover:border-primary hover:shadow-md transition-all group">
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 group-hover:text-primary transition-colors">Dịch vụ</p>
-            <p className="text-sm font-bold text-zinc-900">Lập phiếu gia công</p>
-          </Link>
-          <Link href="/nhan-vien/danh-muc/san-pham" className="p-4 bg-white border border-zinc-200 rounded-2xl hover:border-primary hover:shadow-md transition-all group">
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 group-hover:text-primary transition-colors">Tra cứu</p>
-            <p className="text-sm font-bold text-zinc-900">Danh mục sản phẩm</p>
-          </Link>
-        </div>
+        {quickLinks.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {quickLinks.map((item) => (
+              <Link key={item.href} href={item.href} className="p-4 bg-white border border-zinc-200 rounded-2xl hover:border-primary hover:shadow-md transition-all group">
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 group-hover:text-primary transition-colors">{item.category}</p>
+                <p className="text-sm font-bold text-zinc-900">{item.label}</p>
+              </Link>
+            ))}
+          </div>
+        )}
         
       </div>
     </PageTransition>

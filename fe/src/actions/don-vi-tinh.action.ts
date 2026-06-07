@@ -27,6 +27,9 @@ async function generateUnitId() {
 
 export async function getDonViTinhs() {
   try {
+    if (!(await canManageDonViTinh(ACTIONS.VIEW))) {
+      return { success: false, message: "Bạn không có quyền xem đơn vị tính", data: [] };
+    }
     const data = await prisma.donViTinh.findMany({
       include: {
         loaiSanPham: {

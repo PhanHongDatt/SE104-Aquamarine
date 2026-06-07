@@ -54,14 +54,16 @@ const navGroups: NavGroup[] = [
   {
     title: "Dịch vụ",
     items: [
-      { href: "/nhan-vien/dich-vu/lap-phieu", icon: Wrench, label: "Lập phiếu", permission: "DV_LAP" },
-      { href: "/nhan-vien/dich-vu/tra-cuu", icon: Search, label: "Tra cứu & Trả đồ", permission: "DV_TRA" },
+      { href: "/nhan-vien/dich-vu/lap-phieu", icon: Wrench, label: "Lập phiếu dịch vụ", permission: "DV_LAP" },
+      { href: "/nhan-vien/dich-vu/tra-cuu", icon: Search, label: "Phiếu dịch vụ", permission: "DV_TRA" },
+      { href: "/nhan-vien/dich-vu/loai-dich-vu", icon: Wrench, label: "Loại dịch vụ", permission: "DV_LDV" },
     ],
   },
   {
     title: "Báo cáo",
     items: [
       { href: "/nhan-vien/bao-cao/ton-kho", icon: BarChart3, label: "Báo cáo tồn kho", permission: "BC_TON" },
+      { href: "/nhan-vien/bao-cao/doanh-thu", icon: LineChart, label: "Báo cáo doanh thu", permission: "BC_DTH" },
     ],
   },
 ];
@@ -127,13 +129,9 @@ export function Sidebar() {
       items: group.items.filter((item) => {
         if (!item.permission) return true;
         if (role === "QUAN_LY") return true;
-        if (effectivePermissions && effectivePermissions.length > 0) {
-          // Kiểm tra quyền XEM: tìm "DM_SP:XEM" hoặc "DM_SP" (backward compat)
-          return effectivePermissions.some(
-            (p: string) => p === `${item.permission}:XEM` || p === item.permission
-          );
-        }
-        return true;
+        return Array.isArray(effectivePermissions) && effectivePermissions.some(
+          (p: string) => p === `${item.permission}:XEM` || p === item.permission
+        );
       }),
     }))
     .filter((group) => group.items.length > 0);
@@ -256,7 +254,7 @@ export function Sidebar() {
               </div>
               <div className="overflow-hidden">
                 <p className="text-white text-xs font-semibold truncate">{session.user.name}</p>
-                <p className="text-white/40 text-[10px] truncate">{role === "QUAN_LY" ? "Admin" : "Nhân viên"}</p>
+                <p className="text-white/40 text-[10px] truncate">{role === "QUAN_LY" ? "Admin" : (session?.user as any)?.maNhom === "NHANVI" ? "Nhân viên" : role}</p>
               </div>
               <div className="ml-auto w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
             </div>

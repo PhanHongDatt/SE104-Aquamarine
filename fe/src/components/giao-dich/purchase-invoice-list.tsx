@@ -41,6 +41,7 @@ export function PurchaseInvoiceList({ data }: PurchaseInvoiceListProps) {
       <html>
         <head>
           <title>PhieuMua_${selectedPhieu?.soPhieu || "PurchaseInvoice"}</title>
+          <base href="${window.location.origin}" />
           ${styles}
           <style>
             @media print {
@@ -192,7 +193,7 @@ export function PurchaseInvoiceList({ data }: PurchaseInvoiceListProps) {
 	                className="flex items-center justify-center gap-2 px-6 py-2 bg-zinc-100 text-zinc-600 rounded-xl text-sm font-bold hover:bg-zinc-200 transition-colors"
 	              >
 	                <Download className="w-4 h-4" />
-	                Tải xuống (PDF)
+	                In / lưu PDF
 	              </button>
 	              <button
 	                onClick={() => setSelectedPhieu(null)}

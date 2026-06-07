@@ -20,8 +20,8 @@ export interface SanPham {
   hamLuong: HamLuong;
   trongLuong: number;
   maDVT: string;
-  tonToiThieu: number;
   tonKho: number;
+  tonToiThieu: number;
   donGiaNhap: number;
   donGiaBan: number;
   loaiSanPham?: LoaiSanPham;
@@ -107,6 +107,5 @@ export interface ThamSo {
   id: number;
   phanTramLoiNhuanToiThieu: number;
   soLuongTonKhoToiThieu: number;
-  soLuongNhapToiThieu: number;
   tiLeTraTruocToiThieu: number;
 }

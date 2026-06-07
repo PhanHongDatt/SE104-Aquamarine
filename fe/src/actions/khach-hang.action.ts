@@ -39,6 +39,8 @@ async function generateCustomerId() {
 
 export async function getKhachHangs(query?: string) {
   try {
+    const auth = await requireCustomerPermission(ACTIONS.VIEW);
+    if (!auth.allowed) return { success: false, message: auth.message, data: [] };
     const keyword = query?.trim();
     const data = await prisma.khachHang.findMany({
       where: keyword

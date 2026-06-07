@@ -11,7 +11,7 @@ import {
   validateServiceDelivery,
 } from "@/lib/business-rules";
 import { hasPermission, PERMISSIONS, ACTIONS } from "@/lib/permissions";
-import { nextSequentialIdFromValidCodes, withUniqueRetry } from "@/lib/id-generation";
+import { nextSequentialId, nextSequentialIdFromValidCodes, withUniqueRetry } from "@/lib/id-generation";
 import { serviceTypeSchema } from "@/schemas/service-type.schema";
 import { serviceReceiptSchema } from "@/schemas/service.schema";
 
@@ -29,6 +29,12 @@ async function generateServiceReceiptId(tx: TransactionClient) {
   return nextSequentialIdFromValidCodes(records.map((record) => record.soPhieu), "PDV", 7);
 }
 export async function getDanhSachLoaiDichVu() {
+  const session = await getServerSession(authOptions) as any;
+  const canViewTypes = await hasPermission(PERMISSIONS.LOAI_DICH_VU, ACTIONS.VIEW, session);
+  const canCreateReceipt = await hasPermission(PERMISSIONS.LAP_DICH_VU, ACTIONS.CREATE, session);
+  if (!canViewTypes && !canCreateReceipt) {
+    throw new Error("Bạn không có quyền xem loại dịch vụ");
+  }
   const data = await prisma.loaiDichVu.findMany({
     orderBy: { maDV: "asc" },
   });
@@ -38,23 +44,30 @@ export async function getDanhSachLoaiDichVu() {
 export async function createLoaiDichVu(data: any) {
   try {
     const session = await getServerSession(authOptions) as any;
-    if (!(await hasPermission(PERMISSIONS.LAP_DICH_VU, ACTIONS.CREATE, session))) {
+    if (!(await hasPermission(PERMISSIONS.LOAI_DICH_VU, ACTIONS.CREATE, session))) {
       return { success: false, message: "Bạn không có quyền thực hiện thao tác này" };
     }
     const validated = serviceTypeSchema.parse(data);
 
-    const result = await prisma.loaiDichVu.create({
-      data: {
-        maDV: validated.maDV,
-        tenDV: validated.tenDV,
-        donGiaDV: validated.donGiaDV,
-        nhomDV: validated.nhomDV,
-      }
+    const result = await withUniqueRetry(async () => {
+      const lastItem = await prisma.loaiDichVu.findFirst({
+        orderBy: { maDV: 'desc' },
+      });
+      const maDV = nextSequentialId(lastItem?.maDV, "DV", 4);
+
+      return prisma.loaiDichVu.create({
+        data: {
+          maDV,
+          tenDV: validated.tenDV,
+          donGiaDV: validated.donGiaDV,
+          nhomDV: validated.nhomDV,
+        }
+      });
     });
     return { success: true, message: "Thêm loại dịch vụ thành công", data: serialize(result) };
   } catch (error: any) {
     if (error.code === 'P2002') {
-      return { success: false, message: "Mã dịch vụ đã tồn tại" };
+      return { success: false, message: "Tên dịch vụ đã tồn tại" };
     }
     return { success: false, message: "Lỗi khi thêm loại dịch vụ" };
   }
@@ -63,7 +76,7 @@ export async function createLoaiDichVu(data: any) {
 export async function updateLoaiDichVu(maDV: string, data: any) {
   try {
     const session = await getServerSession(authOptions) as any;
-    if (!(await hasPermission(PERMISSIONS.LAP_DICH_VU, ACTIONS.UPDATE, session))) {
+    if (!(await hasPermission(PERMISSIONS.LOAI_DICH_VU, ACTIONS.UPDATE, session))) {
       return { success: false, message: "Bạn không có quyền thực hiện thao tác này" };
     }
     const validated = serviceTypeSchema.parse({ ...data, maDV });
@@ -85,7 +98,7 @@ export async function updateLoaiDichVu(maDV: string, data: any) {
 export async function deleteLoaiDichVu(maDV: string) {
   try {
     const session = await getServerSession(authOptions) as any;
-    if (!(await hasPermission(PERMISSIONS.LAP_DICH_VU, ACTIONS.DELETE, session))) {
+    if (!(await hasPermission(PERMISSIONS.LOAI_DICH_VU, ACTIONS.DELETE, session))) {
       return { success: false, message: "Bạn không có quyền thực hiện thao tác này" };
     }
 
@@ -207,6 +220,10 @@ export async function lapPhieuDichVu(data: any) {
 }
 
 export async function getPhieuDichVuChiTiet(soPhieu: string) {
+  const session = await getServerSession(authOptions) as any;
+  if (!(await hasPermission(PERMISSIONS.TRA_CUU_DICH_VU, ACTIONS.VIEW, session))) {
+    throw new Error("Bạn không có quyền xem phiếu dịch vụ");
+  }
   const data = await prisma.phieuDichVu.findUnique({
     where: { soPhieu },
     include: {
@@ -218,6 +235,23 @@ export async function getPhieuDichVuChiTiet(soPhieu: string) {
     }
   });
   return serialize(data);
+}
+
+export async function getDanhSachPhieuDichVu() {
+  const session = await getServerSession(authOptions) as any;
+  if (!(await hasPermission(PERMISSIONS.TRA_CUU_DICH_VU, ACTIONS.VIEW, session))) {
+    throw new Error("Bạn không có quyền xem phiếu dịch vụ");
+  }
+  const data = await prisma.phieuDichVu.findMany({
+    include: { chiTietDichVu: true },
+    orderBy: { ngayLap: "desc" },
+  });
+  return serialize(data.map((phieu) => ({
+    ...phieu,
+    tinhTrang: phieu.chiTietDichVu.length > 0 && phieu.chiTietDichVu.every((ct) => ct.ngayGiao)
+      ? "HoanThanh"
+      : "ChuaHoanThanh",
+  })));
 }
 
 export async function updateTinhTrangDichVu(soPhieu: string, chiTietUpdates: any[]) {

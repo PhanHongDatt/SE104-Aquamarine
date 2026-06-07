@@ -80,10 +80,12 @@ export const PrintableInventoryReport = React.forwardRef<
       </table>
 
       {/* Warning Legend */}
-      <div className="mt-4 text-[9px] text-zinc-500 flex items-center gap-2">
-        <div className="w-3 h-3 bg-red-50 border border-zinc-300" />
-        <span>Sản phẩm được tô màu đỏ nếu Tồn cuối &lt; Tồn tối thiểu (Cảnh báo tồn thấp)</span>
-      </div>
+      {data.some(item => item.canhBao) && (
+        <div className="mt-4 text-[9px] text-red-600 flex items-center gap-2">
+          <div className="w-3 h-3 bg-red-100 border border-red-300" />
+          <span>Cảnh báo tồn thấp: {data.filter(item => item.canhBao).length} sản phẩm có Tồn cuối &lt; Tồn tối thiểu</span>
+        </div>
+      )}
 
       {/* Signature */}
       <div className="grid grid-cols-2 gap-10 mt-12 text-center text-[12px]">

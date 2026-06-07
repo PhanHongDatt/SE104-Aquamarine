@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import type { PhieuBanHang, PhieuMuaHang } from '@/types/model';
-import { assertPurchaseQuantityMeetsMinimum, calculateLineTotal, calculateSellPrice, canSellQuantity } from '@/lib/business-rules';
+import { calculateLineTotal, calculateSellPrice, canSellQuantity } from '@/lib/business-rules';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { hasPermission, PERMISSIONS, ACTIONS } from '@/lib/permissions';
@@ -104,6 +104,10 @@ async function generatePurchaseReceiptId(tx: TransactionClient) {
 
 // ── Phiếu Bán Hàng ────────────────────────────────────────────
 export async function getDanhSachPhieuBanHang(): Promise<PhieuBanHang[]> {
+  const session = await getServerSession(authOptions) as any;
+  if (!(await hasPermission(PERMISSIONS.BAN_HANG, ACTIONS.VIEW, session))) {
+    throw new Error("Bạn không có quyền xem phiếu bán hàng");
+  }
   const data = await prisma.phieuBanHang.findMany({
     include: {
       khachHang: true,
@@ -283,6 +287,10 @@ export async function lapPhieuBanHang(
 
 // ── Phiếu Mua Hàng ────────────────────────────────────────────
 export async function getDanhSachPhieuMuaHang(): Promise<PhieuMuaHang[]> {
+  const session = await getServerSession(authOptions) as any;
+  if (!(await hasPermission(PERMISSIONS.MUA_HANG, ACTIONS.VIEW, session))) {
+    throw new Error("Bạn không có quyền xem phiếu mua hàng");
+  }
   const data = await prisma.phieuMuaHang.findMany({
     include: {
       nhaCungCap: true,
@@ -326,16 +334,12 @@ export async function lapPhieuMuaHang(
         throw new Error(`Sản phẩm ${duplicatedProduct.maSP} bị nhập trùng trong phiếu mua`);
       }
 
-      const [nhaCungCap, thamSo] = await Promise.all([
-        tx.nhaCungCap.findUnique({ where: { maNCC: validated.maNCC } }),
-        tx.thamSo.findFirst({ where: { id: 1 } }),
-      ]);
+      const nhaCungCap = await tx.nhaCungCap.findUnique({ where: { maNCC: validated.maNCC } });
 
       if (!nhaCungCap) {
         throw new Error("Nhà cung cấp không hợp lệ");
       }
 
-      const soLuongNhapToiThieu = thamSo?.soLuongNhapToiThieu ?? 1;
       const chiTietDaTinh = [];
 
       for (const ct of validated.chiTietMuaHang) {
@@ -346,7 +350,6 @@ export async function lapPhieuMuaHang(
 
         if (!sp) throw new Error(`Sản phẩm ${ct.maSP} không tồn tại`);
         if (sp.deletedAt) throw new Error(`Sản phẩm ${ct.maSP} đã ngừng kinh doanh`);
-        assertPurchaseQuantityMeetsMinimum(sp.tenSP, ct.soLuong, soLuongNhapToiThieu);
 
         const thanhTien = calculateLineTotal(ct.soLuong, Number(ct.donGiaMua));
         const phanTramLN = Number(sp.loaiSanPham.phanTramLoiNhuan);

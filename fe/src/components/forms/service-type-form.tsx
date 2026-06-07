@@ -28,7 +28,6 @@ export function ServiceTypeForm({ initialData, onSuccess }: ServiceTypeFormProps
   } = useForm<ServiceTypeFormValues>({
     resolver: zodResolver(serviceTypeSchema),
     defaultValues: initialData || {
-      maDV: "",
       tenDV: "",
       donGiaDV: 0,
       nhomDV: "GiaCong",
@@ -58,10 +57,9 @@ export function ServiceTypeForm({ initialData, onSuccess }: ServiceTypeFormProps
       <div className="space-y-4">
         <Input
           label="Mã dịch vụ"
-          placeholder="VD: DV001"
-          disabled={isEdit}
-          error={errors.maDV?.message}
-          {...register("maDV")}
+          disabled
+          value={isEdit ? initialData.maDV : "(Tự động sinh)"}
+          className="bg-zinc-50 cursor-default text-zinc-400"
         />
 
         <Input

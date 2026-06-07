@@ -5,7 +5,7 @@ export default withAuth(
   async function middleware(req) {
     const { token } = req.nextauth;
     const { pathname } = req.nextUrl;
-    const jwtPermissions = Array.isArray(token?.permissions) ? token.permissions : [];
+    const isManager = token?.maNhom === "QUANLY";
 
     // Helper: redirect về /nhan-vien kèm thông báo lỗi
     function denyAccess() {
@@ -15,60 +15,50 @@ export default withAuth(
     }
 
     // 1. Chặn truy cập Admin nếu không phải QUAN_LY
-    if (pathname.startsWith("/admin") && token?.role !== "QUAN_LY") {
+    if (pathname.startsWith("/admin") && !isManager) {
       return denyAccess();
     }
 
-    // 2. Chặn truy cập các báo cáo/cài đặt nhạy cảm nếu là NHAN_VIEN
-    const restrictedStaffRoutes = [
-      "/nhan-vien/bao-cao/doanh-thu",
-      "/nhan-vien/cai-dat/quy-dinh",
-      "/nhan-vien/cai-dat/phan-quyen",
-    ];
+    // 2. Kiểm tra quyền cho tất cả nhóm không phải QUAN_LY (bao gồm NHAN_VIEN và nhóm custom)
+    if (!isManager) {
+      const staffPermissionRoutes = [
+        { route: "/nhan-vien/giao-dich/ban-hang/tao-moi", permission: "GD_BAN", action: "THEM" },
+        { route: "/nhan-vien/giao-dich/mua-hang/tao-moi", permission: "GD_MUA", action: "THEM" },
+        { route: "/nhan-vien/dich-vu/lap-phieu", permission: "DV_LAP", action: "THEM" },
+        { route: "/nhan-vien/danh-muc/san-pham", permission: "DM_SP", action: "XEM" },
+        { route: "/nhan-vien/danh-muc/khach-hang", permission: "DM_KH", action: "XEM" },
+        { route: "/nhan-vien/danh-muc/nha-cung-cap", permission: "DM_NCC", action: "XEM" },
+        { route: "/nhan-vien/danh-muc/don-vi-tinh", permission: "DM_DVT", action: "XEM" },
+        { route: "/nhan-vien/danh-muc/loai-san-pham", permission: "DM_LSP", action: "XEM" },
+        { route: "/nhan-vien/giao-dich/ban-hang", permission: "GD_BAN", action: "XEM" },
+        { route: "/nhan-vien/giao-dich/mua-hang", permission: "GD_MUA", action: "XEM" },
+        { route: "/nhan-vien/dich-vu/tra-cuu", permission: "DV_TRA", action: "XEM" },
+        { route: "/nhan-vien/dich-vu/loai-dich-vu", permission: "DV_LDV", action: "XEM" },
+        { route: "/nhan-vien/bao-cao/ton-kho", permission: "BC_TON", action: "XEM" },
+        { route: "/nhan-vien/bao-cao/doanh-thu", permission: "BC_DTH", action: "XEM" },
+      ];
 
-    if (restrictedStaffRoutes.some(route => pathname.startsWith(route)) && token?.role !== "QUAN_LY") {
-      return denyAccess();
-    }
-
-    const staffPermissionRoutes = [
-      { route: "/nhan-vien/danh-muc/san-pham", permission: "DM_SP" },
-      { route: "/nhan-vien/danh-muc/khach-hang", permission: "DM_KH" },
-      { route: "/nhan-vien/danh-muc/nha-cung-cap", permission: "DM_NCC" },
-      { route: "/nhan-vien/danh-muc/don-vi-tinh", permission: "DM_DVT" },
-      { route: "/nhan-vien/danh-muc/loai-san-pham", permission: "DM_LSP" },
-      { route: "/nhan-vien/giao-dich/ban-hang", permission: "GD_BAN" },
-      { route: "/nhan-vien/giao-dich/mua-hang", permission: "GD_MUA" },
-      { route: "/nhan-vien/dich-vu/lap-phieu", permission: "DV_LAP" },
-      { route: "/nhan-vien/dich-vu/tra-cuu", permission: "DV_TRA" },
-      { route: "/nhan-vien/bao-cao/ton-kho", permission: "BC_TON" },
-    ];
-
-    const matchedStaffRoute = staffPermissionRoutes.find(item => pathname.startsWith(item.route));
-    if (token?.role === "NHAN_VIEN" && matchedStaffRoute) {
-      const viewPerm = `${matchedStaffRoute.permission}:XEM`;
-
-      // Kiểm tra JWT — hỗ trợ cả format mới "DM_SP:XEM" và cũ "DM_SP"
-      if (jwtPermissions.some((p: string) => p === viewPerm || p === matchedStaffRoute.permission)) {
-        return; // Có quyền trong JWT → cho qua
-      }
-
-      // JWT không có quyền → gọi API route kiểm tra DB (real-time, admin vừa cấp quyền)
-      // Không dùng Prisma trực tiếp vì Edge Runtime không hỗ trợ
-      try {
-        const apiUrl = new URL(`/api/auth/permissions-check`, req.url);
-        apiUrl.searchParams.set("maNhom", token?.maNhom as string);
-        apiUrl.searchParams.set("maChucNang", matchedStaffRoute.permission);
-        apiUrl.searchParams.set("hanhDong", "XEM");
-        const res = await fetch(apiUrl.toString());
-        const data = await res.json();
-        if (data.allowed) {
-          return; // DB có quyền → cho qua (admin vừa cấp, JWT chưa cập nhật)
+      const matchedStaffRoute = staffPermissionRoutes.find(item => pathname.startsWith(item.route));
+      if (matchedStaffRoute) {
+        // Luôn kiểm tra DB để cả cấp và thu hồi quyền có hiệu lực ngay.
+        try {
+          const apiUrl = new URL(`/api/auth/permissions-check`, req.url);
+          apiUrl.searchParams.set("maChucNang", matchedStaffRoute.permission);
+          apiUrl.searchParams.set("hanhDong", matchedStaffRoute.action);
+          const res = await fetch(apiUrl.toString(), {
+            headers: { cookie: req.headers.get("cookie") ?? "" },
+            cache: "no-store",
+          });
+          const data = await res.json();
+          if (data.allowed) {
+            return; // DB có quyền → cho qua
+          }
+        } catch (e) {
+          console.error("[Middleware] DB permission check failed:", e);
         }
-      } catch (e) {
-        console.error("[Middleware] DB permission check failed:", e);
-      }
 
-      return denyAccess();
+        return denyAccess();
+      }
     }
   },
   {

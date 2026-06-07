@@ -1,0 +1,1 @@
+ALTER TABLE "SanPham" DROP COLUMN IF EXISTS "tonToiThieu";

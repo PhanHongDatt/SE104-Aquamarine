@@ -6,14 +6,16 @@ import { getDanhSachNguoiDung, getDanhSachNhomNguoiDung } from "@/actions/user.a
 import { UserManagementList } from "@/components/forms/user-management-list";
 import { getBangPhanQuyen, getChucNangs } from "@/actions/phan-quyen.action";
 import { PermissionMatrix } from "@/components/forms/permission-matrix";
+import { GroupManagement } from "@/components/forms/group-management";
+import { ChucNangManagement } from "@/components/forms/chuc-nang-management";
 
 export const metadata = { title: "Phân quyền người dùng – Admin | Aquamarine Jewelry & Luxury" };
 
 export default async function AdminPhanQuyenPage() {
   const session = await getServerSession(authOptions);
-  
+
   // Security check: Only QUAN_LY can access this management page
-  if (session?.user?.role !== "QUAN_LY") {
+  if (session?.user?.maNhom !== "QUANLY") {
     redirect("/admin/dashboard");
   }
 
@@ -27,16 +29,18 @@ export default async function AdminPhanQuyenPage() {
   );
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
+    <div className="p-6 lg:p-8 space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2">
           <Shield className="w-6 h-6 text-primary" />
           Phân quyền người dùng
         </h1>
-        <p className="text-sm text-zinc-500 mt-1">Quản lý tài khoản nhân viên và các nhóm quyền truy cập hệ thống</p>
+        <p className="text-sm text-zinc-500 mt-1">Quản lý nhóm quyền, chức năng và tài khoản người dùng</p>
       </div>
 
+      <GroupManagement groups={groups} />
       <PermissionMatrix groups={groups} permissions={permissions} initialPermissions={initialPermissions} />
+      <ChucNangManagement chucNangs={permissions} />
       <UserManagementList users={users} groups={groups} />
     </div>
   );

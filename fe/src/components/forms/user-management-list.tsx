@@ -66,6 +66,8 @@ export function UserManagementList({ users, groups }: UserManagementListProps) {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
           <input
+            id="user-search"
+            name="userSearch"
             type="text"
             placeholder="Tìm theo tên hoặc ID nhân viên..."
             value={searchTerm}
@@ -120,11 +122,11 @@ export function UserManagementList({ users, groups }: UserManagementListProps) {
                     <td className="px-6 py-4 text-zinc-600">{u.tenDangNhap}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${
-                        u.nhomNguoiDung.tenNhom === 'QUAN_LY' 
-                        ? 'bg-red-50 text-red-600 border-red-100' 
+                        u.nhomNguoiDung.tenNhom === 'QUAN_LY'
+                        ? 'bg-red-50 text-red-600 border-red-100'
                         : 'bg-blue-50 text-blue-600 border-blue-100'
                       }`}>
-                        {u.nhomNguoiDung.tenNhom === 'QUAN_LY' ? 'Quản lý' : 'Nhân viên'}
+                        {u.nhomNguoiDung.tenNhom === 'QUAN_LY' ? 'Quản lý' : u.nhomNguoiDung.tenNhom}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">

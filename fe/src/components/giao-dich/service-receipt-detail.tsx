@@ -43,6 +43,7 @@ export function ServiceReceiptDetail({ phieu, isAdmin = false }: ServiceReceiptD
       <html>
         <head>
           <title>PhieuDichVu_${phieu.soPhieu}</title>
+          <base href="${window.location.origin}" />
           ${styles}
           <style>
             @media print {
@@ -126,7 +127,7 @@ export function ServiceReceiptDetail({ phieu, isAdmin = false }: ServiceReceiptD
             onClick={handlePrint} 
             className="gap-2 bg-zinc-100 text-zinc-600 hover:bg-zinc-200 border-none shadow-none"
           >
-            <Download className="w-4 h-4" /> Tải PDF
+            <Download className="w-4 h-4" /> In / lưu PDF
           </Button>
           {phieu.tinhTrang !== "HoanThanh" && (
             <Button onClick={handleUpdateStatus} loading={isUpdating} className="gap-2 bg-green-600 hover:bg-green-700">

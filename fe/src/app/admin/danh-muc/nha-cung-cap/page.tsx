@@ -20,3 +20,4 @@ export default async function AdminNhaCungCapPage() {
     </div>
   );
 }
+export const dynamic = "force-dynamic";

@@ -84,6 +84,8 @@ export function ServiceSearchList({ initialData, isAdmin = false }: ServiceSearc
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
             <input
+              id="service-receipt-search"
+              name="serviceReceiptSearch"
               type="text"
               placeholder="Tìm theo số phiếu hoặc tên khách hàng..."
               value={filters.soPhieu || filters.tenKhachHang}
@@ -111,8 +113,10 @@ export function ServiceSearchList({ initialData, isAdmin = false }: ServiceSearc
         {showFilters && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-zinc-100 animate-in fade-in slide-in-from-top-2">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">Tình trạng phiếu</label>
+              <label htmlFor="service-status-filter" className="text-[10px] font-bold text-zinc-400 uppercase ml-1">Tình trạng phiếu</label>
               <select
+                id="service-status-filter"
+                name="serviceStatusFilter"
                 value={filters.tinhTrang}
                 onChange={(e) => setFilters(prev => ({ ...prev, tinhTrang: e.target.value }))}
                 className="w-full h-10 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none"
@@ -123,10 +127,12 @@ export function ServiceSearchList({ initialData, isAdmin = false }: ServiceSearc
               </select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">Từ ngày</label>
+              <label htmlFor="service-from-date-filter" className="text-[10px] font-bold text-zinc-400 uppercase ml-1">Từ ngày</label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                 <input
+                  id="service-from-date-filter"
+                  name="serviceFromDateFilter"
                   type="date"
                   value={filters.tuNgay}
                   onChange={(e) => setFilters(prev => ({ ...prev, tuNgay: e.target.value }))}
@@ -135,10 +141,12 @@ export function ServiceSearchList({ initialData, isAdmin = false }: ServiceSearc
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">Đến ngày</label>
+              <label htmlFor="service-to-date-filter" className="text-[10px] font-bold text-zinc-400 uppercase ml-1">Đến ngày</label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                 <input
+                  id="service-to-date-filter"
+                  name="serviceToDateFilter"
                   type="date"
                   value={filters.denNgay}
                   onChange={(e) => setFilters(prev => ({ ...prev, denNgay: e.target.value }))}

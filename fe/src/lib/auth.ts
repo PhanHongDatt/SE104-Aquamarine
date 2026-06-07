@@ -2,6 +2,7 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { MANAGER_GROUP_CODE } from "@/lib/permissions";
 
 const nextAuthSecret = process.env.NEXTAUTH_SECRET;
 
@@ -22,17 +23,22 @@ const DEFAULT_MANAGER_PERMISSIONS = [
   "GD_BAN:XEM", "GD_BAN:THEM",
   "GD_MUA:XEM", "GD_MUA:THEM",
   "DV_LAP:XEM", "DV_LAP:THEM",
+  "DV_LDV:XEM", "DV_LDV:THEM", "DV_LDV:SUA", "DV_LDV:XOA",
   "DV_TRA:XEM", "DV_TRA:SUA",
   "BC_TON:XEM", "BC_DTH:XEM",
   "HT_USR:XEM", "HT_USR:THEM", "HT_USR:SUA", "HT_USR:XOA",
   "HT_PHQ:XEM", "HT_PHQ:SUA",
   "HT_QDI:XEM", "HT_QDI:SUA",
-  "HT_BAK:XEM", "HT_BAK:THEM",
+  "HT_BAK:XEM", "HT_BAK:THEM", "HT_BAK:SUA",
 ];
 const DEFAULT_STAFF_PERMISSIONS = [
-  "DM_SP:XEM",
+  "DM_DVT:XEM",
+  "DM_LSP:XEM",
+  "DM_SP:XEM", "DM_SP:THEM", "DM_SP:SUA",
   "DM_KH:XEM", "DM_KH:THEM", "DM_KH:SUA",
+  "DM_NCC:XEM",
   "GD_BAN:XEM", "GD_BAN:THEM",
+  "GD_MUA:XEM", "GD_MUA:THEM",
   "DV_LAP:XEM", "DV_LAP:THEM",
   "DV_TRA:XEM", "DV_TRA:SUA",
   "BC_TON:XEM",
@@ -75,11 +81,14 @@ export const authOptions: NextAuthOptions = {
               select: { maChucNang: true, hanhDong: true },
             });
 
-            const role = user.nhomNguoiDung.tenNhom as "QUAN_LY" | "NHAN_VIEN";
+            const role = user.maNhom.trim() === MANAGER_GROUP_CODE
+              ? "QUAN_LY"
+              : user.nhomNguoiDung.tenNhom as string;
             // Lưu quyền dạng "maChucNang:hanhDong" (VD: "DM_SP:XEM")
+            // Nhóm custom không có quyền trong DB → trả rỗng (không fallback staff)
             const permissionCodes = permissions.length > 0
               ? permissions.map((p) => `${p.maChucNang.trim()}:${p.hanhDong.trim()}`)
-              : role === "QUAN_LY" ? DEFAULT_MANAGER_PERMISSIONS : DEFAULT_STAFF_PERMISSIONS;
+              : user.maNhom.trim() === MANAGER_GROUP_CODE ? DEFAULT_MANAGER_PERMISSIONS : [];
 
             return {
               id: user.maND,
@@ -115,7 +124,7 @@ export const authOptions: NextAuthOptions = {
       if (token && session.user) {
         const sessionUser = session.user as any;
         sessionUser.id = token.sub as string;
-        sessionUser.role = token.role as any;
+        sessionUser.role = token.role as string;
         sessionUser.maNhom = token.maNhom as any;
         sessionUser.permissions = (token.permissions as string[]) ?? [];
       }

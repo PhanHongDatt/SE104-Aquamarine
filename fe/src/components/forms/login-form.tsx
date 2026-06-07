@@ -11,7 +11,6 @@ import { loginSchema, type LoginFormValues } from "@/schemas/auth.schema";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
-import Link from "next/link";
 
 export function LoginForm() {
   const router = useRouter();
@@ -104,11 +103,8 @@ export function LoginForm() {
         {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
       </Button>
 
-      <div className="text-center text-sm text-zinc-500">
-        Chưa có tài khoản?{" "}
-        <Link href="/dang-ky" className="font-semibold text-primary hover:underline">
-          Đăng ký
-        </Link>
+      <div className="text-center text-xs text-zinc-400 leading-relaxed">
+        Tài khoản được cấp bởi Quản lý hệ thống.
       </div>
     </form>
   );

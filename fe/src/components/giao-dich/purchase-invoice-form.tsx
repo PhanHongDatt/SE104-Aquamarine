@@ -20,10 +20,9 @@ interface PurchaseInvoiceFormProps {
   products: any[];
   suppliers: any[];
   nextSoPhieu: string;
-  minPurchaseQuantity?: number;
 }
 
-export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu, minPurchaseQuantity = 1 }: PurchaseInvoiceFormProps) {
+export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu }: PurchaseInvoiceFormProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -54,9 +53,13 @@ export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu, minPurch
 
   const selectedSupplierId = watch("maNCC");
   const selectedSupplier = suppliers.find((supplier) => supplier.maNCC === selectedSupplierId);
+  const detailError =
+    (errors.chiTietMuaHang as any)?.message ||
+    (errors.chiTietMuaHang as any)?.root?.message;
 
   // useWatch detect nested field changes (watch() doesn't)
-  const items = useWatch({ control, name: "chiTietMuaHang" }) || [];
+  const watchedItems = useWatch({ control, name: "chiTietMuaHang" });
+  const items = useMemo(() => watchedItems || [], [watchedItems]);
 
   const totalAmount = useMemo(() => {
     return items.reduce((sum: number, item: any) => sum + (item.thanhTien || 0), 0);
@@ -84,9 +87,9 @@ export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu, minPurch
       tenLSP: p.loaiSanPham?.tenLSP,
       maDVT: p.maDVT,
       tenDVT: p.donViTinh?.tenDVT,
-      soLuong: minPurchaseQuantity,
+      soLuong: 1,
       donGiaMua: Number(p.donGiaNhap) || 0,
-      thanhTien: minPurchaseQuantity * (Number(p.donGiaNhap) || 0),
+      thanhTien: 1 * (Number(p.donGiaNhap) || 0),
     });
     setIsProductModalOpen(false);
   };
@@ -216,19 +219,22 @@ export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu, minPurch
                       </td>
                       <td className="px-4 py-4">
                         <input
+                          id={`purchase-item-quantity-${index}`}
+                          name={`purchaseItemQuantity${index}`}
                           type="number"
-                          min={minPurchaseQuantity}
+                          min={1}
                           value={items[index]?.soLuong}
                           onChange={(e) => updateItem(index, parseInt(e.target.value) || 0, items[index]?.donGiaMua)}
                           className="w-full h-9 bg-zinc-100 border-none rounded-lg text-center font-bold focus:ring-2 focus:ring-primary/20"
                         />
-                        <p className="text-[10px] text-zinc-400 text-center mt-1">Tối thiểu: {minPurchaseQuantity}</p>
                       </td>
                       <td className="px-4 py-4 text-center font-bold text-zinc-700">
                         {items[index]?.tenDVT}
                       </td>
                       <td className="px-4 py-4">
                         <input
+                          id={`purchase-item-price-${index}`}
+                          name={`purchaseItemPrice${index}`}
                           type="number"
                           min="1"
                           value={items[index]?.donGiaMua}
@@ -246,6 +252,9 @@ export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu, minPurch
               </tbody>
             </table>
           </div>
+          {detailError && (
+            <p className="text-sm font-medium text-red-600">{detailError}</p>
+          )}
         </div>
       </div>
 

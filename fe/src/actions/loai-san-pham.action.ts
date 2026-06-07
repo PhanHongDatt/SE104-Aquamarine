@@ -37,6 +37,9 @@ async function isValidUnit(maDVT: string) {
 // 2. Lấy danh sách
 export async function getLoaiSanPhams() {
   try {
+    if (!(await canManageLoaiSanPham(ACTIONS.VIEW))) {
+      return { success: false, message: "Bạn không có quyền xem loại sản phẩm", data: [] };
+    }
     const data = await prisma.loaiSanPham.findMany({
       include: { donViTinh: true },
       orderBy: { maLSP: "asc" },
@@ -123,6 +126,13 @@ export async function updateLoaiSanPham(maLSP: string, data: LoaiSanPhamInput) {
           phanTramLoiNhuan: validated.phanTramLoiNhuan,
         },
       });
+
+      if (oldRecord && oldRecord.maDVT !== validated.maDVT) {
+        await tx.sanPham.updateMany({
+          where: { maLSP, deletedAt: null },
+          data: { maDVT: validated.maDVT },
+        });
+      }
 
       // RÀNG BUỘC QUAN TRỌNG: Nếu % lợi nhuận thay đổi, tính lại giá bán cho toàn bộ SP thuộc loại này
       if (oldRecord && Number(oldRecord.phanTramLoiNhuan) !== validated.phanTramLoiNhuan) {

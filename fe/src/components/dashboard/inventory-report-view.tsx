@@ -51,6 +51,7 @@ export function InventoryReportView() {
       <html>
         <head>
           <title>BaoCaoTonKho_${selectedMonth}_${selectedYear}</title>
+          <base href="${window.location.origin}" />
           ${styles}
           <style>
             @media print {
@@ -120,7 +121,7 @@ export function InventoryReportView() {
                   <Printer className="w-4 h-4" /> In báo cáo
                 </Button>
                 <Button variant="outline" onClick={handlePrint} className="rounded-2xl h-11 gap-2 bg-zinc-100 border-none hover:bg-zinc-200 font-bold text-zinc-600">
-                  <Download className="w-4 h-4" /> Xuất PDF
+                  <Download className="w-4 h-4" /> In / lưu PDF
                 </Button>
               </>
             )}
@@ -136,10 +137,12 @@ export function InventoryReportView() {
               <FileText className="w-5 h-5 text-primary" />
               Kết quả tồn kho Tháng {selectedMonth}/{selectedYear}
             </h2>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-red-100 border border-red-200" />
-              <span className="text-[10px] font-bold text-zinc-400 uppercase">Cảnh báo tồn thấp</span>
-            </div>
+            {data.some(item => item.canhBao) && (
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-red-100 border border-red-200" />
+                <span className="text-[10px] font-bold text-red-500 uppercase">Cảnh báo tồn thấp ({data.filter(item => item.canhBao).length} sản phẩm)</span>
+              </div>
+            )}
           </div>
 
           <div className="overflow-x-auto">

@@ -8,6 +8,17 @@ import { cn } from "@/lib/utils";
 
 function buildBreadcrumbs(pathname: string) {
   const isAdmin = pathname.startsWith("/admin");
+  const isStaff = pathname.startsWith("/nhan-vien");
+  const nonLinkedRoutes = new Set([
+    "/admin/danh-muc",
+    "/admin/giao-dich",
+    "/admin/dich-vu",
+    "/admin/bao-cao",
+    "/nhan-vien/danh-muc",
+    "/nhan-vien/giao-dich",
+    "/nhan-vien/dich-vu",
+    "/nhan-vien/bao-cao",
+  ]);
   const labelMap: Record<string, string> = {
     "": "Trang chủ",
     "admin": "Admin",
@@ -35,13 +46,16 @@ function buildBreadcrumbs(pathname: string) {
     "quy-dinh": "Quy định",
   };
 
-  const homeHref = isAdmin ? "/admin/dashboard" : "/";
+  const homeHref = isAdmin ? "/admin/dashboard" : isStaff ? "/nhan-vien" : "/";
   const segments = pathname.split("/").filter(Boolean);
-  const crumbs = [{ label: "Trang chủ", href: homeHref }];
-  let path = "";
-  for (const seg of segments) {
+  const crumbs = [{ label: "Trang chủ", href: homeHref, disabled: false }];
+  const visibleSegments = isAdmin || isStaff ? segments.slice(1) : segments;
+  let path = isAdmin || isStaff ? `/${segments[0]}` : "";
+
+  for (const seg of visibleSegments) {
     path += `/${seg}`;
-    crumbs.push({ label: labelMap[seg] || seg, href: path });
+    if (path === homeHref) continue;
+    crumbs.push({ label: labelMap[seg] || seg, href: path, disabled: nonLinkedRoutes.has(path) });
   }
   return crumbs;
 }
@@ -60,7 +74,7 @@ export function Header() {
         {crumbs.map((crumb, index) => (
           <span key={crumb.href} className="flex items-center gap-1.5">
             {index > 0 && <ChevronRight className="w-3.5 h-3.5 text-zinc-300" />}
-            {index < crumbs.length - 1 ? (
+            {index < crumbs.length - 1 && !crumb.disabled ? (
               <Link
                 href={crumb.href}
                 className="text-zinc-500 hover:text-zinc-900 transition-colors font-medium text-[13px]"
@@ -88,8 +102,11 @@ export function Header() {
             <Search className="h-4 w-4 text-zinc-400" />
           </div>
           <input
+            id="global-search"
+            name="globalSearch"
             type="text"
             placeholder="Tìm mã sản phẩm, phiếu..."
+            autoComplete="off"
             className="block w-64 pl-9 pr-3 py-1.5 text-sm rounded-lg border border-zinc-200 shadow-sm bg-zinc-50/50 
                        focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-all
                        placeholder:text-zinc-400"
@@ -114,7 +131,7 @@ export function Header() {
           <div className="text-right hidden md:block">
             <p className="text-sm font-semibold text-zinc-800 leading-tight">{session?.user?.name}</p>
             <p className="text-[11px] text-zinc-500 font-medium">
-              {session?.user?.role === "QUAN_LY" ? "Quản lý / Admin" : "Nhân viên"}
+              {session?.user?.role === "QUAN_LY" ? "Quản lý / Admin" : (session?.user as any)?.maNhom === "NHANVI" ? "Nhân viên" : session?.user?.role}
             </p>
           </div>
           <div className="relative group cursor-pointer inline-flex">

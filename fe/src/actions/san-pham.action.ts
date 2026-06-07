@@ -29,6 +29,9 @@ async function generateProductId() {
 // 2. Lấy danh sách sản phẩm
 export async function getSanPhams() {
   try {
+    if (!(await canManageSanPham(ACTIONS.VIEW))) {
+      return { success: false, message: "Bạn không có quyền xem sản phẩm", data: [] };
+    }
     const data = await prisma.sanPham.findMany({
       where: { deletedAt: null },
       include: { loaiSanPham: true, donViTinh: true },
@@ -51,21 +54,21 @@ export async function createSanPham(data: SanPhamInput) {
     const validated = sanPhamSchema.parse(data);
 
     // Bước 3: Lấy thông tin loại sản phẩm để lấy % lợi nhuận
-    const [category, donViTinh] = await Promise.all([
+    const [category, donViTinh, thamSo] = await Promise.all([
       prisma.loaiSanPham.findUnique({ where: { maLSP: validated.maLSP } }),
       prisma.donViTinh.findUnique({ where: { maDVT: validated.maDVT } }),
+      prisma.thamSo.findUnique({ where: { id: 1 } }),
     ]);
     if (!category) return { success: false, message: "Loại sản phẩm không hợp lệ" };
     if (!donViTinh) return { success: false, message: "Đơn vị tính không hợp lệ" };
     assertDvtValidForLoaiSP(category.tenLSP, donViTinh.tenDVT);
+    if (validated.maDVT !== category.maDVT) {
+      return { success: false, message: "Sản phẩm phải dùng đơn vị tính mặc định của loại sản phẩm" };
+    }
 
     // Bước 7: Tự động tính đơn giá bán
     // Đơn giá bán = Đơn giá nhập × (1 + % Lợi nhuận / 100)
     const giaBan = calculateSellPrice(Number(validated.donGiaNhap), Number(category.phanTramLoiNhuan));
-
-    // Bước 9: Gán tồn tối thiểu từ tham số hệ thống (mặc định nếu không nhập)
-    const thamSo = await prisma.thamSo.findFirst({ where: { id: 1 } });
-    const tonToiThieuMacDinh = thamSo ? thamSo.soLuongTonKhoToiThieu : 1;
 
     // Bước 10: Lưu bản ghi
     const record = await withUniqueRetry(async () => {
@@ -79,8 +82,8 @@ export async function createSanPham(data: SanPhamInput) {
           hamLuong: validated.hamLuong as any,
           trongLuong: validated.trongLuong,
           maDVT: validated.maDVT,
-          tonToiThieu: tonToiThieuMacDinh,
           tonKho: 0, // Mặc định khi tạo mới là 0, sẽ nhập qua phiếu mua sau
+          tonToiThieu: validated.tonToiThieu ?? thamSo?.soLuongTonKhoToiThieu ?? 1,
           donGiaNhap: validated.donGiaNhap,
           donGiaBan: giaBan,
         },
@@ -113,7 +116,9 @@ export async function updateSanPham(maSP: string, data: SanPhamInput) {
     if (validated.maDVT !== currentSP.maDVT || validated.maLSP !== currentSP.maLSP) {
       return { success: false, message: "Không được thay đổi loại sản phẩm hoặc đơn vị tính khi cập nhật sản phẩm" };
     }
-    assertDvtValidForLoaiSP(currentSP.loaiSanPham.tenLSP, currentSP.donViTinh.tenDVT);
+    if (currentSP.maDVT !== currentSP.loaiSanPham.maDVT) {
+      return { success: false, message: "Đơn vị tính sản phẩm không khớp với loại sản phẩm" };
+    }
 
     // Bước 4: Tự động tính lại giá bán nếu giá nhập đổi
     const giaBan = calculateSellPrice(Number(validated.donGiaNhap), Number(currentSP.loaiSanPham.phanTramLoiNhuan));
@@ -124,6 +129,7 @@ export async function updateSanPham(maSP: string, data: SanPhamInput) {
         tenSP: validated.tenSP,
         hamLuong: validated.hamLuong as any,
         trongLuong: validated.trongLuong,
+        tonToiThieu: validated.tonToiThieu,
         donGiaNhap: validated.donGiaNhap,
         donGiaBan: giaBan,
       },

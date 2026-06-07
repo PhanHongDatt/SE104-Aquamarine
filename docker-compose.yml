@@ -32,6 +32,12 @@ services:
       - NEXTAUTH_URL=http://localhost:3000
       - NEXTAUTH_SECRET=vangbac-secret-local-dev-1234
       - PRISMA_SKIP_POSTINSTALL_GENERATE=true
+      - HOSTNAME=0.0.0.0
+      - NODE_ENV=production
+      - BACKUP_DIR=backups
+      - DB_CONTAINER=quan_ly_vang_bac_db
+    volumes:
+      - ./fe/backups:/app/backups
     depends_on:
       db:
         condition: service_healthy

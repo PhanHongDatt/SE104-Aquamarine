@@ -102,7 +102,7 @@ export function UserForm({ groups, initialData, onSuccess }: UserFormProps) {
             <option value="">-- Chọn nhóm quyền --</option>
             {groups.map((g) => (
               <option key={g.maNhom} value={g.maNhom}>
-                {g.tenNhom === 'QUAN_LY' ? 'Quản lý / Admin' : 'Nhân viên bán hàng'}
+                {g.tenNhom === 'QUAN_LY' ? 'Quản lý / Admin' : g.tenNhom}
               </option>
             ))}
           </select>

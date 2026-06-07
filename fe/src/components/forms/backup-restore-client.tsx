@@ -104,6 +104,8 @@ export function BackupRestoreClient({ files }: { files: BackupFile[] }) {
               <p className="font-mono text-sm text-zinc-900 break-all">{selectedFile.filename}</p>
             </div>
             <input
+              id="restore-confirm-filename"
+              name="restoreConfirmFilename"
               value={confirmText}
               onChange={(event) => setConfirmText(event.target.value)}
               className="w-full rounded-xl border border-zinc-200 px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"

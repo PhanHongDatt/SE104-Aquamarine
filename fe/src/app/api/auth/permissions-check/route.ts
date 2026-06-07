@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { MANAGER_GROUP_CODE, isManagerOnlyAction } from "@/lib/permissions";
+
+export const dynamic = "force-dynamic";
 
 /**
  * API endpoint kiểm tra quyền real-time từ DB.
@@ -8,12 +13,19 @@ import { prisma } from "@/lib/prisma";
  */
 export async function GET(req: NextRequest) {
   try {
-    const maNhom = req.nextUrl.searchParams.get("maNhom");
+    const session = await getServerSession(authOptions);
+    const maNhom = session?.user?.maNhom;
     const maChucNang = req.nextUrl.searchParams.get("maChucNang");
     const hanhDong = req.nextUrl.searchParams.get("hanhDong") || "XEM";
 
     if (!maNhom || !maChucNang) {
-      return NextResponse.json({ allowed: false, error: "Missing params" }, { status: 400 });
+      return NextResponse.json({ allowed: false, error: "Unauthenticated or missing params" }, { status: maNhom ? 400 : 401 });
+    }
+    if (maNhom === MANAGER_GROUP_CODE) {
+      return NextResponse.json({ allowed: true });
+    }
+    if (isManagerOnlyAction(maChucNang, hanhDong)) {
+      return NextResponse.json({ allowed: false });
     }
 
     // CHAR(4) padding: DB lưu "XEM " (4 chars) nên cần pad input

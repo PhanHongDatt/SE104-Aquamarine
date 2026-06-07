@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import { nextSequentialId, withUniqueRetry } from "@/lib/id-generation";
 import { hasPermission, PERMISSIONS, ACTIONS } from "@/lib/permissions";
 import { changePasswordSchema, registerUserSchema, userSchema, userUpdateSchema } from "@/schemas/user.schema";
+import { MANAGER_GROUP_CODE } from "@/lib/permissions";
 
 function serialize(data: any) {
   return JSON.parse(JSON.stringify(data));
@@ -189,14 +190,26 @@ export async function updateNguoiDung(maND: string, data: any) {
       updateData.matKhau = await bcrypt.hash(validated.matKhau, 10);
     }
 
-    const result = await prisma.nguoiDung.update({
-      where: { maND },
-      data: updateData
-    });
+    const result = await prisma.$transaction(async (tx) => {
+      const currentUser = await tx.nguoiDung.findUnique({ where: { maND } });
+      if (!currentUser) throw new Error("Không tìm thấy tài khoản");
+
+      if (currentUser.maNhom === MANAGER_GROUP_CODE && validated.maNhom !== MANAGER_GROUP_CODE) {
+        const managerCount = await tx.nguoiDung.count({ where: { maNhom: MANAGER_GROUP_CODE } });
+        if (managerCount <= 1) {
+          throw new Error("Phải duy trì ít nhất một tài khoản thuộc nhóm Quản lý");
+        }
+      }
+
+      return tx.nguoiDung.update({
+        where: { maND },
+        data: updateData,
+      });
+    }, { isolationLevel: "Serializable" });
 
     return { success: true, message: "Cập nhật người dùng thành công", data: serialize(result) };
   } catch (error: any) {
-    return { success: false, message: "Lỗi khi cập nhật người dùng" };
+    return { success: false, message: error?.message || "Lỗi khi cập nhật người dùng" };
   }
 }
 
@@ -211,12 +224,21 @@ export async function deleteNguoiDung(maND: string) {
     if (auth.session?.user.id === maND) {
       return { success: false, message: "Bạn không thể tự xóa tài khoản của chính mình" };
     }
+    await prisma.$transaction(async (tx) => {
+      const target = await tx.nguoiDung.findUnique({ where: { maND } });
+      if (!target) throw new Error("Không tìm thấy tài khoản");
 
-    await prisma.nguoiDung.delete({
-      where: { maND }
-    });
+      if (target.maNhom === MANAGER_GROUP_CODE) {
+        const managerCount = await tx.nguoiDung.count({ where: { maNhom: MANAGER_GROUP_CODE } });
+        if (managerCount <= 1) {
+          throw new Error("Phải duy trì ít nhất một tài khoản thuộc nhóm Quản lý");
+        }
+      }
+
+      await tx.nguoiDung.delete({ where: { maND } });
+    }, { isolationLevel: "Serializable" });
     return { success: true, message: "Xóa người dùng thành công" };
   } catch (error: any) {
-    return { success: false, message: "Lỗi khi xóa người dùng" };
+    return { success: false, message: error?.message || "Lỗi khi xóa người dùng" };
   }
 }

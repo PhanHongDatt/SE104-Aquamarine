@@ -28,9 +28,7 @@ export function SystemSettingsForm({ initialData }: SystemSettingsFormProps) {
   } = useForm<SystemSettingsFormValues>({
     resolver: zodResolver(systemSettingsSchema),
     defaultValues: {
-      phanTramLoiNhuanToiThieu: Number(initialData?.phanTramLoiNhuanToiThieu || 0),
       soLuongTonKhoToiThieu: Number(initialData?.soLuongTonKhoToiThieu || 0),
-      soLuongNhapToiThieu: Number(initialData?.soLuongNhapToiThieu || 1),
       tiLeTraTruocToiThieu: Number(initialData?.tiLeTraTruocToiThieu || 50),
     },
   });
@@ -65,30 +63,8 @@ export function SystemSettingsForm({ initialData }: SystemSettingsFormProps) {
           </div>
 
           <div className="p-8 space-y-8">
-            {/* QĐ2 */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-black">QĐ2</span>
-                <h3 className="font-bold text-zinc-800">Tỷ lệ lợi nhuận bán hàng</h3>
-              </div>
-              <div className="pl-10 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                <div className="space-y-2">
-                  <Input
-                    label="Phần trăm lợi nhuận (%)"
-                    type="number"
-                    placeholder="VD: 15"
-                    error={errors.phanTramLoiNhuanToiThieu?.message}
-                    {...register("phanTramLoiNhuanToiThieu")}
-                  />
-                  <p className="text-[10px] text-zinc-400 italic leading-relaxed">
-                    * Được áp dụng khi tính đơn giá bán lẻ cho sản phẩm (Đơn giá bán = Đơn giá mua + Lợi nhuận).
-                  </p>
-                </div>
-              </div>
-            </div>
-
             {/* QĐ3 */}
-            <div className="space-y-4 border-t border-zinc-50 pt-8">
+            <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <span className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center text-xs font-black">QĐ3</span>
                 <h3 className="font-bold text-zinc-800">Mức tồn kho tối thiểu</h3>
@@ -96,38 +72,14 @@ export function SystemSettingsForm({ initialData }: SystemSettingsFormProps) {
               <div className="pl-10 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                 <div className="space-y-2">
                   <Input
-                    label="Số lượng tồn tối thiểu"
+                    label="Số lượng tồn kho tối thiểu (mặc định)"
                     type="number"
                     placeholder="VD: 5"
                     error={errors.soLuongTonKhoToiThieu?.message}
                     {...register("soLuongTonKhoToiThieu")}
                   />
                   <p className="text-[10px] text-zinc-400 italic leading-relaxed">
-                    * Dùng để hiển thị cảnh báo tồn thấp trong báo cáo kho khi số lượng sản phẩm thấp hơn ngưỡng này.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* QĐ4 */}
-            <div className="space-y-4 border-t border-zinc-50 pt-8">
-              <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs font-black">QĐ4</span>
-                <h3 className="font-bold text-zinc-800">Số lượng nhập tối thiểu</h3>
-              </div>
-              <div className="pl-10 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                <div className="space-y-2">
-                  <Input
-                    label="Số lượng mua tối thiểu mỗi dòng"
-                    type="number"
-                    min={1}
-                    max={1000}
-                    placeholder="VD: 5"
-                    error={errors.soLuongNhapToiThieu?.message}
-                    {...register("soLuongNhapToiThieu")}
-                  />
-                  <p className="text-[10px] text-zinc-400 italic leading-relaxed">
-                    * Dùng để từ chối phiếu mua có số lượng nhập thấp hơn mức quy định.
+                    * Giá trị mặc định khi tạo sản phẩm mới. Mức riêng của từng sản phẩm được chỉnh tại Danh mục sản phẩm.
                   </p>
                 </div>
               </div>
@@ -137,13 +89,14 @@ export function SystemSettingsForm({ initialData }: SystemSettingsFormProps) {
             <div className="space-y-4 border-t border-zinc-50 pt-8">
               <div className="flex items-center gap-2">
                 <span className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-xs font-black">QĐ6</span>
-                <h3 className="font-bold text-zinc-800">Tỷ lệ trả trước dịch vụ</h3>
+                <h3 className="font-bold text-zinc-800">% Trả trước tối thiểu khi lập phiếu dịch vụ</h3>
               </div>
               <div className="pl-10 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                 <div className="space-y-2">
                   <Input
                     label="Phần trăm trả trước tối thiểu (%)"
                     type="number"
+                    step="0.01"
                     placeholder="VD: 50"
                     error={errors.tiLeTraTruocToiThieu?.message}
                     {...register("tiLeTraTruocToiThieu")}

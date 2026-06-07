@@ -7,8 +7,8 @@
     "build": "next build",
     "start": "node .next/standalone/server.js",
     "lint": "next lint",
-    "test:logic": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/business-rules.test.ts",
-    "test:integration": "ts-node -r tsconfig-paths/register --compiler-options '{\"module\":\"CommonJS\"}' scripts/integration.test.ts",
+    "test:logic": "ts-node -P tsconfig.test.json scripts/business-rules.test.ts",
+    "test:integration": "ts-node -r tsconfig-paths/register -P tsconfig.test.json scripts/integration.test.ts",
     "test:e2e": "playwright test",
     "check": "npm run lint && npx tsc --noEmit && npm run test:logic && npm run test:integration",
     "db:up": "docker-compose up -d",
@@ -21,7 +21,7 @@
     "setup": "node scripts/setup.js"
   },
   "prisma": {
-    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "seed": "ts-node -P tsconfig.test.json prisma/seed.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

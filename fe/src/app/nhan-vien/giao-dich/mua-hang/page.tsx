@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getDanhSachPhieuMuaHang } from "@/actions/giao-dich";
 import { PurchaseInvoiceList } from "@/components/giao-dich/purchase-invoice-list";
 import { Truck, Plus, ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -6,11 +6,7 @@ import Link from "next/link";
 export const metadata = { title: "Phiếu mua hàng – Nhân viên | Aquamarine Jewelry & Luxury" };
 
 export default async function StaffMuaHangPage() {
-  const dataRaw = await prisma.phieuMuaHang.findMany({
-    include: { nhaCungCap: true },
-    orderBy: { soPhieu: 'desc' },
-  });
-  const data = JSON.parse(JSON.stringify(dataRaw));
+  const data = await getDanhSachPhieuMuaHang();
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
