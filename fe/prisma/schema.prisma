@@ -59,15 +59,15 @@ model LoaiSanPham {
 }
 
 model SanPham {
-  maSP        String   @id @db.Char(5)
-  tenSP       String   @db.VarChar(200)
-  maLSP       String   @db.Char(6)
-  hamLuong    HamLuong
-  trongLuong  Decimal  @db.Decimal(10, 3)
-  maDVT       String   @db.Char(6)
-  tonKho      Int      @default(0)
-  donGiaNhap  Decimal  @db.Decimal(18, 0)
-  donGiaBan   Decimal  @db.Decimal(18, 0)
+  maSP       String   @id @db.Char(5)
+  tenSP      String   @db.VarChar(200)
+  maLSP      String   @db.Char(6)
+  hamLuong   HamLuong
+  trongLuong Decimal  @db.Decimal(10, 3)
+  maDVT      String   @db.Char(6)
+  tonKho     Int      @default(0)
+  donGiaNhap Decimal  @db.Decimal(18, 0)
+  donGiaBan  Decimal  @db.Decimal(18, 0)
 
   loaiSanPham LoaiSanPham @relation(fields: [maLSP], references: [maLSP])
   donViTinh   DonViTinh   @relation(fields: [maDVT], references: [maDVT])
@@ -282,7 +282,8 @@ model NguoiDung {
   hoTen       String @db.VarChar(200)
   maNhom      String @db.Char(6)
 
-  nhomNguoiDung NhomNguoiDung @relation(fields: [maNhom], references: [maNhom])
+  nhomNguoiDung        NhomNguoiDung          @relation(fields: [maNhom], references: [maNhom])
+  lichSuThayDoiQuyDinh LichSuThayDoiQuyDinh[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -305,4 +306,6 @@ model LichSuThayDoiQuyDinh {
   giaTriCu  Json
   giaTriMoi Json
   createdAt DateTime @default(now())
+
+  nguoiDung NguoiDung? @relation(fields: [maND], references: [maND], onDelete: SetNull)
 }

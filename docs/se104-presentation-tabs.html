@@ -451,6 +451,7 @@
       <div class="meta">
         <span class="pill">11 yêu cầu nghiệp vụ</span>
         <span class="pill">16 màn hình phân quyền</span>
+        <span class="pill">17 khóa ngoại CSDL</span>
         <span class="pill">3 tham số QĐ11</span>
         <span class="pill">Quản lý - Nhân viên - Kế toán</span>
         <span class="pill">Kiểm thử logic, tích hợp, E2E</span>
@@ -532,6 +533,44 @@
             </tbody>
           </table>
 
+          <h3>Thao tác demo trên giao diện phân quyền</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Màn hình</th>
+                <th>Cách mở</th>
+                <th>Thao tác được làm</th>
+                <th>Ràng buộc cần nói khi demo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Quản lý tài khoản</td>
+                <td><span class="route">Admin → Cài đặt → Người dùng</span></td>
+                <td>Thêm tài khoản, sửa họ tên/mật khẩu/nhóm, xóa tài khoản không còn dùng.</td>
+                <td>Không được tự xóa chính mình; không được xóa hoặc chuyển nhóm nếu làm mất tài khoản Quản lý cuối cùng.</td>
+              </tr>
+              <tr>
+                <td>Nhóm người dùng</td>
+                <td><span class="route">Admin → Cài đặt → Phân quyền</span></td>
+                <td>Tạo nhóm mới như Kế toán, Giám đốc; sửa tên nhóm; xóa nhóm khi không còn tài khoản thuộc nhóm đó.</td>
+                <td>Kiểm tra trùng tên nhóm không phân biệt hoa/thường; quyền lõi không phụ thuộc tên hiển thị nên đổi tên không khóa Admin.</td>
+              </tr>
+              <tr>
+                <td>Chức năng</td>
+                <td><span class="route">Tab Chức năng</span> trong phân quyền</td>
+                <td>Tạo thêm mã chức năng mới, ví dụ quyền xem dashboard hoặc quyền xem báo cáo cho Giám đốc.</td>
+                <td>Mã chức năng và tên chức năng không được trùng; xóa chức năng sẽ xóa ma trận quyền liên quan trước.</td>
+              </tr>
+              <tr>
+                <td>Ma trận quyền</td>
+                <td><span class="route">Tab Ma trận quyền</span></td>
+                <td>Tích/bỏ tích quyền Xem, Thêm, Sửa, Xóa cho từng nhóm trên từng chức năng.</td>
+                <td>Quyền có hiệu lực khi người dùng reload hoặc đăng nhập lại; middleware đọc quyền mới từ CSDL.</td>
+              </tr>
+            </tbody>
+          </table>
+
           <div class="highlight">
             <strong>Luận điểm khi trình bày:</strong>
             hệ thống không hard-code quyền theo tên nhóm dễ đổi, mà dùng mã nhóm và bảng phân quyền.
@@ -593,6 +632,12 @@
                 <td>Tỷ lệ trả trước tối thiểu, trạng thái giao, kết quả kiểm định.</td>
               </tr>
               <tr>
+                <td>Loại dịch vụ</td>
+                <td><span class="route">/admin/dich-vu/loai-dich-vu</span></td>
+                <td>Danh mục phục vụ BM6</td>
+                <td>Mã DV tự sinh, đơn giá dịch vụ, nhóm Gia công/Kiểm định, không xóa nếu đã phát sinh phiếu.</td>
+              </tr>
+              <tr>
                 <td>Báo cáo tồn kho</td>
                 <td><span class="route">/admin/bao-cao/ton-kho</span></td>
                 <td>BM8 - QĐ8</td>
@@ -603,6 +648,12 @@
                 <td><span class="route">/admin/danh-muc/nha-cung-cap</span></td>
                 <td>BM9 - QĐ9</td>
                 <td>Thông tin bắt buộc, kiểm tra trùng tên/SĐT, xóa mềm để giữ lịch sử.</td>
+              </tr>
+              <tr>
+                <td>Khách hàng</td>
+                <td><span class="route">/admin/danh-muc/khach-hang</span></td>
+                <td>Dữ liệu dùng lại cho bán hàng/dịch vụ</td>
+                <td>Tìm theo số điện thoại, tự tạo khi lập phiếu bán/dịch vụ cho khách mới.</td>
               </tr>
               <tr>
                 <td>Báo cáo doanh thu</td>
@@ -621,6 +672,12 @@
                 <td><span class="route">/admin/cai-dat/phan-quyen</span></td>
                 <td>Mở rộng hệ thống</td>
                 <td>Cấp quyền xem/thêm/sửa/xóa theo nhóm tài khoản.</td>
+              </tr>
+              <tr>
+                <td>Sao lưu / phục hồi</td>
+                <td><span class="route">/admin/cai-dat/sao-luu-phuc-hoi</span></td>
+                <td>An toàn dữ liệu</td>
+                <td>Tạo file SQL bằng pg_dump và phục hồi có xác nhận tên file để tránh thao tác nhầm.</td>
               </tr>
             </tbody>
           </table>
@@ -686,6 +743,56 @@
             </div>
           </div>
 
+          <h3>Cách thao tác từng màn hình danh mục</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Màn hình</th>
+                <th>Cách mở</th>
+                <th>Thêm mới</th>
+                <th>Sửa</th>
+                <th>Xóa và ràng buộc</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Đơn vị tính</td>
+                <td><span class="route">Admin → Danh mục → Đơn vị tính</span></td>
+                <td>Nhập tên đơn vị tính và định lượng quy đổi theo gram nếu có. Mã tự sinh dạng DVT001. Ví dụ: Lượng có ghi chú 1 Lượng = 37.5 gram.</td>
+                <td>Được sửa tên và định lượng. Hệ thống kiểm tra trùng tên không phân biệt hoa/thường như Chỉ và CHỈ.</td>
+                <td>Bấm Xóa trên dòng DVT. Hệ thống chặn nếu DVT đang được loại sản phẩm hoặc sản phẩm dùng; DB cũng có FK từ Loại sản phẩm/Sản phẩm về Đơn vị tính.</td>
+              </tr>
+              <tr>
+                <td>Loại sản phẩm</td>
+                <td><span class="route">Admin → Danh mục → Loại sản phẩm</span></td>
+                <td>Nhập tên loại, chọn đơn vị tính mặc định, nhập % lợi nhuận. Mã tự sinh dạng LSP001.</td>
+                <td>Được sửa tên, DVT mặc định và % lợi nhuận. Nếu đổi DVT, sản phẩm thuộc loại được đồng bộ DVT; nếu đổi % lợi nhuận, giá bán sản phẩm được tính lại.</td>
+                <td>Chỉ xóa được khi không còn sản phẩm đang gắn. Nếu có, hộp thoại báo số lượng và liệt kê mã/tên sản phẩm đang phụ thuộc.</td>
+              </tr>
+              <tr>
+                <td>Sản phẩm</td>
+                <td><span class="route">Admin → Danh mục → Sản phẩm</span></td>
+                <td>Nhập tên, chọn loại sản phẩm, chỉ số/hàm lượng phù hợp, trọng lượng và giá nhập. Có nút thêm nhanh loại sản phẩm nếu danh mục chưa có.</td>
+                <td>Theo yêu cầu hiện tại chỉ cho sửa tên sản phẩm và loại sản phẩm để tránh phá lịch sử giá/tồn. Khi đổi loại, hệ thống cập nhật DVT, hàm lượng/chỉ số và giá bán theo loại mới.</td>
+                <td>Xóa mềm sản phẩm để giữ lịch sử phiếu mua/bán. Không cho tạo sản phẩm trùng tên đã chuẩn hóa trong cùng loại.</td>
+              </tr>
+              <tr>
+                <td>Nhà cung cấp</td>
+                <td><span class="route">Admin → Danh mục → Nhà cung cấp</span></td>
+                <td>Nhập tên NCC, địa chỉ, số điện thoại, người liên hệ. Các trường bắt buộc có dấu * và mã tự sinh dạng NCC001.</td>
+                <td>Được sửa các thông tin liên hệ khi nhà cung cấp đổi địa chỉ hoặc số điện thoại.</td>
+                <td>Xóa mềm để phiếu mua cũ vẫn còn xem được. Hệ thống kiểm tra trùng tên hoặc số điện thoại trước khi lưu.</td>
+              </tr>
+              <tr>
+                <td>Khách hàng</td>
+                <td><span class="route">Admin → Danh mục → Khách hàng</span></td>
+                <td>Thêm khách bằng họ tên và số điện thoại. Khi lập phiếu bán/dịch vụ cho khách mới, hệ thống cũng có thể tự tạo khách hàng từ SĐT.</td>
+                <td>Được sửa thông tin liên hệ để phục vụ tra cứu phiếu sau này.</td>
+                <td>Xóa mềm khách hàng; phiếu bán và phiếu dịch vụ lịch sử vẫn giữ tên khách/SĐT và FK khách hàng được đặt nullable.</td>
+              </tr>
+            </tbody>
+          </table>
+
           <h3>Luồng xử lý chuẩn cho danh mục</h3>
           <div class="flow">
             <span>Nhập dữ liệu</span>
@@ -749,6 +856,35 @@
             </div>
           </div>
 
+          <h3>Cách thao tác phiếu mua và phiếu bán</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Nghiệp vụ</th>
+                <th>Cách mở</th>
+                <th>Lập phiếu</th>
+                <th>Sửa khi nhập sai</th>
+                <th>Xóa và cập nhật liên quan</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Phiếu bán hàng</td>
+                <td><span class="route">Admin/Nhân viên → Giao dịch → Bán hàng → Tạo mới</span></td>
+                <td>Chọn ngày lập, tìm hoặc nhập khách hàng mới kèm SĐT, chọn sản phẩm và số lượng. Đơn giá bán lấy theo giá hiện tại, thành tiền phải lớn hơn 0.</td>
+                <td>Vào danh sách phiếu bán, chọn Sửa. Hệ thống hoàn tác chi tiết cũ, kiểm tra tồn kho lại theo dữ liệu mới, rồi ghi phiếu và đồng bộ tồn kho/doanh thu.</td>
+                <td>Cho xóa nếu có quyền. Khi xóa, hệ thống cộng trả lại số lượng đã bán, trừ doanh thu bán hàng và xóa chi tiết trước để không vi phạm FK.</td>
+              </tr>
+              <tr>
+                <td>Phiếu mua hàng</td>
+                <td><span class="route">Admin/Nhân viên → Giao dịch → Mua hàng → Tạo mới</span></td>
+                <td>Chọn ngày lập, nhà cung cấp, sản phẩm, số lượng và đơn giá nhập. Tổng tiền cập nhật ngay khi đổi số lượng hoặc giá.</td>
+                <td>Vào danh sách phiếu mua, chọn Sửa. Có thể sửa ngày, NCC, sản phẩm, số lượng, đơn giá; hệ thống tính tồn sau sửa và chặn nếu tồn bị âm.</td>
+                <td>Cho xóa khi tồn hiện tại còn đủ để hoàn tác số lượng đã nhập. Khi xóa, hệ thống trừ lại tồn kho, cập nhật báo cáo tồn kho và tính lại giá nhập/giá bán mới nhất.</td>
+              </tr>
+            </tbody>
+          </table>
+
           <h3>Ràng buộc xóa phiếu mua hàng</h3>
           <div class="highlight">
             Khi xóa phiếu mua, hệ thống không xóa tùy tiện. Phiếu chỉ được xóa nếu tồn kho hiện tại
@@ -810,6 +946,49 @@
               <div class="route">/admin/dich-vu/phieu-dich-vu</div>
             </div>
           </div>
+
+          <h3>Cách thao tác phân hệ dịch vụ</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Màn hình</th>
+                <th>Cách mở</th>
+                <th>Thêm/lập mới</th>
+                <th>Sửa/cập nhật</th>
+                <th>Xóa và ràng buộc</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Loại dịch vụ</td>
+                <td><span class="route">Admin → Dịch vụ → Loại dịch vụ</span></td>
+                <td>Nhập tên dịch vụ, đơn giá dịch vụ và nhóm Gia công hoặc Kiểm định. Mã DV tự sinh dạng DV0001.</td>
+                <td>Được sửa tên, đơn giá và nhóm dịch vụ. Đơn giá mới áp dụng cho phiếu lập/sửa sau đó, không sửa phiếu lịch sử đã lưu.</td>
+                <td>Không xóa được nếu loại dịch vụ đã xuất hiện trong chi tiết phiếu dịch vụ; hệ thống báo số phiếu/dòng đang dùng bằng số lượng liên quan.</td>
+              </tr>
+              <tr>
+                <td>Lập phiếu dịch vụ</td>
+                <td><span class="route">Admin → Dịch vụ → Phiếu dịch vụ → Tạo mới</span></td>
+                <td>Chọn ngày lập, tìm khách theo SĐT hoặc nhập khách mới, thêm từng dòng dịch vụ, nhập chi phí phát sinh, số lượng và tiền trả trước.</td>
+                <td>Khi chưa có dòng nào đã giao, có thể sửa nội dung phiếu. Hệ thống tính lại đơn giá được tính, thành tiền, trả trước và còn lại.</td>
+                <td>Không cho nhập trùng cùng một dịch vụ trong một phiếu; tiền trả trước từng dòng phải đạt tỷ lệ tối thiểu trong QĐ11.</td>
+              </tr>
+              <tr>
+                <td>Tra cứu / hoàn thành dịch vụ</td>
+                <td><span class="route">Admin → Dịch vụ → Tra cứu</span> hoặc <span class="route">Nhân viên → Dịch vụ → Tra cứu</span></td>
+                <td>Tìm theo số phiếu, tên khách, SĐT, tình trạng hoặc khoảng ngày.</td>
+                <td>Cập nhật ngày giao từng dòng. Nếu là Kiểm định, phải nhập kết quả Đạt chuẩn/Không đạt chuẩn và số chứng thư nếu có.</td>
+                <td>Ngày giao thực tế không được trước ngày lập. Khi tất cả dòng đã giao, phiếu chuyển Hoàn thành và doanh thu dịch vụ được đồng bộ vào báo cáo.</td>
+              </tr>
+              <tr>
+                <td>Xóa phiếu dịch vụ</td>
+                <td><span class="route">Danh sách phiếu dịch vụ → Xóa</span></td>
+                <td>Không áp dụng.</td>
+                <td>Nếu phiếu sai nhưng chưa giao, nên sửa phiếu. Nếu đã ghi nhận nhầm toàn bộ, dùng xóa theo quyền.</td>
+                <td>Khi xóa, hệ thống xóa chi tiết trước, xóa phiếu sau và đồng bộ lại doanh thu ngày lập phiếu để không còn số liệu dư.</td>
+              </tr>
+            </tbody>
+          </table>
 
           <h3>Cấu hình trả trước</h3>
           <table>
@@ -880,6 +1059,35 @@
             </div>
           </div>
 
+          <h3>Cách thao tác và đối chiếu báo cáo</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Báo cáo</th>
+                <th>Cách mở</th>
+                <th>Bộ lọc</th>
+                <th>Nguồn dữ liệu</th>
+                <th>Cách kiểm chứng nhanh</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Tồn kho</td>
+                <td><span class="route">Admin/Nhân viên → Báo cáo → Tồn kho</span></td>
+                <td>Chọn ngày, tháng hoặc quý tùy chế độ xem; có tìm kiếm sản phẩm.</td>
+                <td>Danh mục sản phẩm, chi tiết phiếu mua, chi tiết phiếu bán và bảng báo cáo tồn kho theo kỳ.</td>
+                <td>Tạo một phiếu mua để cột Mua vào tăng, tạo một phiếu bán để cột Bán ra tăng; Tồn cuối phải khớp công thức.</td>
+              </tr>
+              <tr>
+                <td>Doanh thu</td>
+                <td><span class="route">Admin → Báo cáo → Doanh thu</span></td>
+                <td>Lọc theo ngày cụ thể, tháng cụ thể hoặc quý cụ thể.</td>
+                <td>Phiếu bán hàng và phiếu dịch vụ đã Hoàn thành.</td>
+                <td>Phiếu dịch vụ chưa giao không tính doanh thu dịch vụ; sau khi giao đủ dòng, doanh thu dịch vụ của ngày lập phiếu tăng lên.</td>
+              </tr>
+            </tbody>
+          </table>
+
           <h3>Điểm nên demo</h3>
           <ol>
             <li>Tạo phiếu mua để tồn kho tăng.</li>
@@ -924,6 +1132,44 @@
             </tbody>
           </table>
 
+          <h3>Cách thao tác trong Cài đặt hệ thống</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Màn hình</th>
+                <th>Cách mở</th>
+                <th>Thao tác</th>
+                <th>Ràng buộc / tác động</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Quy định</td>
+                <td><span class="route">Admin → Cài đặt → Quy định</span></td>
+                <td>Sửa 3 tham số: lợi nhuận tối thiểu, tồn kho tối thiểu, tỷ lệ trả trước tối thiểu.</td>
+                <td>Chỉ người có quyền Sửa quy định được lưu; mỗi giá trị phải nằm trong miền QĐ11; thay đổi được ghi lịch sử kèm người thực hiện.</td>
+              </tr>
+              <tr>
+                <td>Đồng hồ hệ thống</td>
+                <td>Nằm trên màn hình Quy định</td>
+                <td>Hiển thị ngày giờ hệ thống theo múi giờ Asia/Bangkok.</td>
+                <td>Dùng để giải thích vì sao phiếu và báo cáo lấy mốc ngày hiện tại; các form mua/bán/dịch vụ vẫn cho chọn ngày lập khi cần tạo dữ liệu quá khứ.</td>
+              </tr>
+              <tr>
+                <td>Sao lưu dữ liệu</td>
+                <td><span class="route">Admin → Cài đặt → Sao lưu/Phục hồi</span></td>
+                <td>Bấm tạo bản sao lưu để sinh file SQL trong thư mục backup của ứng dụng.</td>
+                <td>Lệnh sao lưu dùng URL PostgreSQL đã loại bỏ query `schema=public`, tránh lỗi `pg_dump: invalid URI query parameter`.</td>
+              </tr>
+              <tr>
+                <td>Phục hồi dữ liệu</td>
+                <td><span class="route">Danh sách file sao lưu</span></td>
+                <td>Chọn file và xác nhận phục hồi.</td>
+                <td>Đây là thao tác ảnh hưởng toàn bộ dữ liệu, nên cần quyền quản trị và xác nhận đúng tên file trước khi chạy restore.</td>
+              </tr>
+            </tbody>
+          </table>
+
           <h3>Điểm cải tiến trong màn hình quy định</h3>
           <div class="grid three">
             <div class="card">
@@ -960,6 +1206,61 @@
           <p class="lead">
             Phần này giúp giảng viên thấy đồ án có kiểm thử khắt khe, không chỉ chạy được giao diện.
           </p>
+
+          <h3>Ràng buộc khóa ngoại đã kiểm tra</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Nhóm dữ liệu</th>
+                <th>Khóa ngoại chính</th>
+                <th>Luật xóa ở CSDL</th>
+                <th>Ý nghĩa khi vận hành</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Danh mục sản phẩm</td>
+                <td>Loại sản phẩm → Đơn vị tính; Sản phẩm → Loại sản phẩm; Sản phẩm → Đơn vị tính.</td>
+                <td>RESTRICT</td>
+                <td>Không thể xóa DVT hoặc loại sản phẩm khi còn dữ liệu con; code còn báo rõ sản phẩm đang phụ thuộc.</td>
+              </tr>
+              <tr>
+                <td>Phiếu bán hàng</td>
+                <td>Phiếu bán → Khách hàng; Chi tiết bán → Phiếu bán; Chi tiết bán → Sản phẩm.</td>
+                <td>Khách hàng SET NULL; chi tiết RESTRICT.</td>
+                <td>Xóa khách không phá phiếu lịch sử; khi xóa phiếu, hệ thống xóa chi tiết trước rồi hoàn tác tồn kho/doanh thu.</td>
+              </tr>
+              <tr>
+                <td>Phiếu mua hàng</td>
+                <td>Phiếu mua → Nhà cung cấp; Chi tiết mua → Phiếu mua; Chi tiết mua → Sản phẩm.</td>
+                <td>RESTRICT</td>
+                <td>Không thể có phiếu mua trỏ tới NCC/sản phẩm không tồn tại; xóa phiếu mua phải kiểm tra tồn đủ để hoàn tác.</td>
+              </tr>
+              <tr>
+                <td>Phiếu dịch vụ</td>
+                <td>Phiếu dịch vụ → Khách hàng; Chi tiết dịch vụ → Phiếu dịch vụ; Chi tiết dịch vụ → Loại dịch vụ.</td>
+                <td>Khách hàng SET NULL; chi tiết RESTRICT.</td>
+                <td>Loại dịch vụ đã phát sinh phiếu không được xóa; phiếu dịch vụ hoàn thành mới đồng bộ doanh thu dịch vụ.</td>
+              </tr>
+              <tr>
+                <td>Báo cáo và phân quyền</td>
+                <td>Báo cáo tồn kho → Sản phẩm; Người dùng → Nhóm; Bảng phân quyền → Nhóm/Chức năng.</td>
+                <td>RESTRICT</td>
+                <td>Không mất liên kết báo cáo/tài khoản/quyền; khi xóa nhóm hoặc chức năng, hệ thống xử lý dữ liệu quyền liên quan trong transaction.</td>
+              </tr>
+              <tr>
+                <td>Lịch sử quy định</td>
+                <td>Lịch sử thay đổi QĐ11 → Người dùng.</td>
+                <td>SET NULL</td>
+                <td>Đã bổ sung FK để mã người sửa không bị sai; nếu tài khoản bị xóa, lịch sử vẫn còn nhưng maND được đặt null.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="highlight">
+            <strong>Kết quả kiểm tra CSDL:</strong>
+            PostgreSQL hiện có 17 khóa ngoại trong schema public, Prisma schema validate pass và không có dòng lịch sử quy định trỏ tới người dùng không tồn tại.
+          </div>
 
           <h3>Các nhóm lỗi đã được kiểm tra</h3>
           <ul class="checklist">
@@ -1020,6 +1321,9 @@
 
           <div class="highlight">
             <strong>Lệnh kiểm tra đã dùng:</strong>
+            <span class="route">npx prisma validate --schema prisma/schema.prisma</span>
+            <span class="route">npx prisma db push --schema prisma/schema.prisma</span>
+            <span class="route">SELECT ... FROM information_schema.table_constraints</span>
             <span class="route">npm run check</span>
             <span class="route">npm run build</span>
             <span class="route">Invoke-WebRequest http://localhost:3000/dang-nhap</span>
@@ -1096,6 +1400,14 @@
               <tr>
                 <td>Xóa dữ liệu có làm sai lịch sử không?</td>
                 <td>Các phần có lịch sử giao dịch dùng xóa mềm hoặc kiểm tra ràng buộc trước khi xóa.</td>
+              </tr>
+              <tr>
+                <td>Khóa ngoại được kiểm tra ở đâu?</td>
+                <td>Prisma schema định nghĩa quan hệ và PostgreSQL đang có 17 FK thật; các FK quan trọng dùng RESTRICT hoặc SET NULL theo nghiệp vụ.</td>
+              </tr>
+              <tr>
+                <td>Sao lưu/phục hồi hoạt động thế nào?</td>
+                <td>Sao lưu tạo file SQL bằng pg_dump; phục hồi chọn file backup và xác nhận trước khi chạy restore vào PostgreSQL.</td>
               </tr>
               <tr>
                 <td>Kế toán xem doanh thu có trái QĐ10 không?</td>
