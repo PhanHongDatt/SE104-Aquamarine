@@ -14,6 +14,8 @@ enum HamLuong {
   K18
   K14
   K10
+  BAC_925
+  KHONG_AP_DUNG
 }
 
 enum NhomDichVu {
@@ -34,19 +36,19 @@ enum HangKhachHang {
 }
 
 model DonViTinh {
-  maDVT      String       @id @db.Char(6)
-  tenDVT     String       @unique @db.VarChar(100)
-  dinhLuong  Decimal?     @db.Decimal(10, 4)
+  maDVT     String   @id @db.Char(6)
+  tenDVT    String   @unique @db.VarChar(100)
+  dinhLuong Decimal? @db.Decimal(10, 4)
 
   loaiSanPham LoaiSanPham[]
   sanPham     SanPham[]
 }
 
 model LoaiSanPham {
-  maLSP              String   @id @db.Char(6)
-  tenLSP             String   @unique @db.VarChar(100)
-  maDVT              String   @db.Char(6)
-  phanTramLoiNhuan   Decimal  @db.Decimal(5, 2)
+  maLSP            String  @id @db.Char(6)
+  tenLSP           String  @unique @db.VarChar(100)
+  maDVT            String  @db.Char(6)
+  phanTramLoiNhuan Decimal @db.Decimal(5, 2)
 
   donViTinh DonViTinh @relation(fields: [maDVT], references: [maDVT])
 
@@ -57,54 +59,54 @@ model LoaiSanPham {
 }
 
 model SanPham {
-  maSP          String    @id @db.Char(5)
-  tenSP         String    @db.VarChar(200)
-  maLSP         String    @db.Char(6)
-  hamLuong      HamLuong
-  trongLuong    Decimal   @db.Decimal(10, 3)
-  maDVT         String    @db.Char(6)
-  tonKho        Int       @default(0)
-  tonToiThieu   Int       @default(1)
-  donGiaNhap    Decimal   @db.Decimal(18, 0)
-  donGiaBan     Decimal   @db.Decimal(18, 0)
+  maSP        String   @id @db.Char(5)
+  tenSP       String   @db.VarChar(200)
+  maLSP       String   @db.Char(6)
+  hamLuong    HamLuong
+  trongLuong  Decimal  @db.Decimal(10, 3)
+  maDVT       String   @db.Char(6)
+  tonKho      Int      @default(0)
+  donGiaNhap  Decimal  @db.Decimal(18, 0)
+  donGiaBan   Decimal  @db.Decimal(18, 0)
 
   loaiSanPham LoaiSanPham @relation(fields: [maLSP], references: [maLSP])
   donViTinh   DonViTinh   @relation(fields: [maDVT], references: [maDVT])
 
-  chiTietBanHang  ChiTietBanHang[]
-  chiTietMuaHang  ChiTietMuaHang[]
-  baoCaoTonKho    BaoCaoTonKho[]
+  chiTietBanHang ChiTietBanHang[]
+  chiTietMuaHang ChiTietMuaHang[]
+  baoCaoTonKho   BaoCaoTonKho[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 }
 
 model NhaCungCap {
-  maNCC         String   @id @db.Char(6)
-  tenNCC        String   @db.VarChar(200)
-  diaChi        String   @db.VarChar(500)
-  soDienThoai   String   @db.VarChar(20)
-  nguoiLienHe   String   @db.VarChar(200)
+  maNCC       String @id @db.Char(6)
+  tenNCC      String @db.VarChar(200)
+  diaChi      String @db.VarChar(500)
+  soDienThoai String @db.VarChar(20)
+  nguoiLienHe String @db.VarChar(200)
 
   phieuMuaHang PhieuMuaHang[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 }
 
 model KhachHang {
-  maKH            String        @id @db.Char(6)
-  hoTen           String        @db.VarChar(200)
-  soDienThoai     String        @unique @db.VarChar(20)
-  email           String?       @db.VarChar(200)
-  diaChi          String?       @db.VarChar(500)
-  ngaySinh        DateTime?
-  hangThanhVien   HangKhachHang @default(Thuong)
-  ghiChu          String?       @db.VarChar(500)
+  maKH          String        @id @db.Char(6)
+  hoTen         String        @db.VarChar(200)
+  soDienThoai   String        @unique @db.VarChar(20)
+  email         String?       @db.VarChar(200)
+  diaChi        String?       @db.VarChar(500)
+  ngaySinh      DateTime?
+  hangThanhVien HangKhachHang @default(Thuong)
+  ghiChu        String?       @db.VarChar(500)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   phieuBanHang PhieuBanHang[]
@@ -112,11 +114,11 @@ model KhachHang {
 }
 
 model PhieuBanHang {
-  soPhieu       String    @id @db.Char(10)
-  ngayLap       DateTime  @default(now())
-  maKH          String?   @db.Char(6)
-  tenKhachHang  String?   @db.VarChar(200)
-  tongTien      Decimal   @db.Decimal(18, 0)
+  soPhieu      String   @id @db.Char(10)
+  ngayLap      DateTime @default(now())
+  maKH         String?  @db.Char(6)
+  tenKhachHang String?  @db.VarChar(200)
+  tongTien     Decimal  @db.Decimal(18, 0)
 
   khachHang KhachHang? @relation(fields: [maKH], references: [maKH])
 
@@ -127,11 +129,11 @@ model PhieuBanHang {
 }
 
 model ChiTietBanHang {
-  soPhieu    String   @db.Char(10)
-  maSP       String   @db.Char(5)
-  soLuong    Int
-  donGia     Decimal  @db.Decimal(18, 0)
-  thanhTien  Decimal  @db.Decimal(18, 0)
+  soPhieu   String  @db.Char(10)
+  maSP      String  @db.Char(5)
+  soLuong   Int
+  donGia    Decimal @db.Decimal(18, 0)
+  thanhTien Decimal @db.Decimal(18, 0)
 
   phieuBanHang PhieuBanHang @relation(fields: [soPhieu], references: [soPhieu])
   sanPham      SanPham      @relation(fields: [maSP], references: [maSP])
@@ -140,10 +142,10 @@ model ChiTietBanHang {
 }
 
 model PhieuMuaHang {
-  soPhieu     String    @id @db.Char(10)
-  ngayLap     DateTime  @default(now())
-  maNCC       String    @db.Char(6)
-  tongTien    Decimal   @db.Decimal(18, 0)
+  soPhieu  String   @id @db.Char(10)
+  ngayLap  DateTime @default(now())
+  maNCC    String   @db.Char(6)
+  tongTien Decimal  @db.Decimal(18, 0)
 
   nhaCungCap NhaCungCap @relation(fields: [maNCC], references: [maNCC])
 
@@ -154,11 +156,11 @@ model PhieuMuaHang {
 }
 
 model ChiTietMuaHang {
-  soPhieu    String   @db.Char(10)
-  maSP       String   @db.Char(5)
-  soLuong    Int
-  donGia     Decimal  @db.Decimal(18, 0)
-  thanhTien  Decimal  @db.Decimal(18, 0)
+  soPhieu   String  @db.Char(10)
+  maSP      String  @db.Char(5)
+  soLuong   Int
+  donGia    Decimal @db.Decimal(18, 0)
+  thanhTien Decimal @db.Decimal(18, 0)
 
   phieuMuaHang PhieuMuaHang @relation(fields: [soPhieu], references: [soPhieu])
   sanPham      SanPham      @relation(fields: [maSP], references: [maSP])
@@ -167,10 +169,10 @@ model ChiTietMuaHang {
 }
 
 model LoaiDichVu {
-  maDV        String       @id @db.Char(6)
-  tenDV       String       @unique @db.VarChar(200)
-  donGiaDV    Decimal      @db.Decimal(18, 0)
-  nhomDV      NhomDichVu
+  maDV     String     @id @db.Char(6)
+  tenDV    String     @unique @db.VarChar(200)
+  donGiaDV Decimal    @db.Decimal(18, 0)
+  nhomDV   NhomDichVu
 
   chiTietDichVu ChiTietDichVu[]
 
@@ -179,15 +181,15 @@ model LoaiDichVu {
 }
 
 model PhieuDichVu {
-  soPhieu          String              @id @db.Char(10)
-  ngayLap          DateTime            @default(now())
-  maKH             String?             @db.Char(6)
-  tenKhachHang     String              @db.VarChar(200)
-  soDienThoai      String?             @db.VarChar(20)
-  tongTien         Decimal             @db.Decimal(18, 0)
-  tongTraTruoc     Decimal             @db.Decimal(18, 0)
-  tongConLai       Decimal             @db.Decimal(18, 0)
-  tinhTrang        TinhTrangDichVu     @default(ChuaHoanThanh)
+  soPhieu      String          @id @db.Char(10)
+  ngayLap      DateTime        @default(now())
+  maKH         String?         @db.Char(6)
+  tenKhachHang String          @db.VarChar(200)
+  soDienThoai  String?         @db.VarChar(20)
+  tongTien     Decimal         @db.Decimal(18, 0)
+  tongTraTruoc Decimal         @db.Decimal(18, 0)
+  tongConLai   Decimal         @db.Decimal(18, 0)
+  tinhTrang    TinhTrangDichVu @default(ChuaHoanThanh)
 
   khachHang KhachHang? @relation(fields: [maKH], references: [maKH])
 
@@ -198,19 +200,19 @@ model PhieuDichVu {
 }
 
 model ChiTietDichVu {
-  soPhieu           String    @db.Char(10)
-  stt               Int
-  maDV              String    @db.Char(6)
-  donGiaDV          Decimal   @db.Decimal(18, 0)
-  chiPhiPhatSinh    Decimal   @default(0) @db.Decimal(18, 0)
-  donGiaDuocTinh    Decimal   @db.Decimal(18, 0)
-  soLuong           Int
-  thanhTien         Decimal   @db.Decimal(18, 0)
-  traTruoc          Decimal   @db.Decimal(18, 0)
-  conLai            Decimal   @db.Decimal(18, 0)
-  ngayGiao          DateTime?
-  ketQua            String?   @db.VarChar(200)
-  soChungThu        String?   @db.VarChar(100)
+  soPhieu        String    @db.Char(10)
+  stt            Int
+  maDV           String    @db.Char(6)
+  donGiaDV       Decimal   @db.Decimal(18, 0)
+  chiPhiPhatSinh Decimal   @default(0) @db.Decimal(18, 0)
+  donGiaDuocTinh Decimal   @db.Decimal(18, 0)
+  soLuong        Int
+  thanhTien      Decimal   @db.Decimal(18, 0)
+  traTruoc       Decimal   @db.Decimal(18, 0)
+  conLai         Decimal   @db.Decimal(18, 0)
+  ngayGiao       DateTime?
+  ketQua         String?   @db.VarChar(200)
+  soChungThu     String?   @db.VarChar(100)
 
   phieuDichVu PhieuDichVu @relation(fields: [soPhieu], references: [soPhieu])
   loaiDichVu  LoaiDichVu  @relation(fields: [maDV], references: [maDV])
@@ -219,15 +221,15 @@ model ChiTietDichVu {
 }
 
 model BaoCaoTonKho {
-  ngay       Int
-  thang      Int
-  nam        Int
-  maSP       String   @db.Char(5)
+  ngay  Int
+  thang Int
+  nam   Int
+  maSP  String @db.Char(5)
 
-  tonDau     Int      @default(0)
-  slMuaVao   Int      @default(0)
-  slBanRa    Int      @default(0)
-  tonCuoi    Int      @default(0)
+  tonDau   Int @default(0)
+  slMuaVao Int @default(0)
+  slBanRa  Int @default(0)
+  tonCuoi  Int @default(0)
 
   sanPham SanPham @relation(fields: [maSP], references: [maSP])
 
@@ -235,37 +237,37 @@ model BaoCaoTonKho {
 }
 
 model BaoCaoDoanhThu {
-  ngay        Int
-  thang       Int
-  nam         Int
+  ngay  Int
+  thang Int
+  nam   Int
 
-  dtBanHang   Decimal @db.Decimal(18, 0)
-  dtDichVu    Decimal @db.Decimal(18, 0)
-  tongDT      Decimal @db.Decimal(18, 0)
+  dtBanHang Decimal @db.Decimal(18, 0)
+  dtDichVu  Decimal @db.Decimal(18, 0)
+  tongDT    Decimal @db.Decimal(18, 0)
 
   @@id([ngay, thang, nam])
 }
 
 model ChucNang {
-  maChucNang          String   @id @db.Char(6)
-  tenChucNang         String   @unique @db.VarChar(200)
-  tenManHinhDuocLoad  String   @db.VarChar(300)
+  maChucNang         String @id @db.Char(6)
+  tenChucNang        String @unique @db.VarChar(200)
+  tenManHinhDuocLoad String @db.VarChar(300)
 
   bangPhanQuyen BangPhanQuyen[]
 }
 
 model NhomNguoiDung {
-  maNhom    String   @id @db.Char(6)
-  tenNhom   String   @unique @db.VarChar(100)
+  maNhom  String @id @db.Char(6)
+  tenNhom String @unique @db.VarChar(100)
 
-  nguoiDung      NguoiDung[]
-  bangPhanQuyen  BangPhanQuyen[]
+  nguoiDung     NguoiDung[]
+  bangPhanQuyen BangPhanQuyen[]
 }
 
 model BangPhanQuyen {
-  maNhom       String @db.Char(6)
-  maChucNang   String @db.Char(6)
-  hanhDong     String @db.Char(4)  // XEM, THEM, SUA, XOA
+  maNhom     String @db.Char(6)
+  maChucNang String @db.Char(6)
+  hanhDong   String @db.Char(4) // XEM, THEM, SUA, XOA
 
   nhomNguoiDung NhomNguoiDung @relation(fields: [maNhom], references: [maNhom])
   chucNang      ChucNang      @relation(fields: [maChucNang], references: [maChucNang])
@@ -274,11 +276,11 @@ model BangPhanQuyen {
 }
 
 model NguoiDung {
-  maND          String   @id @db.Char(6)
-  tenDangNhap   String   @unique @db.VarChar(50)
-  matKhau       String   @db.VarChar(255)
-  hoTen         String   @db.VarChar(200)
-  maNhom        String   @db.Char(6)
+  maND        String @id @db.Char(6)
+  tenDangNhap String @unique @db.VarChar(50)
+  matKhau     String @db.VarChar(255)
+  hoTen       String @db.VarChar(200)
+  maNhom      String @db.Char(6)
 
   nhomNguoiDung NhomNguoiDung @relation(fields: [maNhom], references: [maNhom])
 
@@ -287,20 +289,20 @@ model NguoiDung {
 }
 
 model ThamSo {
-  id                           Int      @id @default(1)
+  id Int @id @default(1)
 
-  phanTramLoiNhuanToiThieu    Decimal  @default(0) @db.Decimal(5, 2)
-  soLuongTonKhoToiThieu       Int      @default(1)
-  tiLeTraTruocToiThieu        Decimal  @default(50) @db.Decimal(5, 2)
+  phanTramLoiNhuanToiThieu Decimal @default(0) @db.Decimal(5, 2)
+  soLuongTonKhoToiThieu    Int     @default(1)
+  tiLeTraTruocToiThieu     Decimal @default(50) @db.Decimal(5, 2)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model LichSuThayDoiQuyDinh {
-  id          Int      @id @default(autoincrement())
-  maND        String?  @db.Char(6)
-  giaTriCu    Json
-  giaTriMoi   Json
-  createdAt   DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  maND      String?  @db.Char(6)
+  giaTriCu  Json
+  giaTriMoi Json
+  createdAt DateTime @default(now())
 }

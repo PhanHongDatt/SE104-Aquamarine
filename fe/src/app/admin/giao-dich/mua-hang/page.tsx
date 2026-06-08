@@ -1,16 +1,32 @@
 import { Tag, Plus } from "lucide-react";
 import { getDanhSachPhieuMuaHang } from "@/actions/giao-dich";
 import { PurchaseInvoiceList } from "@/components/giao-dich/purchase-invoice-list";
+import { prisma } from "@/lib/prisma";
 
 export const metadata = { title: "Mua hàng – Admin | Aquamarine Jewelry & Luxury" };
 
 export default async function AdminMuaHangPage() {
   let data = [];
+  let products = [];
+  let suppliers = [];
   let error: string | null = null;
 
   try {
-    const rawData = await getDanhSachPhieuMuaHang();
+    const [rawData, rawProducts, rawSuppliers] = await Promise.all([
+      getDanhSachPhieuMuaHang(),
+      prisma.sanPham.findMany({
+        where: { deletedAt: null },
+        include: { loaiSanPham: true, donViTinh: true },
+        orderBy: { maSP: "asc" },
+      }),
+      prisma.nhaCungCap.findMany({
+        where: { deletedAt: null },
+        orderBy: { maNCC: "asc" },
+      }),
+    ]);
     data = JSON.parse(JSON.stringify(rawData));
+    products = JSON.parse(JSON.stringify(rawProducts));
+    suppliers = JSON.parse(JSON.stringify(rawSuppliers));
   } catch (e: any) {
     error = e.message;
   }
@@ -39,7 +55,7 @@ export default async function AdminMuaHangPage() {
         </div>
       )}
 
-      <PurchaseInvoiceList data={data} />
+      <PurchaseInvoiceList data={data} products={products} suppliers={suppliers} returnUrl="/admin/giao-dich/mua-hang" />
     </div>
   );
 }

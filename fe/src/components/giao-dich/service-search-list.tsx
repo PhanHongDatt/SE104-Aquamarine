@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Eye, Filter, Calendar, User, FileText, CheckCircle2, Clock, X } from "lucide-react";
+import { Search, Eye, Filter, Calendar, User, FileText, CheckCircle2, Clock, X, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { deletePhieuDichVu } from "@/actions/service.action";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface ServiceSearchListProps {
   initialData: any[];
@@ -12,6 +15,10 @@ interface ServiceSearchListProps {
 }
 
 export function ServiceSearchList({ initialData, isAdmin = false }: ServiceSearchListProps) {
+  const router = useRouter();
+  const { hasPermission } = usePermissions();
+  const canDelete = hasPermission("DV_TRA", "XOA");
+  const [deletingSoPhieu, setDeletingSoPhieu] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     soPhieu: "",
     tenKhachHang: "",
@@ -75,6 +82,24 @@ export function ServiceSearchList({ initialData, isAdmin = false }: ServiceSearc
   };
 
   const detailUrl = isAdmin ? "/admin/dich-vu/phieu-dich-vu" : "/nhan-vien/dich-vu/tra-cuu";
+
+  const handleDelete = async (soPhieu: string) => {
+    if (!canDelete) {
+      toast.error("Bạn không có quyền xóa phiếu dịch vụ");
+      return;
+    }
+    if (!window.confirm(`Xóa phiếu dịch vụ ${soPhieu}? Nếu phiếu đã hoàn thành, hệ thống sẽ trừ lại doanh thu dịch vụ.`)) return;
+
+    setDeletingSoPhieu(soPhieu);
+    const res = await deletePhieuDichVu(soPhieu);
+    setDeletingSoPhieu(null);
+    if (res.success) {
+      toast.success(res.message);
+      router.refresh();
+    } else {
+      toast.error(res.message);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -235,13 +260,25 @@ export function ServiceSearchList({ initialData, isAdmin = false }: ServiceSearc
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <Link 
-                        href={`${detailUrl}/${phieu.soPhieu}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 text-primary hover:bg-primary hover:text-white rounded-xl transition-all duration-200 font-bold text-xs border border-primary/10 shadow-sm"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        Chi tiết
-                      </Link>
+                      <div className="flex justify-end gap-2">
+                        <Link
+                          href={`${detailUrl}/${phieu.soPhieu}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 text-primary hover:bg-primary hover:text-white rounded-xl transition-all duration-200 font-bold text-xs border border-primary/10 shadow-sm"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          Chi tiết
+                        </Link>
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDelete(phieu.soPhieu)}
+                            disabled={deletingSoPhieu === phieu.soPhieu}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white rounded-xl transition-all duration-200 font-bold text-xs border border-red-100 shadow-sm disabled:opacity-60"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            {deletingSoPhieu === phieu.soPhieu ? "Đang xóa" : "Xóa"}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

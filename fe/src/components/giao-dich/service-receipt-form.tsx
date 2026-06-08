@@ -13,7 +13,7 @@ import { serviceReceiptSchema, type ServiceReceiptFormValues } from "@/schemas/s
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { lapPhieuDichVu } from "@/actions/service.action";
+import { lapPhieuDichVu, updatePhieuDichVu } from "@/actions/service.action";
 
 interface ServiceReceiptFormProps {
   serviceTypes: any[];
@@ -21,11 +21,14 @@ interface ServiceReceiptFormProps {
   nextSoPhieu: string;
   redirectPath?: string;
   minPrepaymentPercent?: number;
+  mode?: "create" | "edit";
+  initialData?: any;
+  onSuccess?: () => void;
 }
 
 /**
  * Input số: type="text" + inputMode="numeric" → nhập tự do, không spinner.
- * Chỉ cập nhật giá khi blur.
+ * Commit liên tục để tổng tiền và trả trước cập nhật ngay khi nhập.
  */
 function InlineNumberInput({
   value,
@@ -45,8 +48,8 @@ function InlineNumberInput({
   const [local, setLocal] = useState(String(value));
 
   useEffect(() => {
-    setLocal(String(value));
-  }, [value]);
+    setLocal(String(value ?? min));
+  }, [value, min]);
 
   return (
     <input
@@ -56,13 +59,16 @@ function InlineNumberInput({
       inputMode="numeric"
       value={local}
       onChange={(e) => {
-        // Chỉ cho phép nhập số
         const raw = e.target.value.replace(/[^0-9]/g, "");
         setLocal(raw);
+        if (raw !== "") {
+          const num = Number(raw);
+          onCommit(Number.isFinite(num) ? Math.max(min, num) : min);
+        }
       }}
       onBlur={() => {
         const num = Number(local);
-        const final = isNaN(num) || num < min ? min : num;
+        const final = Number.isNaN(num) || num < min ? min : num;
         setLocal(String(final));
         onCommit(final);
       }}
@@ -71,17 +77,58 @@ function InlineNumberInput({
   );
 }
 
+function toDateInputValue(date: Date) {
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().slice(0, 10);
+}
+
 export function ServiceReceiptForm({
   serviceTypes,
   customers = [],
   nextSoPhieu,
   redirectPath = "/dich-vu/tra-cuu",
   minPrepaymentPercent = 50,
+  mode = "create",
+  initialData,
+  onSuccess,
 }: ServiceReceiptFormProps) {
   const router = useRouter();
+  const isEditMode = mode === "edit" && initialData;
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [customerSearch, setCustomerSearch] = useState("");
+  const [customerSearch, setCustomerSearch] = useState(() => {
+    const customer = initialData?.khachHang;
+    if (customer?.hoTen) {
+      return `${customer.hoTen} - ${customer.soDienThoai || ""}`.trim();
+    }
+    return "";
+  });
+  const [globalPrepayPercent, setGlobalPrepayPercent] = useState<number | null>(minPrepaymentPercent);
+  const [customPrepayPercent, setCustomPrepayPercent] = useState(String(minPrepaymentPercent));
+  const todayInputValue = useMemo(() => toDateInputValue(new Date()), []);
+  const initialDateInputValue = useMemo(() => {
+    return initialData?.ngayLap ? toDateInputValue(new Date(initialData.ngayLap)) : todayInputValue;
+  }, [initialData?.ngayLap, todayInputValue]);
+  const serviceMap = useMemo(() => new Map(serviceTypes.map((service) => [service.maDV, service])), [serviceTypes]);
+  const initialDetails = useMemo(() => {
+    if (!initialData?.chiTietDichVu) return [];
+
+    return initialData.chiTietDichVu.map((item: any) => {
+      const service = serviceMap.get(item.maDV) || item.loaiDichVu || {};
+      return {
+        maDV: item.maDV,
+        tenDV: service.tenDV || item.loaiDichVu?.tenDV,
+        nhomDV: service.nhomDV || item.loaiDichVu?.nhomDV,
+        donGiaDV: Number(item.donGiaDV ?? service.donGiaDV ?? 0),
+        chiPhiPhatSinh: Number(item.chiPhiPhatSinh || 0),
+        donGiaDuocTinh: Number(item.donGiaDuocTinh || 0),
+        soLuong: Number(item.soLuong || 1),
+        thanhTien: Number(item.thanhTien || 0),
+        traTruoc: Number(item.traTruoc || 0),
+        conLai: Number(item.conLai || 0),
+      };
+    });
+  }, [initialData?.chiTietDichVu, serviceMap]);
 
   const {
     register,
@@ -93,14 +140,15 @@ export function ServiceReceiptForm({
   } = useForm<ServiceReceiptFormValues>({
     resolver: zodResolver(serviceReceiptSchema),
     defaultValues: {
-      soPhieu: nextSoPhieu,
-      ngayLap: new Date(),
-      tenKhachHang: "",
-      soDienThoai: "",
-      chiTietDichVu: [],
-      tongTien: 0,
-      tongTraTruoc: 0,
-      tongConLai: 0,
+      soPhieu: initialData?.soPhieu || nextSoPhieu,
+      ngayLap: initialDateInputValue as any,
+      maKH: initialData?.maKH || "",
+      tenKhachHang: initialData?.tenKhachHang || initialData?.khachHang?.hoTen || "",
+      soDienThoai: initialData?.soDienThoai || initialData?.khachHang?.soDienThoai || "",
+      chiTietDichVu: initialDetails,
+      tongTien: Number(initialData?.tongTien || 0),
+      tongTraTruoc: Number(initialData?.tongTraTruoc || 0),
+      tongConLai: Number(initialData?.tongConLai || 0),
     },
   });
 
@@ -173,7 +221,8 @@ export function ServiceReceiptForm({
     const donGiaDuocTinh = donGiaDV; // chiPhiPhatSinh = 0
     // Thành tiền = Số lượng × Đơn giá được tính (QĐ6)
     const thanhTien = donGiaDuocTinh * 1; // soLuong = 1
-    const traTruoc = Math.round(thanhTien * (minPrepaymentPercent / 100));
+    const prepayPercent = Math.max(globalPrepayPercent ?? minPrepaymentPercent, minPrepaymentPercent);
+    const traTruoc = Math.round(thanhTien * (prepayPercent / 100));
     append({
       maDV: s.maDV,
       tenDV: s.tenDV,
@@ -189,15 +238,20 @@ export function ServiceReceiptForm({
     setIsServiceModalOpen(false);
   };
 
-  const [globalPrepayPercent, setGlobalPrepayPercent] = useState<number>(minPrepaymentPercent);
-
   const applyGlobalPrepayment = (percent: number) => {
-    // Toggle: nếu đang chọn % này thì bỏ chọn (set 0%)
-    const newPercent = globalPrepayPercent === percent ? 0 : percent;
-    setGlobalPrepayPercent(newPercent);
+    if (!Number.isFinite(percent) || percent < minPrepaymentPercent || percent > 100) {
+      toast.error(`Mốc trả trước phải từ ${minPrepaymentPercent}% đến 100%`);
+      return;
+    }
+    if (globalPrepayPercent === percent) {
+      setGlobalPrepayPercent(null);
+      toast.info("Đã bỏ chọn mốc trả trước nhanh. Bạn có thể nhập trả trước thủ công cho từng dòng.");
+      return;
+    }
+    setGlobalPrepayPercent(percent);
     const updatedDetails = items.map((item: any) => {
       const thanhTien = Number(item.thanhTien || 0);
-      const newTraTruoc = newPercent > 0 ? Math.round(thanhTien * (newPercent / 100)) : 0;
+      const newTraTruoc = Math.round(thanhTien * (percent / 100));
       return {
         ...item,
         traTruoc: newTraTruoc,
@@ -205,11 +259,12 @@ export function ServiceReceiptForm({
       };
     });
     setValue("chiTietDichVu", updatedDetails, { shouldDirty: true });
-    if (newPercent > 0) {
-      toast.info(`Đã áp dụng trả trước ${newPercent}% cho tất cả dịch vụ`);
-    } else {
-      toast.info("Đã bỏ chọn mức trả trước nhanh");
-    }
+    toast.info(`Đã áp dụng trả trước ${percent}% cho tất cả dịch vụ`);
+  };
+
+  const applyCustomPrepayment = () => {
+    const percent = Number(customPrepayPercent.replace(",", "."));
+    applyGlobalPrepayment(percent);
   };
 
   const updateItem = (index: number, updates: Partial<any>) => {
@@ -219,20 +274,25 @@ export function ServiceReceiptForm({
     // Đơn giá được tính = Đơn giá DV + Chi phí phát sinh (QĐ6)
     const donGiaDuocTinh = Number(item.donGiaDV) + Number(item.chiPhiPhatSinh || 0);
     // Thành tiền = Số lượng × Đơn giá được tính (QĐ6)
-    const thanhTien = donGiaDuocTinh * (item.soLuong || 1);
-
-    let currentTraTruoc = Number(item.traTruoc || 0);
-
-    // Chỉ tự động tính trả trước khi THÊM MỚI dịch vụ
-    // Các trường hợp khác (đổi SL, đổi chi phí, user nhập tay) → giữ nguyên giá trị hiện tại
-    if (updates.hasOwnProperty('maDV') && !updates.hasOwnProperty('traTruoc')) {
-       currentTraTruoc = Math.round(thanhTien * (globalPrepayPercent / 100));
-    }
+    const soLuong = Number(item.soLuong || 1);
+    const thanhTien = donGiaDuocTinh * soLuong;
+    const amountChanged = ["maDV", "donGiaDV", "chiPhiPhatSinh", "soLuong"].some((field) =>
+      Object.prototype.hasOwnProperty.call(updates, field)
+    );
+    const minTraTruoc = Math.round(thanhTien * (minPrepaymentPercent / 100));
+    const activePrepayPercent =
+      globalPrepayPercent === null ? null : Math.max(globalPrepayPercent, minPrepaymentPercent);
+    const currentTraTruoc = amountChanged
+      ? activePrepayPercent === null
+        ? Math.min(Math.max(Number(item.traTruoc || 0), minTraTruoc), thanhTien)
+        : Math.round(thanhTien * (activePrepayPercent / 100))
+      : Math.min(Number(item.traTruoc || 0), thanhTien);
 
     // Set toàn bộ array để useWatch detect thay đổi
     const newItems = [...items];
     newItems[index] = {
       ...item,
+      soLuong,
       donGiaDuocTinh,
       thanhTien,
       traTruoc: currentTraTruoc,
@@ -263,11 +323,14 @@ export function ServiceReceiptForm({
     }
 
     try {
-      const res = await lapPhieuDichVu(data);
+      const res = isEditMode
+        ? await updatePhieuDichVu(initialData.soPhieu, data)
+        : await lapPhieuDichVu(data);
       if (res.success) {
         toast.success(res.message);
         router.push(redirectPath);
         router.refresh();
+        onSuccess?.();
       } else {
         toast.error(res.message);
       }
@@ -301,14 +364,16 @@ export function ServiceReceiptForm({
                   />
                 </div>
 
-                <div className="pointer-events-none">
+                <div>
                   <Input
                     label="Ngày lập"
                     type="date"
-                    readOnly
-                    tabIndex={-1}
-                    defaultValue={new Date().toISOString().split('T')[0]}
-                    className="cursor-default bg-zinc-50"
+                    required
+                    defaultValue={initialDateInputValue}
+                    error={errors.ngayLap?.message}
+                    {...register("ngayLap", {
+                      setValueAs: (value) => value ? new Date(`${value}T00:00:00`) : new Date(),
+                    })}
                   />
                 </div>
               </div>
@@ -359,6 +424,7 @@ export function ServiceReceiptForm({
               <Input
                 label="Tên khách hàng"
                 placeholder="Nhập tên khách hàng"
+                required
                 error={errors.tenKhachHang?.message}
                 {...register("tenKhachHang")}
               />
@@ -366,6 +432,7 @@ export function ServiceReceiptForm({
               <Input
                 label="Số điện thoại"
                 placeholder="Nhập số điện thoại"
+                required
                 error={errors.soDienThoai?.message}
                 {...register("soDienThoai")}
               />
@@ -377,10 +444,13 @@ export function ServiceReceiptForm({
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-zinc-400 uppercase flex justify-between items-center">
                   Mức trả trước nhanh
-                  <span className="text-primary">{globalPrepayPercent}%</span>
+                  <span className="text-primary">{globalPrepayPercent === null ? "Tùy chỉnh" : `${globalPrepayPercent}%`}</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2">
-	                  {Array.from(new Set([minPrepaymentPercent, 75, 100])).sort((a, b) => a - b).map((p) => (
+	                  {Array.from(new Set([minPrepaymentPercent, 75, 100]))
+                      .filter((p) => p >= minPrepaymentPercent && p <= 100)
+                      .sort((a, b) => a - b)
+                      .map((p) => (
                     <button
                       key={p}
                       type="button"
@@ -395,6 +465,28 @@ export function ServiceReceiptForm({
                     </button>
                   ))}
                 </div>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    min={minPrepaymentPercent}
+                    max={100}
+                    step="0.01"
+                    value={customPrepayPercent}
+                    onChange={(event) => setCustomPrepayPercent(event.target.value)}
+                    placeholder="Mốc tùy chọn"
+                    className="h-9 rounded-lg text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={applyCustomPrepayment}
+                    className="h-9 px-3 rounded-lg bg-zinc-900 text-white text-xs font-bold hover:bg-zinc-800 transition-colors"
+                  >
+                    Áp dụng
+                  </button>
+                </div>
+                <p className="text-[10px] text-zinc-400">
+                  Mốc tùy chọn phải từ {minPrepaymentPercent}% đến 100%.
+                </p>
               </div>
 
               <div className="pt-2 border-t border-primary/10 space-y-2">
@@ -430,7 +522,7 @@ export function ServiceReceiptForm({
                 className="w-full h-12 rounded-2xl shadow-lg shadow-primary/20 text-base font-bold disabled:opacity-50 disabled:shadow-none"
               >
                 <Save className="w-5 h-5 mr-2" />
-                Lưu Phiếu Dịch Vụ
+                {isEditMode ? "Cập nhật phiếu dịch vụ" : "Lưu Phiếu Dịch Vụ"}
               </Button>
             </div>
           </div>
@@ -469,7 +561,7 @@ export function ServiceReceiptForm({
                     <th className="px-4 py-4 min-w-[200px]">Loại dịch vụ</th>
                     <th className="px-4 py-4 text-right">Đơn giá dịch vụ</th>
                     <th className="px-4 py-4 text-right">Phát sinh</th>
-                    <th className="px-4 py-4 text-right">Đơn giá được tính</th>
+                    <th className="px-4 py-4 text-right">Đơn giá sau phát sinh</th>
                     <th className="px-4 py-4 w-24 text-center">Số lượng</th>
                     <th className="px-4 py-4 text-right">Thành tiền</th>
                     <th className="px-4 py-4 text-right">Trả trước</th>
@@ -656,7 +748,7 @@ export function ServiceReceiptForm({
                       <span className="text-xs text-zinc-400">{s.maDV}</span>
                       <span className="w-1 h-1 rounded-full bg-zinc-200" />
                       <span className="text-xs font-bold text-primary">
-                        Đơn giá: {formatCurrency(Number(s.donGiaDV))}
+                        Đơn giá dịch vụ: {formatCurrency(Number(s.donGiaDV))}
                       </span>
                     </div>
                   </div>

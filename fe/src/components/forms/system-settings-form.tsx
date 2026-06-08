@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Save, Settings, ShieldAlert, Info } from "lucide-react";
+import { Save, Settings, ShieldAlert, Info, Clock3 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -20,6 +21,42 @@ export function SystemSettingsForm({ initialData }: SystemSettingsFormProps) {
   const router = useRouter();
   const { hasPermission } = usePermissions();
   const canUpdate = hasPermission("HT_QDI", "SUA");
+  const [now, setNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const tick = () => setNow(new Date());
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const clockParts = useMemo(() => {
+    if (!now) {
+      return {
+        time: "--:--:--",
+        date: "Đang đồng bộ thời gian",
+        zone: "Asia/Bangkok (UTC+7)",
+      };
+    }
+
+    return {
+      time: now.toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+        timeZone: "Asia/Bangkok",
+      }),
+      date: now.toLocaleDateString("vi-VN", {
+        weekday: "long",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        timeZone: "Asia/Bangkok",
+      }),
+      zone: "Asia/Bangkok (UTC+7)",
+    };
+  }, [now]);
 
   const {
     register,
@@ -28,6 +65,7 @@ export function SystemSettingsForm({ initialData }: SystemSettingsFormProps) {
   } = useForm<SystemSettingsFormValues>({
     resolver: zodResolver(systemSettingsSchema),
     defaultValues: {
+      phanTramLoiNhuanToiThieu: Number(initialData?.phanTramLoiNhuanToiThieu || 0),
       soLuongTonKhoToiThieu: Number(initialData?.soLuongTonKhoToiThieu || 0),
       tiLeTraTruocToiThieu: Number(initialData?.tiLeTraTruocToiThieu || 50),
     },
@@ -63,8 +101,32 @@ export function SystemSettingsForm({ initialData }: SystemSettingsFormProps) {
           </div>
 
           <div className="p-8 space-y-8">
-            {/* QĐ3 */}
+            {/* QĐ2 */}
             <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs font-black">QĐ2</span>
+                <h3 className="font-bold text-zinc-800">Phần trăm lợi nhuận tối thiểu</h3>
+              </div>
+              <div className="pl-10 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                <div className="space-y-2">
+                  <Input
+                    label="Phần trăm lợi nhuận tối thiểu (%)"
+                    type="number"
+                    step="0.01"
+                    placeholder="VD: 5"
+                    required
+                    error={errors.phanTramLoiNhuanToiThieu?.message}
+                    {...register("phanTramLoiNhuanToiThieu")}
+                  />
+                  <p className="text-[10px] text-zinc-400 italic leading-relaxed">
+                    * Là mức sàn khi thêm/sửa loại sản phẩm. Quy định mới áp dụng cho thao tác sau thời điểm cập nhật, không tự sửa dữ liệu cũ.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* QĐ3 */}
+            <div className="space-y-4 border-t border-zinc-50 pt-8">
               <div className="flex items-center gap-2">
                 <span className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center text-xs font-black">QĐ3</span>
                 <h3 className="font-bold text-zinc-800">Mức tồn kho tối thiểu</h3>
@@ -75,11 +137,12 @@ export function SystemSettingsForm({ initialData }: SystemSettingsFormProps) {
                     label="Số lượng tồn kho tối thiểu (mặc định)"
                     type="number"
                     placeholder="VD: 5"
+                    required
                     error={errors.soLuongTonKhoToiThieu?.message}
                     {...register("soLuongTonKhoToiThieu")}
                   />
                   <p className="text-[10px] text-zinc-400 italic leading-relaxed">
-                    * Giá trị mặc định khi tạo sản phẩm mới. Mức riêng của từng sản phẩm được chỉnh tại Danh mục sản phẩm.
+                    * Đây là ngưỡng chung toàn hệ thống dùng để đối chiếu trong báo cáo tồn kho. Sản phẩm không còn lưu mức tồn tối thiểu riêng để tránh mâu thuẫn dữ liệu.
                   </p>
                 </div>
               </div>
@@ -98,6 +161,7 @@ export function SystemSettingsForm({ initialData }: SystemSettingsFormProps) {
                     type="number"
                     step="0.01"
                     placeholder="VD: 50"
+                    required
                     error={errors.tiLeTraTruocToiThieu?.message}
                     {...register("tiLeTraTruocToiThieu")}
                   />
@@ -122,6 +186,20 @@ export function SystemSettingsForm({ initialData }: SystemSettingsFormProps) {
 
       {/* Security Info Sidebar */}
       <div className="lg:col-span-1 space-y-6">
+        <div className="bg-white rounded-3xl border border-zinc-200 p-6 space-y-4 shadow-sm">
+          <div className="flex items-center gap-3 text-primary">
+            <Clock3 className="w-6 h-6" />
+            <h3 className="font-black uppercase tracking-tight text-sm">Đồng hồ hệ thống</h3>
+          </div>
+          <div>
+            <p className="text-4xl font-black text-zinc-900 font-montserrat tracking-tight">{clockParts.time}</p>
+            <p className="text-xs text-zinc-500 mt-1 capitalize">{clockParts.date}</p>
+          </div>
+          <p className="text-[11px] text-zinc-400 leading-relaxed">
+            Múi giờ vận hành: <strong className="text-zinc-600">{clockParts.zone}</strong>. Ngày lập phiếu và báo cáo dùng cùng mốc ngày nghiệp vụ này.
+          </p>
+        </div>
+
         <div className="bg-amber-50 rounded-3xl border border-amber-200 p-6 space-y-4 shadow-sm">
           <div className="flex items-center gap-3 text-amber-700">
             <ShieldAlert className="w-6 h-6" />

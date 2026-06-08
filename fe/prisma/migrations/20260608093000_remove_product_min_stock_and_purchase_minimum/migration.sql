@@ -1,0 +1,3 @@
+ALTER TABLE "SanPham" DROP COLUMN IF EXISTS "tonToiThieu";
+
+ALTER TABLE "ThamSo" DROP COLUMN IF EXISTS "soLuongNhapToiThieu";

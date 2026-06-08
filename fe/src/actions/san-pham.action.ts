@@ -4,8 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { sanPhamSchema, type SanPhamInput } from "@/schemas/san-pham.schema";
-import { assertDvtValidForLoaiSP, calculateSellPrice } from "@/lib/business-rules";
+import { sanPhamSchema, sanPhamUpdateSchema, type SanPhamInput } from "@/schemas/san-pham.schema";
+import {
+  assertDvtValidForLoaiSP,
+  assertHamLuongValidForLoaiSP,
+  calculateSellPrice,
+  getDefaultHamLuongForLoaiSP,
+  getAllowedHamLuongValuesForLoaiSP,
+  normalizeComparableText,
+} from "@/lib/business-rules";
 import { nextSequentialIdFromValidCodes, withUniqueRetry } from "@/lib/id-generation";
 import { hasPermission, PERMISSIONS, ACTIONS } from "@/lib/permissions";
 
@@ -24,6 +31,20 @@ async function generateProductId() {
     select: { maSP: true },
   });
   return nextSequentialIdFromValidCodes(records.map((record) => record.maSP), "SP", 3);
+}
+
+async function findDuplicateProductName(maLSP: string, tenSP: string, excludeMaSP?: string) {
+  const normalizedName = normalizeComparableText(tenSP);
+  const candidates = await prisma.sanPham.findMany({
+    where: {
+      maLSP,
+      deletedAt: null,
+      ...(excludeMaSP ? { NOT: { maSP: excludeMaSP } } : {}),
+    },
+    select: { maSP: true, tenSP: true },
+  });
+
+  return candidates.find((product) => normalizeComparableText(product.tenSP) === normalizedName) ?? null;
 }
 
 // 2. Lấy danh sách sản phẩm
@@ -54,16 +75,21 @@ export async function createSanPham(data: SanPhamInput) {
     const validated = sanPhamSchema.parse(data);
 
     // Bước 3: Lấy thông tin loại sản phẩm để lấy % lợi nhuận
-    const [category, donViTinh, thamSo] = await Promise.all([
+    const [category, donViTinh] = await Promise.all([
       prisma.loaiSanPham.findUnique({ where: { maLSP: validated.maLSP } }),
       prisma.donViTinh.findUnique({ where: { maDVT: validated.maDVT } }),
-      prisma.thamSo.findUnique({ where: { id: 1 } }),
     ]);
     if (!category) return { success: false, message: "Loại sản phẩm không hợp lệ" };
     if (!donViTinh) return { success: false, message: "Đơn vị tính không hợp lệ" };
     assertDvtValidForLoaiSP(category.tenLSP, donViTinh.tenDVT);
+    assertHamLuongValidForLoaiSP(category.tenLSP, validated.hamLuong);
     if (validated.maDVT !== category.maDVT) {
       return { success: false, message: "Sản phẩm phải dùng đơn vị tính mặc định của loại sản phẩm" };
+    }
+
+    const duplicate = await findDuplicateProductName(validated.maLSP, validated.tenSP);
+    if (duplicate) {
+      return { success: false, message: `Sản phẩm cùng loại đã tồn tại: ${duplicate.maSP} - ${duplicate.tenSP}` };
     }
 
     // Bước 7: Tự động tính đơn giá bán
@@ -83,7 +109,6 @@ export async function createSanPham(data: SanPhamInput) {
           trongLuong: validated.trongLuong,
           maDVT: validated.maDVT,
           tonKho: 0, // Mặc định khi tạo mới là 0, sẽ nhập qua phiếu mua sau
-          tonToiThieu: validated.tonToiThieu ?? thamSo?.soLuongTonKhoToiThieu ?? 1,
           donGiaNhap: validated.donGiaNhap,
           donGiaBan: giaBan,
         },
@@ -105,32 +130,44 @@ export async function updateSanPham(maSP: string, data: SanPhamInput) {
       return { success: false, message: "Bạn không có quyền thực hiện chức năng này" };
     }
 
-    const validated = sanPhamSchema.parse(data);
+    const validated = sanPhamUpdateSchema.parse(data);
 
-    // Lấy thông tin loại SP hiện tại để lấy % lợi nhuận (Loại và DVT không đổi)
     const currentSP = await prisma.sanPham.findUnique({ 
       where: { maSP },
       include: { loaiSanPham: true, donViTinh: true }
     });
     if (!currentSP) return { success: false, message: "Sản phẩm không tồn tại" };
-    if (validated.maDVT !== currentSP.maDVT || validated.maLSP !== currentSP.maLSP) {
-      return { success: false, message: "Không được thay đổi loại sản phẩm hoặc đơn vị tính khi cập nhật sản phẩm" };
-    }
-    if (currentSP.maDVT !== currentSP.loaiSanPham.maDVT) {
-      return { success: false, message: "Đơn vị tính sản phẩm không khớp với loại sản phẩm" };
+    if (currentSP.deletedAt) return { success: false, message: "Sản phẩm đã ngừng kinh doanh" };
+
+    const targetCategory = await prisma.loaiSanPham.findUnique({
+      where: { maLSP: validated.maLSP },
+      include: { donViTinh: true },
+    });
+    if (!targetCategory) return { success: false, message: "Loại sản phẩm không hợp lệ" };
+    assertDvtValidForLoaiSP(targetCategory.tenLSP, targetCategory.donViTinh.tenDVT);
+
+    const duplicate = await findDuplicateProductName(validated.maLSP, validated.tenSP, maSP);
+    if (duplicate) {
+      return { success: false, message: `Sản phẩm cùng loại đã tồn tại: ${duplicate.maSP} - ${duplicate.tenSP}` };
     }
 
-    // Bước 4: Tự động tính lại giá bán nếu giá nhập đổi
-    const giaBan = calculateSellPrice(Number(validated.donGiaNhap), Number(currentSP.loaiSanPham.phanTramLoiNhuan));
+    const allowedHamLuong = getAllowedHamLuongValuesForLoaiSP(targetCategory.tenLSP);
+    const nextHamLuong = !allowedHamLuong || allowedHamLuong.includes(currentSP.hamLuong)
+      ? currentSP.hamLuong
+      : getDefaultHamLuongForLoaiSP(targetCategory.tenLSP);
+
+    assertHamLuongValidForLoaiSP(targetCategory.tenLSP, nextHamLuong);
+
+    // Khi sửa sản phẩm chỉ nhận tên và loại. Các trường giá nhập/trọng lượng giữ nguyên.
+    const giaBan = calculateSellPrice(Number(currentSP.donGiaNhap), Number(targetCategory.phanTramLoiNhuan));
 
     const record = await prisma.sanPham.update({
       where: { maSP },
       data: {
         tenSP: validated.tenSP,
-        hamLuong: validated.hamLuong as any,
-        trongLuong: validated.trongLuong,
-        tonToiThieu: validated.tonToiThieu,
-        donGiaNhap: validated.donGiaNhap,
+        maLSP: targetCategory.maLSP,
+        maDVT: targetCategory.maDVT,
+        hamLuong: nextHamLuong as any,
         donGiaBan: giaBan,
       },
     });

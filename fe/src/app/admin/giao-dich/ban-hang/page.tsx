@@ -1,16 +1,35 @@
 import { Tag, Plus } from "lucide-react";
 import { getDanhSachPhieuBanHang } from "@/actions/giao-dich";
 import { SalesInvoiceList } from "@/components/giao-dich/sales-invoice-list";
+import { prisma } from "@/lib/prisma";
 
 export const metadata = { title: "Bán hàng – Admin | Aquamarine Jewelry & Luxury" };
 
 export default async function AdminBanHangPage() {
   let data = [];
+  let products = [];
+  let customers = [];
   let error: string | null = null;
 
   try {
-    const rawData = await getDanhSachPhieuBanHang();
+    const [rawData, rawProducts, rawCustomers] = await Promise.all([
+      getDanhSachPhieuBanHang(),
+      prisma.sanPham.findMany({
+        where: { deletedAt: null },
+        include: {
+          loaiSanPham: true,
+          donViTinh: true,
+        },
+        orderBy: { maSP: "asc" },
+      }),
+      prisma.khachHang.findMany({
+        where: { deletedAt: null },
+        orderBy: { maKH: "asc" },
+      }),
+    ]);
     data = JSON.parse(JSON.stringify(rawData)); // Serialize for client component
+    products = JSON.parse(JSON.stringify(rawProducts));
+    customers = JSON.parse(JSON.stringify(rawCustomers));
   } catch (e: any) {
     error = e.message;
   }
@@ -39,7 +58,7 @@ export default async function AdminBanHangPage() {
         </div>
       )}
 
-      <SalesInvoiceList data={data} />
+      <SalesInvoiceList data={data} products={products} customers={customers} returnUrl="/admin/giao-dich/ban-hang" />
     </div>
   );
 }

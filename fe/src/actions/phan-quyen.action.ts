@@ -24,9 +24,22 @@ export async function createNhomNguoiDung(data: { maNhom: string; tenNhom: strin
   try {
     await requireManager();
     const validated = groupSchema.parse(data);
+    const maNhom = validated.maNhom.toUpperCase();
+
+    const duplicatedGroup = await prisma.nhomNguoiDung.findFirst({
+      where: {
+        OR: [
+          { maNhom },
+          { tenNhom: { equals: validated.tenNhom, mode: "insensitive" } },
+        ],
+      },
+    });
+    if (duplicatedGroup) {
+      return { success: false, message: "Mã nhóm hoặc tên nhóm đã tồn tại" };
+    }
 
     await prisma.nhomNguoiDung.create({
-      data: { maNhom: validated.maNhom.toUpperCase(), tenNhom: validated.tenNhom },
+      data: { maNhom, tenNhom: validated.tenNhom },
     });
 
     revalidatePath("/admin/cai-dat/phan-quyen");
@@ -46,6 +59,15 @@ export async function updateNhomNguoiDung(maNhom: string, data: { tenNhom: strin
       return { success: false, message: "Không thể đổi tên nhóm hệ thống" };
     }
     const validated = groupUpdateSchema.parse(data);
+    const duplicatedGroup = await prisma.nhomNguoiDung.findFirst({
+      where: {
+        tenNhom: { equals: validated.tenNhom, mode: "insensitive" },
+        NOT: { maNhom },
+      },
+    });
+    if (duplicatedGroup) {
+      return { success: false, message: "Tên nhóm đã tồn tại" };
+    }
 
     await prisma.nhomNguoiDung.update({
       where: { maNhom },
@@ -95,7 +117,18 @@ export async function deleteNhomNguoiDung(maNhom: string) {
 export async function createChucNang(data: { maChucNang: string; tenChucNang: string; tenManHinhDuocLoad: string }) {
   try {
     await requireManager();
-    chucNangSchema.parse(data);
+    const validated = chucNangSchema.parse(data);
+    const duplicatedFunction = await prisma.chucNang.findFirst({
+      where: {
+        OR: [
+          { maChucNang: validated.maChucNang.toUpperCase() },
+          { tenChucNang: { equals: validated.tenChucNang, mode: "insensitive" } },
+        ],
+      },
+    });
+    if (duplicatedFunction) {
+      return { success: false, message: "Mã chức năng hoặc tên chức năng đã tồn tại" };
+    }
     return {
       success: false,
       message: "Không thể tạo chức năng chỉ bằng cấu hình. Chức năng mới phải được triển khai kèm màn hình và kiểm tra quyền trong mã nguồn.",
@@ -115,6 +148,15 @@ export async function updateChucNang(maChucNang: string, data: { tenChucNang: st
       return { success: false, message: "Không thể sửa chức năng hệ thống" };
     }
     const validated = chucNangUpdateSchema.parse(data);
+    const duplicatedFunction = await prisma.chucNang.findFirst({
+      where: {
+        tenChucNang: { equals: validated.tenChucNang, mode: "insensitive" },
+        NOT: { maChucNang },
+      },
+    });
+    if (duplicatedFunction) {
+      return { success: false, message: "Tên chức năng đã tồn tại" };
+    }
 
     await prisma.chucNang.update({
       where: { maChucNang },

@@ -12,8 +12,11 @@ import {
 } from "@/lib/business-rules";
 import { hasPermission, PERMISSIONS, ACTIONS } from "@/lib/permissions";
 import { nextSequentialId, nextSequentialIdFromValidCodes, withUniqueRetry } from "@/lib/id-generation";
+import { syncBaoCaoDoanhThuForDate } from "@/lib/revenue-report-sync";
+import { formatBusinessDate, getBusinessDateKey } from "@/lib/business-date";
 import { serviceTypeSchema } from "@/schemas/service-type.schema";
 import { serviceReceiptSchema } from "@/schemas/service.schema";
+import { revalidatePath } from "next/cache";
 
 function serialize(data: any) {
   return JSON.parse(JSON.stringify(data));
@@ -28,6 +31,7 @@ async function generateServiceReceiptId(tx: TransactionClient) {
   });
   return nextSequentialIdFromValidCodes(records.map((record) => record.soPhieu), "PDV", 7);
 }
+
 export async function getDanhSachLoaiDichVu() {
   const session = await getServerSession(authOptions) as any;
   const canViewTypes = await hasPermission(PERMISSIONS.LOAI_DICH_VU, ACTIONS.VIEW, session);
@@ -135,6 +139,12 @@ export async function lapPhieuDichVu(data: any) {
 
     const result = await withUniqueRetry(() => prisma.$transaction(async (tx) => {
       const soPhieu = await generateServiceReceiptId(tx);
+      const duplicatedService = validated.chiTietDichVu.find((item, index, items) =>
+        items.findIndex((candidate) => candidate.maDV === item.maDV) !== index
+      );
+      if (duplicatedService) {
+        throw new Error(`Dịch vụ ${duplicatedService.maDV} bị nhập trùng trong phiếu dịch vụ`);
+      }
 
       // 1. Lấy tham số hệ thống về tỉ lệ trả trước
       const thamSo = await tx.thamSo.findFirst({ where: { id: 1 } });
@@ -219,6 +229,125 @@ export async function lapPhieuDichVu(data: any) {
   }
 }
 
+export async function updatePhieuDichVu(soPhieu: string, data: any) {
+  try {
+    const session = await getServerSession(authOptions) as any;
+    if (!(await hasPermission(PERMISSIONS.TRA_CUU_DICH_VU, ACTIONS.UPDATE, session))) {
+      return { success: false, message: "Bạn không có quyền sửa phiếu dịch vụ" };
+    }
+
+    const ngayLap = data.ngayLap ? new Date(data.ngayLap) : new Date();
+    const validated = serviceReceiptSchema.parse({ ...data, soPhieu, ngayLap });
+
+    const result = await prisma.$transaction(async (tx) => {
+      const currentPhieu = await tx.phieuDichVu.findUnique({
+        where: { soPhieu },
+        include: { chiTietDichVu: true },
+      });
+      if (!currentPhieu) {
+        throw new Error("Phiếu dịch vụ không tồn tại");
+      }
+      if (currentPhieu.chiTietDichVu.some((ct) => ct.ngayGiao)) {
+        throw new Error("Không thể sửa nội dung phiếu dịch vụ đã có dòng đã giao. Hãy cập nhật trạng thái giao hoặc xóa phiếu theo đúng ràng buộc.");
+      }
+
+      const duplicatedService = validated.chiTietDichVu.find((item, index, items) =>
+        items.findIndex((candidate) => candidate.maDV === item.maDV) !== index
+      );
+      if (duplicatedService) {
+        throw new Error(`Dịch vụ ${duplicatedService.maDV} bị nhập trùng trong phiếu dịch vụ`);
+      }
+
+      const thamSo = await tx.thamSo.findFirst({ where: { id: 1 } });
+      const tiLeToiThieu = thamSo ? Number(thamSo.tiLeTraTruocToiThieu) : 50;
+
+      const chiTietDaTinh = [];
+      for (const ct of validated.chiTietDichVu) {
+        const loaiDichVu = await tx.loaiDichVu.findUnique({ where: { maDV: ct.maDV } });
+        if (!loaiDichVu) {
+          throw new Error(`Loại dịch vụ ${ct.maDV} không tồn tại`);
+        }
+
+        const donGiaDV = Number(loaiDichVu.donGiaDV);
+        const donGiaDuocTinh = calculateServiceUnitPrice(donGiaDV, Number(ct.chiPhiPhatSinh || 0));
+        const thanhTien = calculateLineTotal(Number(ct.soLuong), donGiaDuocTinh);
+        if (!isPrepaidEnough(Number(ct.traTruoc), thanhTien, tiLeToiThieu)) {
+          throw new Error(`Dịch vụ ${loaiDichVu.tenDV} yêu cầu trả trước tối thiểu ${tiLeToiThieu}%`);
+        }
+        const conLai = calculateRemainingAmount(thanhTien, Number(ct.traTruoc));
+
+        chiTietDaTinh.push({
+          maDV: ct.maDV,
+          donGiaDV,
+          chiPhiPhatSinh: Number(ct.chiPhiPhatSinh || 0),
+          donGiaDuocTinh,
+          soLuong: Number(ct.soLuong),
+          thanhTien,
+          traTruoc: Number(ct.traTruoc),
+          conLai,
+        });
+      }
+
+      const tongTien = chiTietDaTinh.reduce((sum, ct) => sum + ct.thanhTien, 0);
+      const tongTraTruoc = chiTietDaTinh.reduce((sum, ct) => sum + ct.traTruoc, 0);
+      const tongConLai = calculateRemainingAmount(tongTien, tongTraTruoc);
+
+      await tx.chiTietDichVu.deleteMany({ where: { soPhieu } });
+      const updated = await tx.phieuDichVu.update({
+        where: { soPhieu },
+        data: {
+          ngayLap,
+          maKH: validated.maKH || null,
+          tenKhachHang: validated.tenKhachHang,
+          soDienThoai: validated.soDienThoai,
+          tongTien,
+          tongTraTruoc,
+          tongConLai,
+          tinhTrang: "ChuaHoanThanh",
+          chiTietDichVu: {
+            create: chiTietDaTinh.map((ct, index: number) => ({
+              stt: index + 1,
+              maDV: ct.maDV,
+              donGiaDV: ct.donGiaDV,
+              chiPhiPhatSinh: ct.chiPhiPhatSinh || 0,
+              donGiaDuocTinh: ct.donGiaDuocTinh,
+              soLuong: ct.soLuong,
+              thanhTien: ct.thanhTien,
+              traTruoc: ct.traTruoc,
+              conLai: ct.conLai,
+              ngayGiao: null,
+            })),
+          },
+        },
+        include: {
+          chiTietDichVu: {
+            include: { loaiDichVu: true },
+            orderBy: { stt: "asc" },
+          },
+        },
+      });
+
+      await syncBaoCaoDoanhThuForDate(tx, new Date(currentPhieu.ngayLap));
+      if (getBusinessDateKey(currentPhieu.ngayLap) !== getBusinessDateKey(ngayLap)) {
+        await syncBaoCaoDoanhThuForDate(tx, ngayLap);
+      }
+
+      return updated;
+    });
+
+    revalidatePath("/admin/dich-vu/phieu-dich-vu");
+    revalidatePath("/nhan-vien/dich-vu/tra-cuu");
+    revalidatePath(`/admin/dich-vu/phieu-dich-vu/${soPhieu}`);
+    revalidatePath(`/nhan-vien/dich-vu/tra-cuu/${soPhieu}`);
+    revalidatePath("/admin/bao-cao/doanh-thu");
+    revalidatePath("/nhan-vien/bao-cao/doanh-thu");
+    return { success: true, message: "Cập nhật phiếu dịch vụ thành công", data: serialize(result) };
+  } catch (error: any) {
+    console.error("[updatePhieuDichVu] Error:", error);
+    return { success: false, message: error.message || "Lỗi khi sửa phiếu dịch vụ" };
+  }
+}
+
 export async function getPhieuDichVuChiTiet(soPhieu: string) {
   const session = await getServerSession(authOptions) as any;
   if (!(await hasPermission(PERMISSIONS.TRA_CUU_DICH_VU, ACTIONS.VIEW, session))) {
@@ -254,6 +383,39 @@ export async function getDanhSachPhieuDichVu() {
   })));
 }
 
+export async function deletePhieuDichVu(soPhieu: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const session = await getServerSession(authOptions) as any;
+    if (!(await hasPermission(PERMISSIONS.TRA_CUU_DICH_VU, ACTIONS.DELETE, session))) {
+      return { success: false, message: "Bạn không có quyền xóa phiếu dịch vụ" };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const phieu = await tx.phieuDichVu.findUnique({
+        where: { soPhieu },
+        include: { chiTietDichVu: true },
+      });
+      if (!phieu) {
+        throw new Error("Phiếu dịch vụ không tồn tại");
+      }
+
+      const reportDate = new Date(phieu.ngayLap);
+      await tx.chiTietDichVu.deleteMany({ where: { soPhieu } });
+      await tx.phieuDichVu.delete({ where: { soPhieu } });
+      await syncBaoCaoDoanhThuForDate(tx, reportDate);
+    });
+
+    revalidatePath("/admin/dich-vu/phieu-dich-vu");
+    revalidatePath("/nhan-vien/dich-vu/tra-cuu");
+    revalidatePath("/admin/bao-cao/doanh-thu");
+    revalidatePath("/nhan-vien/bao-cao/doanh-thu");
+    return { success: true, message: "Xóa phiếu dịch vụ thành công và đã cập nhật doanh thu liên quan" };
+  } catch (error: any) {
+    console.error("[deletePhieuDichVu] Error:", error);
+    return { success: false, message: error.message || "Lỗi khi xóa phiếu dịch vụ" };
+  }
+}
+
 export async function updateTinhTrangDichVu(soPhieu: string, chiTietUpdates: any[]) {
   try {
     const session = await getServerSession(authOptions) as any;
@@ -266,6 +428,7 @@ export async function updateTinhTrangDichVu(soPhieu: string, chiTietUpdates: any
       if (!currentPhieu) {
         throw new Error("Phiếu dịch vụ không tồn tại");
       }
+      const receiptDateKey = getBusinessDateKey(currentPhieu.ngayLap);
 
       // 1. Update each detail line
       for (const update of chiTietUpdates) {
@@ -295,6 +458,12 @@ export async function updateTinhTrangDichVu(soPhieu: string, chiTietUpdates: any
         let validNgayGiao: Date | null = shouldRollbackDelivery ? null : new Date();
         if (!shouldRollbackDelivery && update.ngayGiao && !isNaN(new Date(update.ngayGiao).getTime())) {
           validNgayGiao = new Date(update.ngayGiao);
+        }
+        if (!shouldRollbackDelivery && validNgayGiao) {
+          const deliveryDateKey = getBusinessDateKey(validNgayGiao);
+          if (deliveryDateKey < receiptDateKey) {
+            throw new Error(`Ngày giao thực tế của dòng ${stt} không được trước ngày lập phiếu (${formatBusinessDate(currentPhieu.ngayLap)})`);
+          }
         }
 
         if (!shouldRollbackDelivery && currentDetail.loaiDichVu.nhomDV === "KiemDinh") {
@@ -340,50 +509,15 @@ export async function updateTinhTrangDichVu(soPhieu: string, chiTietUpdates: any
         }
       });
 
-      const newStatus = remainingUndelivered === 0 ? "HoanThanh" : "ChuaHoanThanh";
-      const revenueAmount = Number(currentPhieu.tongTien);
-      const hasJustCompleted = currentPhieu.tinhTrang !== "HoanThanh" && newStatus === "HoanThanh";
-      const hasJustRolledBack = currentPhieu.tinhTrang === "HoanThanh" && newStatus !== "HoanThanh";
-
-      if (hasJustCompleted) {
-        const completedDate = new Date(currentPhieu.ngayLap);
-        const reportDate = {
-          ngay: completedDate.getDate(),
-          thang: completedDate.getMonth() + 1,
-          nam: completedDate.getFullYear(),
-        };
-
-        await tx.baoCaoDoanhThu.upsert({
-          where: { ngay_thang_nam: reportDate },
-          create: {
-            ...reportDate,
-            dtBanHang: 0,
-            dtDichVu: revenueAmount,
-            tongDT: revenueAmount,
-          },
-          update: {
-            dtDichVu: { increment: revenueAmount },
-            tongDT: { increment: revenueAmount },
-          },
-        });
-      } else if (hasJustRolledBack) {
-        const completedDate = new Date(currentPhieu.ngayLap);
-        await tx.baoCaoDoanhThu.updateMany({
-          where: {
-            ngay: completedDate.getDate(),
-            thang: completedDate.getMonth() + 1,
-            nam: completedDate.getFullYear(),
-          },
-          data: {
-            dtDichVu: { decrement: revenueAmount },
-            tongDT: { decrement: revenueAmount },
-          },
-        });
-      }
+      await syncBaoCaoDoanhThuForDate(tx, new Date(currentPhieu.ngayLap));
 
       return updatedPhieu;
     });
 
+    revalidatePath("/admin/bao-cao/doanh-thu");
+    revalidatePath("/nhan-vien/bao-cao/doanh-thu");
+    revalidatePath("/admin/dich-vu/phieu-dich-vu");
+    revalidatePath("/nhan-vien/dich-vu/tra-cuu");
     return {
       success: true,
       message: "Cập nhật trạng thái phiếu thành công",

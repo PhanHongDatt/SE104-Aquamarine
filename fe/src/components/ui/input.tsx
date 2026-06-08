@@ -21,6 +21,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             className="text-sm font-medium text-gray-700 cursor-default select-none"
           >
             {label}
+            {props.required && <span className="ml-1 text-red-500">*</span>}
           </label>
         )}
         <div className="relative">

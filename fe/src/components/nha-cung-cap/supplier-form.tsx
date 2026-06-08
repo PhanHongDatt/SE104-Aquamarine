@@ -43,6 +43,7 @@ export function SupplierForm({ initialData, onSubmit, onCancel }: SupplierFormPr
       <Input
         label="Tên nhà cung cấp"
         placeholder="Nhập tên công ty/đối tác"
+        required
         error={errors.tenNCC?.message}
         {...register("tenNCC")}
       />
@@ -50,6 +51,7 @@ export function SupplierForm({ initialData, onSubmit, onCancel }: SupplierFormPr
       <Input
         label="Địa chỉ"
         placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành"
+        required
         error={errors.diaChi?.message}
         {...register("diaChi")}
       />
@@ -58,12 +60,14 @@ export function SupplierForm({ initialData, onSubmit, onCancel }: SupplierFormPr
         <Input
           label="Số điện thoại"
           placeholder="Ví dụ: 0901234567"
+          required
           error={errors.soDienThoai?.message}
           {...register("soDienThoai")}
         />
         <Input
           label="Người liên hệ"
           placeholder="Tên người đại diện"
+          required
           error={errors.nguoiLienHe?.message}
           {...register("nguoiLienHe")}
         />

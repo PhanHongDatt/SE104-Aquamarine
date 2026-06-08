@@ -1,0 +1,1145 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thuyết trình đồ án SE104 - Aquamarine</title>
+  <style>
+    :root {
+      --bg: #eef2f7;
+      --card: #ffffff;
+      --ink: #172033;
+      --muted: #647084;
+      --line: #d9e1ec;
+      --soft: #f7f9fc;
+      --brand: #1646a3;
+      --brand-dark: #0f2f70;
+      --teal: #0f766e;
+      --gold: #b7791f;
+      --ok: #067647;
+      --warn: #b54708;
+      --danger: #b42318;
+      --shadow: 0 22px 70px rgba(16, 24, 40, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(22, 70, 163, 0.12), transparent 34rem),
+        radial-gradient(circle at top right, rgba(183, 121, 31, 0.12), transparent 30rem),
+        var(--bg);
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.55;
+    }
+
+    .page {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0f2f70 0%, #1646a3 54%, #0f766e 100%);
+      color: #fff;
+      border-radius: 28px;
+      padding: 34px 38px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::after {
+      content: "";
+      position: absolute;
+      right: -120px;
+      top: -120px;
+      width: 330px;
+      height: 330px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      font-size: 13px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      opacity: 0.82;
+      font-weight: 700;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 880px;
+      font-size: 34px;
+      line-height: 1.18;
+    }
+
+    .subtitle {
+      max-width: 850px;
+      margin: 14px 0 0;
+      color: rgba(255, 255, 255, 0.86);
+      font-size: 16px;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.32);
+      padding: 7px 12px;
+      color: rgba(255, 255, 255, 0.92);
+      background: rgba(255, 255, 255, 0.1);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 22px;
+      margin-top: 22px;
+    }
+
+    nav {
+      position: sticky;
+      top: 18px;
+      align-self: start;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 14px;
+      box-shadow: 0 12px 36px rgba(16, 24, 40, 0.08);
+    }
+
+    .nav-title {
+      margin: 5px 8px 12px;
+      font-weight: 800;
+      color: var(--brand-dark);
+      font-size: 14px;
+    }
+
+    .tab-button {
+      width: 100%;
+      border: 0;
+      border-radius: 14px;
+      background: transparent;
+      padding: 11px 12px;
+      text-align: left;
+      color: var(--muted);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.16s ease;
+    }
+
+    .tab-button:hover {
+      background: #eef4ff;
+      color: var(--brand);
+    }
+
+    .tab-button.active {
+      color: #fff;
+      background: linear-gradient(135deg, var(--brand) 0%, var(--teal) 100%);
+      box-shadow: 0 10px 22px rgba(22, 70, 163, 0.23);
+    }
+
+    main {
+      min-width: 0;
+    }
+
+    .tab-panel {
+      display: none;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: 0 12px 36px rgba(16, 24, 40, 0.08);
+      animation: fadeIn 0.18s ease;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 26px;
+      line-height: 1.2;
+      color: var(--brand-dark);
+    }
+
+    h3 {
+      margin: 22px 0 10px;
+      font-size: 18px;
+      color: #22304a;
+    }
+
+    h4 {
+      margin: 18px 0 8px;
+      color: #263750;
+    }
+
+    p {
+      margin: 8px 0;
+    }
+
+    .lead {
+      color: var(--muted);
+      font-size: 16px;
+      max-width: 880px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      background: var(--soft);
+    }
+
+    .card strong {
+      color: var(--brand-dark);
+    }
+
+    .route {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 5px 8px;
+      border-radius: 8px;
+      background: #edf2ff;
+      color: var(--brand-dark);
+      font-family: Consolas, Monaco, monospace;
+      font-size: 12px;
+      word-break: break-all;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .tag {
+      border-radius: 999px;
+      padding: 5px 9px;
+      background: #eef2f7;
+      color: #40506a;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .tag.ok {
+      background: #e7f8ef;
+      color: var(--ok);
+    }
+
+    .tag.warn {
+      background: #fff4e5;
+      color: var(--warn);
+    }
+
+    .tag.danger {
+      background: #feece9;
+      color: var(--danger);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      overflow: hidden;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #eef4ff;
+      color: var(--brand-dark);
+      font-weight: 800;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    ul,
+    ol {
+      margin: 8px 0 8px 20px;
+      padding: 0;
+    }
+
+    li {
+      margin: 5px 0;
+    }
+
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .flow span {
+      position: relative;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: #fff;
+      border: 1px solid var(--line);
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .flow span:not(:last-child)::after {
+      content: ">";
+      margin-left: 10px;
+      color: var(--muted);
+    }
+
+    .highlight {
+      border-left: 5px solid var(--gold);
+      background: #fffaf0;
+      padding: 14px 16px;
+      border-radius: 14px;
+      margin: 14px 0;
+    }
+
+    .note {
+      border-left: 5px solid var(--teal);
+      background: #ecfdf7;
+      padding: 14px 16px;
+      border-radius: 14px;
+      margin: 14px 0;
+    }
+
+    .checklist {
+      columns: 2;
+      column-gap: 28px;
+    }
+
+    .checklist li {
+      break-inside: avoid;
+    }
+
+    .print-bar {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin: 16px 0 0;
+    }
+
+    .print-button {
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 16px;
+      background: var(--ink);
+      color: #fff;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 900px) {
+      .page {
+        padding: 14px;
+      }
+
+      .layout,
+      .grid.two,
+      .grid.three {
+        grid-template-columns: 1fr;
+      }
+
+      nav {
+        position: static;
+      }
+
+      .checklist {
+        columns: 1;
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .page {
+        max-width: none;
+        padding: 0;
+      }
+
+      header,
+      .tab-panel {
+        box-shadow: none;
+        border-radius: 0;
+      }
+
+      nav,
+      .print-bar {
+        display: none;
+      }
+
+      .layout {
+        display: block;
+      }
+
+      .tab-panel {
+        display: block !important;
+        page-break-after: always;
+        border: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <p class="eyebrow">SE104 - Nhập môn Công nghệ phần mềm</p>
+      <h1>Đồ án Web quản lý cửa hàng vàng bạc đá quý Aquamarine</h1>
+      <p class="subtitle">
+        File này dùng để thuyết trình nhanh cho giảng viên: hệ thống có những phân hệ nào,
+        mỗi biểu mẫu tương ứng với màn hình nào, quy định nghiệp vụ được kiểm tra ở đâu,
+        và các tiêu chí chấm điểm đã được thể hiện trong sản phẩm. Nội dung mở đầu đi theo
+        thứ tự: phân quyền, thay đổi quy định, sau đó là các tính năng màn hình.
+      </p>
+      <div class="meta">
+        <span class="pill">11 yêu cầu nghiệp vụ</span>
+        <span class="pill">16 màn hình phân quyền</span>
+        <span class="pill">3 tham số QĐ11</span>
+        <span class="pill">Quản lý - Nhân viên - Kế toán</span>
+        <span class="pill">Kiểm thử logic, tích hợp, E2E</span>
+      </div>
+    </header>
+
+    <div class="print-bar">
+      <button class="print-button" type="button" onclick="window.print()">In / xuất PDF</button>
+    </div>
+
+    <div class="layout">
+      <nav aria-label="Tab thuyết trình">
+        <div class="nav-title">Nội dung thuyết trình</div>
+        <button class="tab-button active" data-tab="overview">1. Phân quyền</button>
+        <button class="tab-button" data-tab="settings">2. Thay đổi quy định</button>
+        <button class="tab-button" data-tab="tabs">3. Các tính năng màn hình</button>
+        <button class="tab-button" data-tab="catalog">4. Danh mục</button>
+        <button class="tab-button" data-tab="transactions">5. Giao dịch</button>
+        <button class="tab-button" data-tab="services">6. Dịch vụ</button>
+        <button class="tab-button" data-tab="reports">7. Báo cáo</button>
+        <button class="tab-button" data-tab="quality">8. Kiểm thử & cải tiến</button>
+        <button class="tab-button" data-tab="demo">9. Kịch bản demo</button>
+      </nav>
+
+      <main>
+        <section id="overview" class="tab-panel active">
+          <h2>Về Chức Năng Phân Quyền Đồ Án</h2>
+          <p class="lead">
+            Phân quyền là phần mở đầu của đồ án vì mọi nghiệp vụ đều phải đi qua kiểm tra quyền:
+            người dùng đăng nhập thuộc nhóm nào, nhóm đó được xem/thêm/sửa/xóa chức năng nào,
+            và giao diện chỉ hiển thị thao tác tương ứng.
+          </p>
+
+          <div class="grid three">
+            <div class="card">
+              <strong>Quản lý</strong>
+              <p>Có quyền đầy đủ với danh mục, giao dịch, báo cáo, tài khoản, phân quyền, quy định và sao lưu dữ liệu.</p>
+            </div>
+            <div class="card">
+              <strong>Nhân viên</strong>
+              <p>Được cấp quyền nghiệp vụ cần thiết như xem danh mục, lập phiếu bán/mua/dịch vụ và xem báo cáo tồn kho.</p>
+            </div>
+            <div class="card">
+              <strong>Kế toán</strong>
+              <p>Có thể được Quản lý cấp quyền xem báo cáo qua giao diện phân quyền khi mở rộng bài toán.</p>
+            </div>
+          </div>
+
+          <h3>Cách hệ thống kiểm soát quyền</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Thành phần</th>
+                <th>Ý nghĩa</th>
+                <th>Điểm demo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Nhóm người dùng</td>
+                <td>Lưu mã nhóm ổn định như Quản lý, Nhân viên, Kế toán.</td>
+                <td>Đổi tên hiển thị không làm mất quyền quản trị.</td>
+              </tr>
+              <tr>
+                <td>Chức năng</td>
+                <td>Mỗi màn hình có mã chức năng riêng: danh mục, giao dịch, báo cáo, hệ thống.</td>
+                <td>Chỉ nhóm có quyền mới thấy menu và truy cập được route.</td>
+              </tr>
+              <tr>
+                <td>Hành động</td>
+                <td>Mỗi chức năng tách quyền Xem, Thêm, Sửa, Xóa.</td>
+                <td>Nút thao tác ẩn/hiện theo quyền đã cấp.</td>
+              </tr>
+              <tr>
+                <td>Ma trận phân quyền</td>
+                <td>Quản lý có thể cấp hoặc thu hồi quyền qua giao diện.</td>
+                <td>Cấp quyền xem doanh thu cho Kế toán rồi đăng nhập kiểm chứng.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="highlight">
+            <strong>Luận điểm khi trình bày:</strong>
+            hệ thống không hard-code quyền theo tên nhóm dễ đổi, mà dùng mã nhóm và bảng phân quyền.
+            Vì vậy đồ án vừa đáp ứng đặc tả cơ bản, vừa mở rộng được cho vai trò Kế toán.
+          </div>
+        </section>
+
+        <section id="tabs" class="tab-panel">
+          <h2>Các Tab Trong Đồ Án Web</h2>
+          <p class="lead">
+            Bảng này dùng để liên hệ trực tiếp giữa menu web và các yêu cầu trong đặc tả.
+            Khi demo, có thể đi theo thứ tự từ danh mục nền đến giao dịch và báo cáo.
+          </p>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Tab / màn hình</th>
+                <th>Đường dẫn quản lý</th>
+                <th>Biểu mẫu / yêu cầu</th>
+                <th>Điểm kiểm tra</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Đơn vị tính</td>
+                <td><span class="route">/admin/danh-muc/don-vi-tinh</span></td>
+                <td>BM1 - QĐ1</td>
+                <td>Mã DVT tự sinh, tên không trùng kể cả khác hoa/thường, không xóa khi đang dùng.</td>
+              </tr>
+              <tr>
+                <td>Loại sản phẩm</td>
+                <td><span class="route">/admin/danh-muc/loai-san-pham</span></td>
+                <td>BM2 - QĐ2</td>
+                <td>Gắn đơn vị tính mặc định, tên không trùng hoa/thường, % lợi nhuận 0-100, báo danh sách sản phẩm nếu không xóa được.</td>
+              </tr>
+              <tr>
+                <td>Sản phẩm</td>
+                <td><span class="route">/admin/danh-muc/san-pham</span></td>
+                <td>BM3 - QĐ3</td>
+                <td>Kiểm tra loại, hàm lượng/chỉ số, đơn vị tính, trùng tên trong cùng loại, tính giá bán.</td>
+              </tr>
+              <tr>
+                <td>Bán hàng</td>
+                <td><span class="route">/admin/giao-dich/ban-hang</span></td>
+                <td>BM4 - QĐ4</td>
+                <td>Khách mới bắt buộc SĐT, kiểm tra tồn kho, tính thành tiền realtime, trừ tồn.</td>
+              </tr>
+              <tr>
+                <td>Mua hàng</td>
+                <td><span class="route">/admin/giao-dich/mua-hang</span></td>
+                <td>BM5 - QĐ5</td>
+                <td>Chọn ngày lập, số lượng/đơn giá cập nhật tổng tiền realtime, cộng tồn, cập nhật giá nhập.</td>
+              </tr>
+              <tr>
+                <td>Phiếu dịch vụ</td>
+                <td><span class="route">/admin/dich-vu/phieu-dich-vu</span></td>
+                <td>BM6, BM7 - QĐ6, QĐ7</td>
+                <td>Tỷ lệ trả trước tối thiểu, trạng thái giao, kết quả kiểm định.</td>
+              </tr>
+              <tr>
+                <td>Báo cáo tồn kho</td>
+                <td><span class="route">/admin/bao-cao/ton-kho</span></td>
+                <td>BM8 - QĐ8</td>
+                <td>Tồn cuối = tồn đầu + mua vào - bán ra, cảnh báo tồn thấp.</td>
+              </tr>
+              <tr>
+                <td>Nhà cung cấp</td>
+                <td><span class="route">/admin/danh-muc/nha-cung-cap</span></td>
+                <td>BM9 - QĐ9</td>
+                <td>Thông tin bắt buộc, kiểm tra trùng tên/SĐT, xóa mềm để giữ lịch sử.</td>
+              </tr>
+              <tr>
+                <td>Báo cáo doanh thu</td>
+                <td><span class="route">/admin/bao-cao/doanh-thu</span></td>
+                <td>BM10 - QĐ10</td>
+                <td>Doanh thu bán hàng + dịch vụ hoàn thành, xem theo quyền được cấp.</td>
+              </tr>
+              <tr>
+                <td>Thay đổi quy định</td>
+                <td><span class="route">/admin/cai-dat/quy-dinh</span></td>
+                <td>QĐ11</td>
+                <td>Cấu hình 3 tham số: lợi nhuận tối thiểu, tồn kho tối thiểu, tỷ lệ trả trước; hiển thị đồng hồ hệ thống.</td>
+              </tr>
+              <tr>
+                <td>Phân quyền</td>
+                <td><span class="route">/admin/cai-dat/phan-quyen</span></td>
+                <td>Mở rộng hệ thống</td>
+                <td>Cấp quyền xem/thêm/sửa/xóa theo nhóm tài khoản.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="note">
+            <strong>Gợi ý nói với giảng viên:</strong>
+            mỗi menu tương ứng với một nghiệp vụ trong đặc tả. Các quyền không bị hard-code theo
+            tên hiển thị nhóm, mà dựa trên mã nhóm và bảng phân quyền để có thể mở rộng cho Kế toán.
+          </div>
+        </section>
+
+        <section id="catalog" class="tab-panel">
+          <h2>Phân Hệ Danh Mục</h2>
+          <p class="lead">
+            Danh mục là dữ liệu nền. Nếu dữ liệu nền sai, các phiếu giao dịch và báo cáo phía sau
+            sẽ sai theo, nên hệ thống đặt nhiều ràng buộc kiểm tra ở nhóm màn hình này.
+          </p>
+
+          <div class="grid two">
+            <div class="card">
+              <h3>BM1 - Đơn vị tính</h3>
+              <p><strong>Dữ liệu:</strong> Mã DVT, tên DVT, sản phẩm áp dụng, ghi chú quy đổi.</p>
+              <ul>
+                <li>Mã theo định dạng <strong>DVT + 3 chữ số</strong>.</li>
+                <li>Tên đơn vị tính không được rỗng, được trim và không trùng kể cả khác hoa/thường.</li>
+                <li>Không xóa đơn vị tính đang được sản phẩm sử dụng.</li>
+                <li>Chỉ Quản lý được thêm/sửa/xóa theo quyền.</li>
+              </ul>
+            </div>
+
+            <div class="card">
+              <h3>BM2 - Loại sản phẩm</h3>
+              <p><strong>Dữ liệu:</strong> Mã LSP, tên loại, đơn vị tính mặc định, % lợi nhuận.</p>
+              <ul>
+                <li>Mã theo định dạng <strong>LSP + 3 chữ số</strong>.</li>
+                <li>Tên loại sản phẩm không trùng kể cả khác hoa/thường.</li>
+                <li>Đơn vị tính mặc định phải tồn tại trong danh mục DVT.</li>
+                <li>% lợi nhuận nằm trong khoảng 0-100.</li>
+                <li>Nếu loại đang có sản phẩm, hệ thống từ chối xóa và liệt kê sản phẩm liên quan.</li>
+              </ul>
+            </div>
+
+            <div class="card">
+              <h3>BM3 - Sản phẩm</h3>
+              <p><strong>Dữ liệu:</strong> Mã SP, tên, loại, hàm lượng, trọng lượng, DVT, tồn, giá.</p>
+              <ul>
+                <li>Mã theo định dạng <strong>SP + 3 chữ số</strong>.</li>
+                <li>Không cho tạo 2 sản phẩm trùng tên trong cùng loại.</li>
+                <li>Vàng dùng hàm lượng 24K, 22K, 18K, 14K, 10K.</li>
+                <li>Bạc dùng Bạc 925; kim cương/đá quý/ngọc trai là Không áp dụng.</li>
+              </ul>
+            </div>
+
+            <div class="card">
+              <h3>BM9 - Nhà cung cấp</h3>
+              <p><strong>Dữ liệu:</strong> Mã NCC, tên, địa chỉ, SĐT, người liên hệ.</p>
+              <ul>
+                <li>Mã theo định dạng <strong>NCC + 3 chữ số</strong>.</li>
+                <li>Các trường chính đều bắt buộc nhập và có dấu <strong>*</strong>.</li>
+                <li>Kiểm tra trùng tên hoặc số điện thoại nhà cung cấp.</li>
+                <li>Xóa mềm nhà cung cấp để không phá lịch sử phiếu mua hàng.</li>
+              </ul>
+            </div>
+          </div>
+
+          <h3>Luồng xử lý chuẩn cho danh mục</h3>
+          <div class="flow">
+            <span>Nhập dữ liệu</span>
+            <span>Kiểm tra quyền</span>
+            <span>Kiểm tra bắt buộc</span>
+            <span>Kiểm tra trùng</span>
+            <span>Sinh mã</span>
+            <span>Lưu CSDL</span>
+            <span>Cập nhật danh sách</span>
+          </div>
+
+          <h3>Điểm cải tiến đã bổ sung</h3>
+          <ul class="checklist">
+            <li>Thêm dấu <strong>*</strong> cho thông tin bắt buộc.</li>
+            <li>Cho thêm nhanh loại sản phẩm khi đang thêm sản phẩm.</li>
+            <li>Khi sửa sản phẩm chỉ cho sửa tên và loại sản phẩm.</li>
+            <li>Tự cập nhật đơn vị tính, hàm lượng, đơn giá bán khi đổi loại sản phẩm.</li>
+            <li>Kiểm tra trùng sản phẩm theo tên đã chuẩn hóa trong cùng loại.</li>
+            <li>Kiểm tra trùng nhà cung cấp theo tên hoặc số điện thoại.</li>
+            <li>Kiểm tra trùng nhóm người dùng/chức năng không phân biệt hoa thường ở màn hình phân quyền.</li>
+          </ul>
+        </section>
+
+        <section id="transactions" class="tab-panel">
+          <h2>Phân Hệ Giao Dịch</h2>
+          <p class="lead">
+            Giao dịch là phần tạo dữ liệu phát sinh: bán hàng làm giảm tồn kho,
+            mua hàng làm tăng tồn kho và cập nhật giá nhập mới nhất.
+          </p>
+
+          <div class="grid two">
+            <div class="card">
+              <h3>BM4 - Phiếu bán hàng</h3>
+              <p><strong>Đầu vào:</strong> khách hàng, sản phẩm, số lượng, ngày lập.</p>
+              <p><strong>Quy định chính:</strong></p>
+              <ul>
+                <li>Số phiếu tự sinh, ngày lập có thể chọn.</li>
+                <li>Khách hàng mới phải nhập số điện thoại để lưu vào danh mục khách hàng.</li>
+                <li>Kiểm tra tồn kho phải lớn hơn hoặc bằng số lượng bán.</li>
+                <li>Đơn giá bán = đơn giá nhập x (1 + % lợi nhuận / 100).</li>
+                <li>Thành tiền và tổng tiền cập nhật ngay khi đổi số lượng.</li>
+                <li>Lưu phiếu xong thì trừ tồn kho.</li>
+                <li>Có thể sửa/xóa phiếu, hệ thống hoàn tác và cập nhật lại tồn kho/doanh thu.</li>
+              </ul>
+              <div class="route">/admin/giao-dich/ban-hang/tao-moi</div>
+            </div>
+
+            <div class="card">
+              <h3>BM5 - Phiếu mua hàng</h3>
+              <p><strong>Đầu vào:</strong> nhà cung cấp, sản phẩm, số lượng, đơn giá nhập, ngày lập.</p>
+              <p><strong>Quy định chính:</strong></p>
+              <ul>
+                <li>Số phiếu tự sinh, ngày lập có thể chọn.</li>
+                <li>Số lượng mua và đơn giá mua phải lớn hơn 0.</li>
+                <li>Thành tiền và tổng tiền cập nhật ngay khi đổi số lượng hoặc đơn giá nhập.</li>
+                <li>Lưu phiếu xong thì cộng tồn kho.</li>
+                <li>Cập nhật đơn giá nhập mới nhất và tính lại đơn giá bán.</li>
+                <li>Có thể sửa toàn bộ phiếu mua: ngày, nhà cung cấp, sản phẩm, số lượng, đơn giá.</li>
+              </ul>
+              <div class="route">/admin/giao-dich/mua-hang/tao-moi</div>
+            </div>
+          </div>
+
+          <h3>Ràng buộc xóa phiếu mua hàng</h3>
+          <div class="highlight">
+            Khi xóa phiếu mua, hệ thống không xóa tùy tiện. Phiếu chỉ được xóa nếu tồn kho hiện tại
+            còn đủ để hoàn tác số lượng đã mua. Nếu hợp lệ, hệ thống trừ lại tồn kho, cập nhật lại báo cáo
+            tồn kho và giữ dữ liệu nhất quán.
+          </div>
+
+          <h3>Điểm cải tiến giao diện giao dịch</h3>
+          <ul class="checklist">
+            <li>Chi tiết phiếu mua/bán dùng modal lớn hơn để không bị thu nhỏ bảng chi tiết.</li>
+            <li>Các ô số lượng và đơn giá cập nhật lại thành tiền/tổng tiền ngay khi nhập.</li>
+            <li>Ngày lập phiếu mua và phiếu bán dùng ô chọn ngày, hỗ trợ tạo phiếu trong quá khứ.</li>
+            <li>Route sau khi lưu quay về đúng màn hình theo vai trò, tránh báo lỗi quyền sai ngữ cảnh.</li>
+          </ul>
+
+          <h3>Luồng dữ liệu giao dịch</h3>
+          <div class="flow">
+            <span>Chọn ngày</span>
+            <span>Nhập đối tượng</span>
+            <span>Chọn sản phẩm</span>
+            <span>Kiểm tra quy định</span>
+            <span>Tính thành tiền</span>
+            <span>Lưu phiếu</span>
+            <span>Cập nhật tồn kho</span>
+            <span>Cập nhật báo cáo</span>
+          </div>
+        </section>
+
+        <section id="services" class="tab-panel">
+          <h2>Phân Hệ Dịch Vụ</h2>
+          <p class="lead">
+            Phân hệ dịch vụ xử lý các nghiệp vụ không làm thay đổi tồn kho trực tiếp,
+            nhưng tạo doanh thu dịch vụ khi phiếu đã hoàn thành.
+          </p>
+
+          <div class="grid two">
+            <div class="card">
+              <h3>BM6 - Lập phiếu dịch vụ</h3>
+              <ul>
+                <li>Nhập khách hàng, số điện thoại, ngày lập.</li>
+                <li>Có thể tìm khách hàng theo mã, tên hoặc số điện thoại.</li>
+                <li>Chọn loại dịch vụ: Gia công hoặc Kiểm định.</li>
+                <li>Đơn giá được tính = đơn giá dịch vụ + chi phí phát sinh.</li>
+                <li>Thành tiền = số lượng x đơn giá được tính.</li>
+                <li>Tiền trả trước tính trên thành tiền đã gồm chi phí phát sinh và phải đạt tỷ lệ tối thiểu đang cấu hình.</li>
+              </ul>
+              <div class="route">/admin/dich-vu/phieu-dich-vu/tao-moi</div>
+            </div>
+
+            <div class="card">
+              <h3>BM7 - Tra cứu phiếu dịch vụ</h3>
+              <ul>
+                <li>Tìm theo số phiếu, khách hàng, tình trạng hoặc khoảng ngày.</li>
+                <li>Phiếu hoàn thành khi tất cả dòng dịch vụ đã giao.</li>
+                <li>Dòng kiểm định phải có kết quả Đạt chuẩn hoặc Không đạt chuẩn.</li>
+                <li>Có thể cập nhật trạng thái giao và số chứng thư giám định.</li>
+                <li>Ngày giao thực tế không được nhỏ hơn ngày lập phiếu.</li>
+              </ul>
+              <div class="route">/admin/dich-vu/phieu-dich-vu</div>
+            </div>
+          </div>
+
+          <h3>Cấu hình trả trước</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Nội dung</th>
+                <th>Cách hệ thống xử lý</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Mốc nhanh</td>
+                <td>Có các mốc như 50%, 75%, 100% nếu thỏa tỷ lệ tối thiểu; bấm lại mốc đang chọn để bỏ chọn và nhập thủ công.</td>
+              </tr>
+              <tr>
+                <td>Mốc tùy chọn</td>
+                <td>Người dùng nhập phần trăm tùy chọn, hệ thống chặn nếu nhỏ hơn tỷ lệ tối thiểu hoặc lớn hơn 100%.</td>
+              </tr>
+              <tr>
+                <td>Cập nhật realtime</td>
+                <td>Khi đổi chi phí phát sinh, số lượng hoặc mức trả trước, hệ thống tính lại đơn giá sau phát sinh, thành tiền, trả trước và còn lại.</td>
+              </tr>
+              <tr>
+                <td>Tính tiền còn lại</td>
+                <td>Tiền còn lại = thành tiền - tiền trả trước.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="note">
+            <strong>Đồng bộ menu:</strong>
+            Quản lý và Nhân viên đều có luồng lập phiếu và tra cứu phiếu dịch vụ; phía Quản lý hiển thị rõ tab
+            <span class="route">Lập phiếu</span> và <span class="route">Tra cứu phiếu</span>.
+          </div>
+        </section>
+
+        <section id="reports" class="tab-panel">
+          <h2>Phân Hệ Báo Cáo</h2>
+          <p class="lead">
+            Báo cáo là phần chứng minh dữ liệu giao dịch được tổng hợp đúng và nhất quán
+            với các công thức trong quy định.
+          </p>
+
+          <div class="grid two">
+            <div class="card">
+              <h3>BM8 - Báo cáo tồn kho</h3>
+              <p><strong>Công thức:</strong> Tồn cuối = Tồn đầu + Số lượng mua vào - Số lượng bán ra.</p>
+              <ul>
+                <li>Lập theo tháng/năm.</li>
+                <li>Lấy dữ liệu từ danh mục sản phẩm, phiếu mua và phiếu bán.</li>
+                <li>So sánh tồn cuối với ngưỡng tồn tối thiểu đang cấu hình trong QĐ11.</li>
+                <li>Cảnh báo sản phẩm có tồn thấp để nhắc nhập thêm hàng.</li>
+                <li>Không cảnh báo sai cho sản phẩm được tạo sau kỳ báo cáo đang xem.</li>
+              </ul>
+              <div class="route">/admin/bao-cao/ton-kho</div>
+            </div>
+
+            <div class="card">
+              <h3>BM10 - Báo cáo doanh thu</h3>
+              <p><strong>Công thức:</strong> Tổng doanh thu = Doanh thu bán hàng + Doanh thu dịch vụ.</p>
+              <ul>
+                <li>Báo cáo lọc được theo ngày, tháng hoặc quý.</li>
+                <li>Doanh thu bán hàng lấy từ tổng tiền phiếu bán.</li>
+                <li>Doanh thu dịch vụ chỉ tính phiếu đã hoàn thành.</li>
+                <li>Quyền xem báo cáo được kiểm soát qua ma trận phân quyền.</li>
+              </ul>
+              <div class="route">/admin/bao-cao/doanh-thu</div>
+            </div>
+          </div>
+
+          <h3>Điểm nên demo</h3>
+          <ol>
+            <li>Tạo phiếu mua để tồn kho tăng.</li>
+            <li>Tạo phiếu bán để tồn kho giảm và doanh thu bán hàng tăng.</li>
+            <li>Tạo phiếu dịch vụ, sau đó giao đủ dịch vụ để doanh thu dịch vụ tăng.</li>
+            <li>Mở báo cáo tồn kho và báo cáo doanh thu để đối chiếu công thức.</li>
+          </ol>
+        </section>
+
+        <section id="settings" class="tab-panel">
+          <h2>Về Thay Đổi Quy Định Đồ Án</h2>
+          <p class="lead">
+            Phần thay đổi quy định thể hiện QĐ11: các tham số nghiệp vụ có thể cấu hình qua giao diện,
+            có kiểm tra quyền Quản lý, có ghi lịch sử thay đổi và chỉ áp dụng cho nghiệp vụ sau thời điểm cập nhật.
+          </p>
+
+          <h3>QĐ11 - Tham số có thể thay đổi</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Tham số</th>
+                <th>Miền giá trị</th>
+                <th>Tác động trong hệ thống</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Phần trăm lợi nhuận tối thiểu</td>
+                <td>0% - 100%</td>
+                <td>Làm mức sàn khi thêm/sửa loại sản phẩm. Quy định mới không tự sửa dữ liệu cũ.</td>
+              </tr>
+              <tr>
+                <td>Số lượng tồn tối thiểu</td>
+                <td>0 - 1000</td>
+                <td>Lưu một nơi trong bảng quy định, dùng để cảnh báo tồn thấp trong báo cáo tồn kho.</td>
+              </tr>
+              <tr>
+                <td>Tỷ lệ trả trước tối thiểu</td>
+                <td>0% - 100%</td>
+                <td>Dùng để kiểm tra tiền trả trước khi lập phiếu dịch vụ.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>Điểm cải tiến trong màn hình quy định</h3>
+          <div class="grid three">
+            <div class="card">
+              <strong>Đồng hồ hệ thống</strong>
+              <p>Hiển thị thời gian vận hành theo mốc Asia/Bangkok để giải thích ngày lập phiếu và báo cáo.</p>
+            </div>
+            <div class="card">
+              <strong>Không còn nhập tối thiểu</strong>
+              <p>Đã bỏ tham số số lượng nhập tối thiểu vì không có trong đặc tả báo cáo hiện tại.</p>
+            </div>
+            <div class="card">
+              <strong>Một nguồn tồn tối thiểu</strong>
+              <p>Sản phẩm không lưu tồn tối thiểu riêng; báo cáo chỉ đối chiếu ngưỡng chung trong quy định.</p>
+            </div>
+          </div>
+
+          <h3>Nguyên tắc áp dụng quy định</h3>
+          <ul class="checklist">
+            <li>Tham số được sửa trong bảng tham số qua giao diện Quản lý, không fix cứng trên form.</li>
+            <li>Thay đổi tỷ lệ trả trước áp dụng cho phiếu dịch vụ lập/sửa sau thời điểm cập nhật.</li>
+            <li>Thay đổi lợi nhuận tối thiểu dùng làm mức sàn khi thêm/sửa loại sản phẩm, không tự phá dữ liệu cũ.</li>
+            <li>Thay đổi tồn tối thiểu chỉ ảnh hưởng cách cảnh báo trong báo cáo tồn kho.</li>
+          </ul>
+
+          <div class="note">
+            <strong>Cách giải thích lỗi logic đã xử lý:</strong>
+            quyền quản trị không phụ thuộc vào tên hiển thị nhóm có thể đổi được, mà dựa trên mã nhóm lõi
+            và bảng phân quyền. Vì vậy đổi tên nhóm không làm mất quyền truy cập hệ thống.
+          </div>
+        </section>
+
+        <section id="quality" class="tab-panel">
+          <h2>Kiểm Thử Và Cải Tiến Chất Lượng</h2>
+          <p class="lead">
+            Phần này giúp giảng viên thấy đồ án có kiểm thử khắt khe, không chỉ chạy được giao diện.
+          </p>
+
+          <h3>Các nhóm lỗi đã được kiểm tra</h3>
+          <ul class="checklist">
+            <li>Không nhập dữ liệu bắt buộc.</li>
+            <li>Nhập trùng tên đơn vị tính, loại sản phẩm, sản phẩm, nhà cung cấp.</li>
+            <li>Nhập % lợi nhuận ngoài khoảng 0-100.</li>
+            <li>Nhập tỷ lệ trả trước thấp hơn quy định.</li>
+            <li>Bán vượt tồn kho.</li>
+            <li>Mua hàng với số lượng hoặc đơn giá không hợp lệ.</li>
+            <li>Xóa phiếu mua khi không đủ tồn để hoàn tác.</li>
+            <li>Xóa nhà cung cấp nhưng vẫn giữ lịch sử phiếu mua.</li>
+            <li>Nhân viên truy cập chức năng không có quyền.</li>
+            <li>Kế toán chỉ xem báo cáo khi được cấp quyền qua giao diện.</li>
+            <li>Sản phẩm bạc/đá quý/kim cương không bị ép sai hàm lượng vàng.</li>
+            <li>Ngày lập phiếu mua/bán có thể chọn thay vì luôn cố định ngày hiện tại.</li>
+            <li>Ngày lập phiếu dịch vụ có thể chọn và ngày giao không được trước ngày lập.</li>
+            <li>Tổng tiền mua/bán/dịch vụ cập nhật realtime khi đổi số lượng, đơn giá hoặc phát sinh.</li>
+            <li>Cảnh báo tồn thấp không áp vào sản phẩm chưa tồn tại trong kỳ báo cáo.</li>
+          </ul>
+
+          <h3>Bằng chứng kiểm thử</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Loại kiểm thử</th>
+                <th>Mục tiêu</th>
+                <th>Kết quả mong đợi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Business rules</td>
+                <td>Kiểm tra công thức và ràng buộc nghiệp vụ.</td>
+                <td>Pass khi hàm tính giá, tồn kho, trả trước hoạt động đúng.</td>
+              </tr>
+              <tr>
+                <td>Integration test</td>
+                <td>Kiểm tra action server với CSDL Prisma.</td>
+                <td>Pass khi thêm/sửa/xóa/cập nhật tồn kho đúng.</td>
+              </tr>
+              <tr>
+                <td>E2E Playwright</td>
+                <td>Kiểm tra luồng người dùng thật trên trình duyệt.</td>
+                <td>Pass khi đăng nhập, phân quyền, bán hàng, dịch vụ và báo cáo chạy được.</td>
+              </tr>
+              <tr>
+                <td>Production build</td>
+                <td>Kiểm tra khả năng build triển khai.</td>
+                <td>Pass khi Next.js compile và typecheck thành công.</td>
+              </tr>
+              <tr>
+                <td>HTTP smoke test</td>
+                <td>Kiểm tra app local còn trả trang đăng nhập sau thay đổi.</td>
+                <td>Pass khi <span class="route">/dang-nhap</span> trả HTTP 200.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="highlight">
+            <strong>Lệnh kiểm tra đã dùng:</strong>
+            <span class="route">npm run check</span>
+            <span class="route">npm run build</span>
+            <span class="route">Invoke-WebRequest http://localhost:3000/dang-nhap</span>
+          </div>
+        </section>
+
+        <section id="demo" class="tab-panel">
+          <h2>Kịch Bản Demo Gợi Ý</h2>
+          <p class="lead">
+            Có thể dùng kịch bản này trong 7-10 phút để giảng viên hiểu hệ thống theo đúng luồng nghiệp vụ.
+          </p>
+
+          <ol>
+            <li>
+              <strong>Đăng nhập Quản lý:</strong>
+              mở dashboard, giới thiệu các phân hệ chính và vai trò người dùng.
+            </li>
+            <li>
+              <strong>Danh mục:</strong>
+              mở Sản phẩm, giải thích sản phẩm phụ thuộc Loại sản phẩm và Đơn vị tính.
+              Demo thêm sản phẩm, hệ thống tự chọn hàm lượng/đơn vị tính theo loại.
+            </li>
+            <li>
+              <strong>Kiểm tra trùng:</strong>
+              thử thêm sản phẩm cùng tên cùng loại hoặc nhà cung cấp trùng SĐT để thấy hệ thống chặn.
+            </li>
+            <li>
+              <strong>Thay đổi quy định:</strong>
+              mở Quy định, chỉ ra 3 tham số QĐ11 và đồng hồ hệ thống.
+            </li>
+            <li>
+              <strong>Lập phiếu mua:</strong>
+              chọn ngày, nhà cung cấp, sản phẩm, nhập số lượng hợp lệ để tồn kho tăng.
+            </li>
+            <li>
+              <strong>Lập phiếu bán:</strong>
+              chọn ngày, sản phẩm, nhập số lượng; hệ thống kiểm tra tồn và tính tổng tiền.
+            </li>
+            <li>
+              <strong>Lập phiếu dịch vụ:</strong>
+              dùng mốc trả trước tùy chọn, sau đó giao dịch vụ để chuyển trạng thái hoàn thành.
+            </li>
+            <li>
+              <strong>Báo cáo:</strong>
+              mở tồn kho và doanh thu, giải thích công thức tổng hợp từ phiếu mua/bán/dịch vụ.
+            </li>
+            <li>
+              <strong>Phân quyền:</strong>
+              cấp quyền xem doanh thu cho Kế toán qua giao diện, đăng nhập lại để chứng minh mở rộng được.
+            </li>
+            <li>
+              <strong>Kết luận:</strong>
+              nhấn mạnh hệ thống hiện thực đầy đủ biểu mẫu, quy định và có kiểm thử regression.
+            </li>
+          </ol>
+
+          <h3>Câu trả lời nhanh nếu giảng viên hỏi</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Câu hỏi</th>
+                <th>Cách trả lời</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Hệ thống có kiểm tra quyền không?</td>
+                <td>Có. Mỗi chức năng có mã quyền, mỗi nhóm có quyền xem/thêm/sửa/xóa riêng.</td>
+              </tr>
+              <tr>
+                <td>Công thức giá bán nằm ở đâu?</td>
+                <td>Giá bán được tính từ đơn giá nhập và % lợi nhuận của loại sản phẩm.</td>
+              </tr>
+              <tr>
+                <td>Xóa dữ liệu có làm sai lịch sử không?</td>
+                <td>Các phần có lịch sử giao dịch dùng xóa mềm hoặc kiểm tra ràng buộc trước khi xóa.</td>
+              </tr>
+              <tr>
+                <td>Kế toán xem doanh thu có trái QĐ10 không?</td>
+                <td>Trong đặc tả cơ bản chỉ Quản lý xem; bản mở rộng cho phép Quản lý cấp quyền cho Kế toán qua giao diện.</td>
+              </tr>
+              <tr>
+                <td>Làm sao chứng minh hệ thống ổn định?</td>
+                <td>Có lint, typecheck, business rules test, integration test, E2E test và production build.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="note">
+            <strong>Gợi ý kết bài:</strong>
+            đồ án đã chuyển các biểu mẫu và quy định thành chức năng web cụ thể, có kiểm soát dữ liệu,
+            phân quyền, tính toán tự động và báo cáo để hỗ trợ vận hành cửa hàng.
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const buttons = Array.from(document.querySelectorAll(".tab-button"));
+    const panels = Array.from(document.querySelectorAll(".tab-panel"));
+
+    function activateTab(tabId) {
+      buttons.forEach((button) => {
+        button.classList.toggle("active", button.dataset.tab === tabId);
+      });
+      panels.forEach((panel) => {
+        panel.classList.toggle("active", panel.id === tabId);
+      });
+      history.replaceState(null, "", "#" + tabId);
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => activateTab(button.dataset.tab));
+    });
+
+    const initialTab = location.hash.replace("#", "");
+    if (initialTab && document.getElementById(initialTab)) {
+      activateTab(initialTab);
+    }
+  </script>
+</body>
+</html>

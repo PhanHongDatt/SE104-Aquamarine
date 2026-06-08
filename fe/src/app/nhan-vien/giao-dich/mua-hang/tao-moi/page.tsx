@@ -16,6 +16,7 @@ export default async function StaffTaoPhieuMuaHangPage() {
       orderBy: { maSP: 'asc' },
     }),
     prisma.nhaCungCap.findMany({
+      where: { deletedAt: null },
       orderBy: { maNCC: 'asc' },
     }),
     prisma.phieuMuaHang.findMany({

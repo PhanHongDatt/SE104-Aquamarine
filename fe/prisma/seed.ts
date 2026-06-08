@@ -10,6 +10,7 @@ async function main() {
   }
 
   console.log('Start seeding...')
+  const demoStartDate = new Date(2026, 0, 1)
 
   // ── 1. Đơn Vị Tính ──────────────────────────────────────────
   await Promise.all([
@@ -30,14 +31,14 @@ async function main() {
 
   // ── 3. Sản Phẩm ─────────────────────────────────────────────
   const products = [
-    { maSP: 'SP001', tenSP: 'Nhẫn Vàng 9999 Trơn', maLSP: 'LSP001', hamLuong: 'K24', trongLuong: 2.5, maDVT: 'DVT001', tonKho: 50, donGiaNhap: 18500000, donGiaBan: 20450000 },
-    { maSP: 'SP002', tenSP: 'Lắc Tay Vàng 18K Đính Đá', maLSP: 'LSP002', hamLuong: 'K18', trongLuong: 5.0, maDVT: 'DVT001', tonKho: 30, donGiaNhap: 32000000, donGiaBan: 36000000 },
-    { maSP: 'SP003', tenSP: 'Dây Chuyền Bạc 925', maLSP: 'LSP003', hamLuong: 'K18', trongLuong: 8.0, maDVT: 'DVT002', tonKho: 100, donGiaNhap: 450000, donGiaBan: 490000 },
-    { maSP: 'SP004', tenSP: 'Nhẫn Kim Cương Solitaire 0.5ct', maLSP: 'LSP004', hamLuong: 'K18', trongLuong: 3.2, maDVT: 'DVT004', tonKho: 15, donGiaNhap: 85000000, donGiaBan: 106000000 },
-    { maSP: 'SP005', tenSP: 'Bông Tai Vàng 9999', maLSP: 'LSP001', hamLuong: 'K24', trongLuong: 1.8, maDVT: 'DVT001', tonKho: 40, donGiaNhap: 13500000, donGiaBan: 14900000 },
-    { maSP: 'SP009', tenSP: 'Nhẫn Cưới Kim Cương Đôi', maLSP: 'LSP004', hamLuong: 'K18', trongLuong: 6.5, maDVT: 'DVT004', tonKho: 10, donGiaNhap: 150000000, donGiaBan: 187500000 },
-    { maSP: 'SP010', tenSP: 'Dây Chuyền Vàng 24K 5 Chỉ', maLSP: 'LSP001', hamLuong: 'K24', trongLuong: 18.75, maDVT: 'DVT001', tonKho: 5, donGiaNhap: 42000000, donGiaBan: 46200000 },
-    { maSP: 'SP011', tenSP: 'Vòng Cổ Ngọc Trai Biển', maLSP: 'LSP005', hamLuong: 'K14', trongLuong: 15.0, maDVT: 'DVT004', tonKho: 20, donGiaNhap: 25000000, donGiaBan: 32500000 },
+    { maSP: 'SP001', tenSP: 'Nhẫn Vàng 9999 Trơn', maLSP: 'LSP001', hamLuong: 'K24', trongLuong: 2.5, maDVT: 'DVT001', tonKho: 50, donGiaNhap: 18500000, donGiaBan: 20450000, createdAt: demoStartDate },
+    { maSP: 'SP002', tenSP: 'Lắc Tay Vàng 18K Đính Đá', maLSP: 'LSP002', hamLuong: 'K18', trongLuong: 5.0, maDVT: 'DVT001', tonKho: 30, donGiaNhap: 32000000, donGiaBan: 36000000, createdAt: demoStartDate },
+    { maSP: 'SP003', tenSP: 'Dây Chuyền Bạc 925', maLSP: 'LSP003', hamLuong: 'BAC_925', trongLuong: 8.0, maDVT: 'DVT002', tonKho: 100, donGiaNhap: 450000, donGiaBan: 490000, createdAt: demoStartDate },
+    { maSP: 'SP004', tenSP: 'Nhẫn Kim Cương Solitaire 0.5ct', maLSP: 'LSP004', hamLuong: 'KHONG_AP_DUNG', trongLuong: 3.2, maDVT: 'DVT004', tonKho: 15, donGiaNhap: 85000000, donGiaBan: 106000000, createdAt: demoStartDate },
+    { maSP: 'SP005', tenSP: 'Bông Tai Vàng 9999', maLSP: 'LSP001', hamLuong: 'K24', trongLuong: 1.8, maDVT: 'DVT001', tonKho: 40, donGiaNhap: 13500000, donGiaBan: 14900000, createdAt: demoStartDate },
+    { maSP: 'SP009', tenSP: 'Nhẫn Cưới Kim Cương Đôi', maLSP: 'LSP004', hamLuong: 'KHONG_AP_DUNG', trongLuong: 6.5, maDVT: 'DVT004', tonKho: 10, donGiaNhap: 150000000, donGiaBan: 187500000, createdAt: demoStartDate },
+    { maSP: 'SP010', tenSP: 'Dây Chuyền Vàng 24K 5 Chỉ', maLSP: 'LSP001', hamLuong: 'K24', trongLuong: 18.75, maDVT: 'DVT001', tonKho: 5, donGiaNhap: 42000000, donGiaBan: 46200000, createdAt: demoStartDate },
+    { maSP: 'SP011', tenSP: 'Vòng Cổ Ngọc Trai Biển', maLSP: 'LSP005', hamLuong: 'KHONG_AP_DUNG', trongLuong: 15.0, maDVT: 'DVT004', tonKho: 20, donGiaNhap: 25000000, donGiaBan: 32500000, createdAt: demoStartDate },
   ]
 
   for (const p of products) {
@@ -49,9 +50,6 @@ async function main() {
     FROM "LoaiSanPham" lsp
     WHERE sp."maLSP" = lsp."maLSP" AND sp."maDVT" <> lsp."maDVT"
   `
-  await prisma.$executeRawUnsafe('ALTER TABLE "SanPham" DROP CONSTRAINT IF EXISTS chk_sp_tontoithieu')
-  await prisma.$executeRawUnsafe('UPDATE "SanPham" SET "tonToiThieu" = LEAST(1000, GREATEST(0, "tonToiThieu"))')
-  await prisma.$executeRawUnsafe('ALTER TABLE "SanPham" ADD CONSTRAINT chk_sp_tontoithieu CHECK ("tonToiThieu" >= 0 AND "tonToiThieu" <= 1000)')
 
   // ── 4. Nhà Cung Cấp ─────────────────────────────────────────
   await Promise.all([
@@ -135,11 +133,11 @@ async function main() {
     DM_SP:  ['XEM', 'THEM', 'SUA', 'XOA'],
     DM_KH:  ['XEM', 'THEM', 'SUA', 'XOA'],
     DM_NCC: ['XEM', 'THEM', 'SUA', 'XOA'],
-    GD_BAN: ['XEM', 'THEM'],
-    GD_MUA: ['XEM', 'THEM'],
+    GD_BAN: ['XEM', 'THEM', 'SUA', 'XOA'],
+    GD_MUA: ['XEM', 'THEM', 'SUA', 'XOA'],
     DV_LAP: ['XEM', 'THEM'],
     DV_LDV: ['XEM', 'THEM', 'SUA', 'XOA'],
-    DV_TRA: ['XEM', 'SUA'],
+    DV_TRA: ['XEM', 'SUA', 'XOA'],
     BC_TON: ['XEM'],
     BC_DTH: ['XEM'],
     HT_USR: ['XEM', 'THEM', 'SUA', 'XOA'],
@@ -313,6 +311,34 @@ async function main() {
           }))
         }
       }
+    })
+  }
+
+  const productCodes = products.map(p => p.maSP)
+  const seedOpenings = new Map(products.map(p => [p.maSP, p.tonKho]))
+  const [purchaseMovements, saleMovements] = await Promise.all([
+    prisma.chiTietMuaHang.groupBy({
+      by: ['maSP'],
+      where: { maSP: { in: productCodes } },
+      _sum: { soLuong: true },
+    }),
+    prisma.chiTietBanHang.groupBy({
+      by: ['maSP'],
+      where: { maSP: { in: productCodes } },
+      _sum: { soLuong: true },
+    }),
+  ])
+  const purchasesByProduct = new Map(purchaseMovements.map(m => [m.maSP.trim(), m._sum.soLuong ?? 0]))
+  const salesByProduct = new Map(saleMovements.map(m => [m.maSP.trim(), m._sum.soLuong ?? 0]))
+  for (const p of products) {
+    const openingStock = seedOpenings.get(p.maSP) ?? 0
+    const syncedStock = openingStock + Number(purchasesByProduct.get(p.maSP) ?? 0) - Number(salesByProduct.get(p.maSP) ?? 0)
+    if (syncedStock < 0) {
+      throw new Error(`Seed data creates negative stock for ${p.maSP}`)
+    }
+    await prisma.sanPham.update({
+      where: { maSP: p.maSP },
+      data: { tonKho: syncedStock, createdAt: demoStartDate },
     })
   }
 

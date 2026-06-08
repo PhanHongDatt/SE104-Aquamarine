@@ -2,16 +2,35 @@ import { Tag, Plus, ArrowLeft } from "lucide-react";
 import { getDanhSachPhieuBanHang } from "@/actions/giao-dich";
 import { SalesInvoiceList } from "@/components/giao-dich/sales-invoice-list";
 import Link from "next/link";
+import { prisma } from "@/lib/prisma";
 
 export const metadata = { title: "Phiếu bán hàng – Nhân viên | Aquamarine Jewelry & Luxury" };
 
 export default async function StaffBanHangPage() {
   let data = [];
+  let products = [];
+  let customers = [];
   let error: string | null = null;
 
   try {
-    const rawData = await getDanhSachPhieuBanHang();
+    const [rawData, rawProducts, rawCustomers] = await Promise.all([
+      getDanhSachPhieuBanHang(),
+      prisma.sanPham.findMany({
+        where: { deletedAt: null },
+        include: {
+          loaiSanPham: true,
+          donViTinh: true,
+        },
+        orderBy: { maSP: "asc" },
+      }),
+      prisma.khachHang.findMany({
+        where: { deletedAt: null },
+        orderBy: { maKH: "asc" },
+      }),
+    ]);
     data = JSON.parse(JSON.stringify(rawData));
+    products = JSON.parse(JSON.stringify(rawProducts));
+    customers = JSON.parse(JSON.stringify(rawCustomers));
   } catch (e: any) {
     error = e.message;
   }
@@ -45,7 +64,7 @@ export default async function StaffBanHangPage() {
         </div>
       )}
 
-      <SalesInvoiceList data={data} />
+      <SalesInvoiceList data={data} products={products} customers={customers} returnUrl="/nhan-vien/giao-dich/ban-hang" />
     </div>
   );
 }

@@ -7,6 +7,7 @@ interface PrintableRevenueReportProps {
   data: BaoCaoDoanhThuDetailedResult;
   thang: number;
   nam: number;
+  periodLabel?: string;
 }
 
 function formatCurrency(value: number) {
@@ -19,7 +20,7 @@ function formatCurrency(value: number) {
 export const PrintableRevenueReport = React.forwardRef<
   HTMLDivElement,
   PrintableRevenueReportProps
->(({ data, thang, nam }, ref) => {
+>(({ data, thang, nam, periodLabel }, ref) => {
   return (
     <div
       ref={ref}
@@ -36,7 +37,7 @@ export const PrintableRevenueReport = React.forwardRef<
         <div className="mt-6">
           <h2 className="text-3xl font-black tracking-tight">BÁO CÁO DOANH THU</h2>
           <p className="text-lg font-bold text-zinc-600 mt-1">
-            Tháng {thang} Năm {nam}
+            {periodLabel || `Tháng ${thang} Năm ${nam}`}
           </p>
         </div>
       </div>
@@ -66,7 +67,7 @@ export const PrintableRevenueReport = React.forwardRef<
           {data.dailyData.map((item) => (
             <tr key={item.ngay}>
               <td className="border border-zinc-800 p-2 text-center font-mono">
-                {item.ngay.toString().padStart(2, '0')}/{thang.toString().padStart(2, '0')}
+                {item.ngay.toString().padStart(2, '0')}/{item.thang.toString().padStart(2, '0')}
               </td>
               <td className="border border-zinc-800 p-2 text-right">
                 {formatCurrency(Number(item.dtBanHang))}

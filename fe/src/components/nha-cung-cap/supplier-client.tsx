@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Truck, Plus, Search, Edit2, Phone, User as UserIcon, MapPin } from "lucide-react";
+import { Truck, Plus, Search, Edit2, Phone, User as UserIcon, MapPin, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { SupplierForm } from "./supplier-form";
-import { createNhaCungCap, updateNhaCungCap } from "@/actions/nha-cung-cap.action";
+import { createNhaCungCap, deleteNhaCungCap, updateNhaCungCap } from "@/actions/nha-cung-cap.action";
 import { type NhaCungCapFormValues } from "@/schemas/nha-cung-cap.schema";
 import { usePermissions } from "@/hooks/use-permissions";
 
@@ -23,6 +23,7 @@ export function SupplierClient({ initialData }: SupplierClientProps) {
   const { hasPermission } = usePermissions();
   const canCreate = hasPermission("DM_NCC", "THEM");
   const canUpdate = hasPermission("DM_NCC", "SUA");
+  const canDelete = hasPermission("DM_NCC", "XOA");
   const [data, setData] = useState<NhaCungCap[]>(initialData);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -77,6 +78,23 @@ export function SupplierClient({ initialData }: SupplierClientProps) {
       }
     } catch (error) {
       toast.error("Không thể lưu thông tin. Vui lòng thử lại.");
+    }
+  };
+
+  const handleDelete = async (supplier: NhaCungCap) => {
+    if (!canDelete) {
+      toast.error("Bạn không có quyền thực hiện chức năng này.");
+      return;
+    }
+    if (!window.confirm(`Xóa nhà cung cấp "${supplier.tenNCC}"? Các phiếu mua cũ vẫn được giữ lịch sử.`)) return;
+
+    const res = await deleteNhaCungCap(supplier.maNCC);
+    if (res.success) {
+      toast.success(res.message);
+      setData((prev) => prev.filter((item) => item.maNCC !== supplier.maNCC));
+      router.refresh();
+    } else {
+      toast.error(res.message);
     }
   };
 
@@ -171,6 +189,15 @@ export function SupplierClient({ initialData }: SupplierClientProps) {
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                             Sửa
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDelete(item)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white rounded-lg transition-all duration-200 font-semibold text-xs border border-red-100 shadow-sm"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Xóa
                           </button>
                         )}
                       </div>

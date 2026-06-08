@@ -1,21 +1,40 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Eye, FileText, User, Calendar, Hash, ShoppingBag, X, Printer, Download } from "lucide-react";
+import { Eye, ShoppingBag, Printer, Download, Trash2, Edit2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import type { PhieuBanHang } from "@/types/model";
 import { Modal } from "@/components/ui/modal";
 import { PrintableInvoice } from "./printable-invoice";
+import { deletePhieuBanHang } from "@/actions/giao-dich";
+import { usePermissions } from "@/hooks/use-permissions";
+import { SalesInvoiceForm } from "./sales-invoice-form";
 
 interface SalesInvoiceListProps {
   data: PhieuBanHang[];
+  products?: any[];
+  customers?: any[];
+  returnUrl?: string;
 }
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value);
 }
 
-export function SalesInvoiceList({ data }: SalesInvoiceListProps) {
+export function SalesInvoiceList({
+  data,
+  products = [],
+  customers = [],
+  returnUrl = "/admin/giao-dich/ban-hang",
+}: SalesInvoiceListProps) {
+  const router = useRouter();
+  const { hasPermission } = usePermissions();
+  const canUpdate = hasPermission("GD_BAN", "SUA");
+  const canDelete = hasPermission("GD_BAN", "XOA");
   const [selectedPhieu, setSelectedPhieu] = useState<PhieuBanHang | null>(null);
+  const [editingPhieu, setEditingPhieu] = useState<PhieuBanHang | null>(null);
+  const [deletingSoPhieu, setDeletingSoPhieu] = useState<string | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
@@ -70,6 +89,29 @@ export function SalesInvoiceList({ data }: SalesInvoiceListProps) {
     setSelectedPhieu(phieu);
   };
 
+  const openEdit = (phieu: PhieuBanHang) => {
+    setSelectedPhieu(null);
+    setEditingPhieu(phieu);
+  };
+
+  const handleDelete = async (phieu: PhieuBanHang) => {
+    if (!canDelete) {
+      toast.error("Bạn không có quyền xóa phiếu bán hàng");
+      return;
+    }
+    if (!window.confirm(`Xóa phiếu bán ${phieu.soPhieu}? Hệ thống sẽ cộng lại tồn kho và trừ doanh thu theo phiếu này.`)) return;
+
+    setDeletingSoPhieu(phieu.soPhieu);
+    const res = await deletePhieuBanHang(phieu.soPhieu);
+    setDeletingSoPhieu(null);
+    if (res.success) {
+      toast.success(res.message);
+      router.refresh();
+    } else {
+      toast.error(res.message);
+    }
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
       {data.length === 0 ? (
@@ -96,13 +138,34 @@ export function SalesInvoiceList({ data }: SalesInvoiceListProps) {
                   <td className="px-6 py-4 font-medium text-zinc-800">{phieu.tenKhachHang || "Khách vãng lai"}</td>
                   <td className="px-6 py-4 text-right font-semibold text-zinc-900">{formatCurrency(Number(phieu.tongTien))}</td>
                   <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => openDetail(phieu)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 text-primary hover:bg-primary hover:text-white rounded-lg transition-all duration-200 font-semibold text-xs border border-primary/10 shadow-sm"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      Chi tiết
-                    </button>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => openDetail(phieu)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 text-primary hover:bg-primary hover:text-white rounded-lg transition-all duration-200 font-semibold text-xs border border-primary/10 shadow-sm"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        Chi tiết
+                      </button>
+                      {canUpdate && (
+                        <button
+                          onClick={() => openEdit(phieu)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white rounded-lg transition-all duration-200 font-semibold text-xs border border-blue-100 shadow-sm"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                          Sửa
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={() => handleDelete(phieu)}
+                          disabled={deletingSoPhieu === phieu.soPhieu}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white rounded-lg transition-all duration-200 font-semibold text-xs border border-red-100 shadow-sm disabled:opacity-60"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          {deletingSoPhieu === phieu.soPhieu ? "Đang xóa" : "Xóa"}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -116,7 +179,7 @@ export function SalesInvoiceList({ data }: SalesInvoiceListProps) {
         isOpen={!!selectedPhieu}
         onClose={() => setSelectedPhieu(null)}
         title="Chi tiết phiếu bán hàng"
-        size="lg"
+        size="xl"
       >
         {selectedPhieu && (
           <div className="space-y-6">
@@ -140,8 +203,8 @@ export function SalesInvoiceList({ data }: SalesInvoiceListProps) {
                 <ShoppingBag className="w-4 h-4 text-primary" />
                 Danh mục sản phẩm
               </h4>
-              <div className="rounded-2xl border border-zinc-100 overflow-hidden">
-	                <table className="w-full text-xs text-left">
+              <div className="rounded-2xl border border-zinc-100 overflow-x-auto">
+	                <table className="w-full min-w-[860px] text-xs text-left">
 	                  <thead className="bg-zinc-50/80 border-b border-zinc-100 font-bold text-zinc-500">
 	                    <tr>
 	                      <th className="px-4 py-3 text-center">STT</th>
@@ -211,6 +274,26 @@ export function SalesInvoiceList({ data }: SalesInvoiceListProps) {
               </div>
             </div>
           </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={!!editingPhieu}
+        onClose={() => setEditingPhieu(null)}
+        title="Sửa phiếu bán hàng"
+        size="xl"
+      >
+        {editingPhieu && (
+          <SalesInvoiceForm
+            key={editingPhieu.soPhieu}
+            products={products}
+            customers={customers}
+            nextSoPhieu={editingPhieu.soPhieu}
+            returnUrl={returnUrl}
+            mode="edit"
+            initialData={editingPhieu}
+            onSuccess={() => setEditingPhieu(null)}
+          />
         )}
       </Modal>
     </div>

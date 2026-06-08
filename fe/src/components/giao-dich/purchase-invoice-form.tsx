@@ -14,19 +14,62 @@ import { purchaseInvoiceSchema, type PurchaseInvoiceFormValues } from "@/schemas
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { lapPhieuMuaHang } from "@/actions/giao-dich";
+import { lapPhieuMuaHang, updatePhieuMuaHang } from "@/actions/giao-dich";
 
 interface PurchaseInvoiceFormProps {
   products: any[];
   suppliers: any[];
   nextSoPhieu: string;
+  returnUrl?: string;
+  mode?: "create" | "edit";
+  initialData?: any;
+  onSuccess?: () => void;
 }
 
-export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu }: PurchaseInvoiceFormProps) {
+function toDateInputValue(date: Date) {
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().slice(0, 10);
+}
+
+export function PurchaseInvoiceForm({
+  products,
+  suppliers,
+  nextSoPhieu,
+  returnUrl,
+  mode = "create",
+  initialData,
+  onSuccess,
+}: PurchaseInvoiceFormProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const isEditMode = mode === "edit" && initialData;
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const todayInputValue = useMemo(() => toDateInputValue(new Date()), []);
+  const initialDateInputValue = useMemo(() => {
+    return initialData?.ngayLap ? toDateInputValue(new Date(initialData.ngayLap)) : todayInputValue;
+  }, [initialData?.ngayLap, todayInputValue]);
+  const productMap = useMemo(() => new Map(products.map((product) => [product.maSP, product])), [products]);
+  const initialDetails = useMemo(() => {
+    if (!initialData?.chiTietMuaHang) return [];
+
+    return initialData.chiTietMuaHang.map((item: any) => {
+      const product = productMap.get(item.maSP) || item.sanPham || {};
+      const soLuong = Number(item.soLuong || 1);
+      const donGiaMua = Number(item.donGia ?? item.donGiaMua ?? product.donGiaNhap ?? 0);
+
+      return {
+        maSP: item.maSP,
+        tenSP: product.tenSP || item.sanPham?.tenSP,
+        tenLSP: product.loaiSanPham?.tenLSP || item.sanPham?.loaiSanPham?.tenLSP,
+        maDVT: product.maDVT || item.sanPham?.maDVT,
+        tenDVT: product.donViTinh?.tenDVT || item.sanPham?.donViTinh?.tenDVT,
+        soLuong,
+        donGiaMua,
+        thanhTien: Number(item.thanhTien ?? soLuong * donGiaMua),
+      };
+    });
+  }, [initialData?.chiTietMuaHang, productMap]);
 
   const {
     register,
@@ -38,11 +81,11 @@ export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu }: Purcha
   } = useForm<PurchaseInvoiceFormValues>({
     resolver: zodResolver(purchaseInvoiceSchema),
     defaultValues: {
-      soPhieu: nextSoPhieu,
-      ngayLap: new Date(),
-      maNCC: "",
-      chiTietMuaHang: [],
-      tongTien: 0,
+      soPhieu: initialData?.soPhieu || nextSoPhieu,
+      ngayLap: initialDateInputValue as any,
+      maNCC: initialData?.maNCC || "",
+      chiTietMuaHang: initialDetails,
+      tongTien: Number(initialData?.tongTien || 0),
     },
   });
 
@@ -89,24 +132,35 @@ export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu }: Purcha
       tenDVT: p.donViTinh?.tenDVT,
       soLuong: 1,
       donGiaMua: Number(p.donGiaNhap) || 0,
-      thanhTien: 1 * (Number(p.donGiaNhap) || 0),
+      thanhTien: Number(p.donGiaNhap) || 0,
     });
     setIsProductModalOpen(false);
   };
 
   const updateItem = (index: number, qty: number, price: number) => {
-    setValue(`chiTietMuaHang.${index}.soLuong`, qty, { shouldDirty: true, shouldTouch: true });
-    setValue(`chiTietMuaHang.${index}.donGiaMua`, price, { shouldDirty: true, shouldTouch: true });
-    setValue(`chiTietMuaHang.${index}.thanhTien`, qty * price, { shouldDirty: true, shouldTouch: true });
+    const item = items[index];
+    const nextQty = Math.max(1, Number(qty) || 1);
+    const nextPrice = Math.max(1, Number(price) || 1);
+    const newItems = [...items];
+    newItems[index] = {
+      ...item,
+      soLuong: nextQty,
+      donGiaMua: nextPrice,
+      thanhTien: nextQty * nextPrice,
+    };
+    setValue("chiTietMuaHang", newItems, { shouldDirty: true, shouldTouch: true });
   };
 
   const onSubmit = async (values: PurchaseInvoiceFormValues) => {
     try {
-      const res = await lapPhieuMuaHang(values as any);
+      const res = isEditMode
+        ? await updatePhieuMuaHang(initialData.soPhieu, values as any)
+        : await lapPhieuMuaHang(values as any);
       if (res.success) {
         toast.success(res.message);
-        router.push(pathname.startsWith("/nhan-vien") ? "/nhan-vien/giao-dich/mua-hang" : "/admin/giao-dich/mua-hang");
+        router.push(returnUrl || (pathname.startsWith("/nhan-vien") ? "/nhan-vien/giao-dich/mua-hang" : "/admin/giao-dich/mua-hang"));
         router.refresh();
+        onSuccess?.();
       } else {
         toast.error(res.message);
       }
@@ -125,16 +179,28 @@ export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu }: Purcha
           <div className="bg-white rounded-3xl border border-zinc-200 shadow-sm p-6 space-y-4">
             <h2 className="text-lg font-bold text-zinc-900 cursor-default select-none">Thông tin chung</h2>
             <div className="space-y-4">
-              <div className="pointer-events-none">
+              <div>
                 <Input label="Số phiếu" readOnly tabIndex={-1} className="font-mono text-xs cursor-default" {...register("soPhieu")} />
               </div>
-              <div className="pointer-events-none">
-                <Input label="Ngày lập" type="date" readOnly tabIndex={-1} defaultValue={new Date().toISOString().split('T')[0]} className="cursor-default" />
+              <div>
+                <Input
+                  label="Ngày lập"
+                  type="date"
+                  required
+                  defaultValue={initialDateInputValue}
+                  error={errors.ngayLap?.message}
+                  {...register("ngayLap", {
+                    setValueAs: (value) => value ? new Date(`${value}T00:00:00`) : new Date(),
+                  })}
+                />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-gray-700 cursor-default select-none">Nhà cung cấp</label>
+                <label className="text-sm font-medium text-gray-700 cursor-default select-none">
+                  Nhà cung cấp <span className="text-red-500">*</span>
+                </label>
                 <select 
                   {...register("maNCC")}
+                  required
                   className="w-full rounded-xl border border-soft/60 bg-white px-4 py-2.5 text-sm text-gray-800 outline-none transition-all duration-200 focus:border-accent focus:ring-2 focus:ring-soft/40"
                 >
                   <option value="">-- Chọn nhà cung cấp --</option>
@@ -163,7 +229,7 @@ export function PurchaseInvoiceForm({ products, suppliers, nextSoPhieu }: Purcha
             </div>
             <div className="pt-2">
               <Button type="submit" loading={isSubmitting} className="w-full h-12 rounded-2xl shadow-lg shadow-primary/20">
-                <Save className="w-4 h-4 mr-2" /> Lưu & Xuất phiếu
+                <Save className="w-4 h-4 mr-2" /> {isEditMode ? "Cập nhật phiếu" : "Lưu & Xuất phiếu"}
               </Button>
             </div>
           </div>

@@ -70,7 +70,7 @@ export function ServiceTypeForm({ initialData, onSuccess }: ServiceTypeFormProps
         />
 
         <Input
-          label="Đơn giá"
+          label="Đơn giá dịch vụ"
           type="number"
           placeholder="0"
           error={errors.donGiaDV?.message}

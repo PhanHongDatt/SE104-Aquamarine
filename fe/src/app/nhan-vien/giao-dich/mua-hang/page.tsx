@@ -2,11 +2,26 @@ import { getDanhSachPhieuMuaHang } from "@/actions/giao-dich";
 import { PurchaseInvoiceList } from "@/components/giao-dich/purchase-invoice-list";
 import { Truck, Plus, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { prisma } from "@/lib/prisma";
 
 export const metadata = { title: "Phiếu mua hàng – Nhân viên | Aquamarine Jewelry & Luxury" };
 
 export default async function StaffMuaHangPage() {
-  const data = await getDanhSachPhieuMuaHang();
+  const [rawData, rawProducts, rawSuppliers] = await Promise.all([
+    getDanhSachPhieuMuaHang(),
+    prisma.sanPham.findMany({
+      where: { deletedAt: null },
+      include: { loaiSanPham: true, donViTinh: true },
+      orderBy: { maSP: "asc" },
+    }),
+    prisma.nhaCungCap.findMany({
+      where: { deletedAt: null },
+      orderBy: { maNCC: "asc" },
+    }),
+  ]);
+  const data = JSON.parse(JSON.stringify(rawData));
+  const products = JSON.parse(JSON.stringify(rawProducts));
+  const suppliers = JSON.parse(JSON.stringify(rawSuppliers));
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -31,7 +46,7 @@ export default async function StaffMuaHangPage() {
         </Link>
       </div>
 
-      <PurchaseInvoiceList data={data} />
+      <PurchaseInvoiceList data={data} products={products} suppliers={suppliers} returnUrl="/nhan-vien/giao-dich/mua-hang" />
     </div>
   );
 }

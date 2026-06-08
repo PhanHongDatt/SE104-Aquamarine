@@ -13,7 +13,7 @@ import { salesInvoiceSchema, type SalesInvoiceFormValues } from "@/schemas/giao-
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { lapPhieuBanHang } from "@/actions/giao-dich";
+import { lapPhieuBanHang, updatePhieuBanHang } from "@/actions/giao-dich";
 import { calculateLineTotal, calculateSellPrice, canSellQuantity } from "@/lib/business-rules";
 
 interface SalesInvoiceFormProps {
@@ -21,30 +21,84 @@ interface SalesInvoiceFormProps {
   customers?: any[];
   nextSoPhieu: string;
   returnUrl?: string;
+  mode?: "create" | "edit";
+  initialData?: any;
+  onSuccess?: () => void;
 }
 
-export function SalesInvoiceForm({ products, customers = [], nextSoPhieu, returnUrl = "/admin/giao-dich/ban-hang" }: SalesInvoiceFormProps) {
+function toDateInputValue(date: Date) {
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().slice(0, 10);
+}
+
+export function SalesInvoiceForm({
+  products,
+  customers = [],
+  nextSoPhieu,
+  returnUrl = "/admin/giao-dich/ban-hang",
+  mode = "create",
+  initialData,
+  onSuccess,
+}: SalesInvoiceFormProps) {
   const router = useRouter();
+  const isEditMode = mode === "edit" && initialData;
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [customerSearch, setCustomerSearch] = useState("");
+  const [customerSearch, setCustomerSearch] = useState(() => {
+    const customer = initialData?.khachHang;
+    if (customer?.hoTen) {
+      return `${customer.hoTen} - ${customer.soDienThoai || ""}`.trim();
+    }
+    return "";
+  });
+  const todayInputValue = useMemo(() => toDateInputValue(new Date()), []);
+  const initialDateInputValue = useMemo(() => {
+    return initialData?.ngayLap ? toDateInputValue(new Date(initialData.ngayLap)) : todayInputValue;
+  }, [initialData?.ngayLap, todayInputValue]);
+  const productMap = useMemo(() => new Map(products.map((product) => [product.maSP, product])), [products]);
+  const initialDetails = useMemo(() => {
+    if (!initialData?.chiTietBanHang) return [];
+
+    return initialData.chiTietBanHang.map((item: any) => {
+      const product = productMap.get(item.maSP) || item.sanPham || {};
+      const oldQty = Number(item.soLuong || 0);
+      const donGiaBan = Number(item.donGia ?? item.donGiaBan ?? product.donGiaBan ?? 0);
+      const phanTramLN = Number(product.loaiSanPham?.phanTramLoiNhuan || 0);
+
+      return {
+        maSP: item.maSP,
+        tenSP: product.tenSP || item.sanPham?.tenSP,
+        tenLSP: product.loaiSanPham?.tenLSP || item.sanPham?.loaiSanPham?.tenLSP,
+        maDVT: product.maDVT || item.sanPham?.maDVT,
+        tenDVT: product.donViTinh?.tenDVT || item.sanPham?.donViTinh?.tenDVT,
+        soLuong: oldQty,
+        donGiaNhap: Number(product.donGiaNhap || item.sanPham?.donGiaNhap || 0),
+        phanTramLoiNhuan: phanTramLN,
+        donGiaBan,
+        thanhTien: Number(item.thanhTien ?? calculateLineTotal(oldQty, donGiaBan)),
+        tonKho: Number(product.tonKho ?? item.sanPham?.tonKho ?? 0) + oldQty,
+      };
+    });
+  }, [initialData?.chiTietBanHang, productMap]);
 
   const {
     register,
     control,
     handleSubmit,
     setValue,
+    setError,
     watch,
     formState: { errors, isSubmitting },
   } = useForm<SalesInvoiceFormValues>({
     resolver: zodResolver(salesInvoiceSchema),
     defaultValues: {
-      soPhieu: nextSoPhieu,
-      ngayLap: new Date(),
-      maKH: "",
-      tenKhachHang: "",
-      chiTietBanHang: [],
-      tongTien: 0,
+      soPhieu: initialData?.soPhieu || nextSoPhieu,
+      ngayLap: initialDateInputValue as any,
+      maKH: initialData?.maKH || "",
+      tenKhachHang: initialData?.tenKhachHang || initialData?.khachHang?.hoTen || "",
+      soDienThoai: initialData?.khachHang?.soDienThoai || "",
+      chiTietBanHang: initialDetails,
+      tongTien: Number(initialData?.tongTien || 0),
     },
   });
 
@@ -127,22 +181,39 @@ export function SalesInvoiceForm({ products, customers = [], nextSoPhieu, return
 
   const updateItemQuantity = (index: number, qty: number) => {
     const item = items[index];
-    if (!canSellQuantity(item.tonKho || 0, qty)) {
+    const nextQty = Math.max(1, Number(qty) || 1);
+    if (!canSellQuantity(item.tonKho || 0, nextQty)) {
       toast.error(`Số lượng bán vượt quá tồn kho (${item.tonKho})`);
       return;
     }
     const giaBan = Number(item.donGiaBan);
-    setValue(`chiTietBanHang.${index}.soLuong`, qty, { shouldDirty: true, shouldTouch: true });
-    setValue(`chiTietBanHang.${index}.thanhTien`, calculateLineTotal(qty, giaBan), { shouldDirty: true, shouldTouch: true });
+    const newItems = [...items];
+    newItems[index] = {
+      ...item,
+      soLuong: nextQty,
+      thanhTien: calculateLineTotal(nextQty, giaBan),
+    };
+    setValue("chiTietBanHang", newItems, { shouldDirty: true, shouldTouch: true });
   };
 
   const onSubmit = async (data: SalesInvoiceFormValues) => {
     try {
-      const res = await lapPhieuBanHang(data as any);
+      if (!isEditMode && !data.maKH?.trim() && !data.soDienThoai?.trim()) {
+        setError("soDienThoai", {
+          type: "manual",
+          message: "Vui lòng nhập số điện thoại cho khách hàng mới",
+        });
+        toast.error("Vui lòng nhập số điện thoại cho khách hàng mới");
+        return;
+      }
+      const res = isEditMode
+        ? await updatePhieuBanHang(initialData.soPhieu, data as any)
+        : await lapPhieuBanHang(data as any);
       if (res.success) {
         toast.success(res.message);
         router.push(returnUrl);
         router.refresh();
+        onSuccess?.();
       } else {
         toast.error(res.message);
       }
@@ -175,14 +246,16 @@ export function SalesInvoiceForm({ products, customers = [], nextSoPhieu, return
                 />
               </div>
 
-              <div className="pointer-events-none">
+              <div>
                 <Input
                   label="Ngày lập"
                   type="date"
-                  readOnly
-                  tabIndex={-1}
-                  defaultValue={new Date().toISOString().split('T')[0]}
-                  className="cursor-default"
+                  required
+                  defaultValue={initialDateInputValue}
+                  error={errors.ngayLap?.message}
+                  {...register("ngayLap", {
+                    setValueAs: (value) => value ? new Date(`${value}T00:00:00`) : new Date(),
+                  })}
                 />
               </div>
 
@@ -234,6 +307,7 @@ export function SalesInvoiceForm({ products, customers = [], nextSoPhieu, return
               <Input
                 label="Tên khách hàng"
                 placeholder="Nhập tên khách hàng nếu chưa có hồ sơ"
+                required
                 error={errors.tenKhachHang?.message}
                 {...register("tenKhachHang")}
               />
@@ -242,6 +316,8 @@ export function SalesInvoiceForm({ products, customers = [], nextSoPhieu, return
                 <Input
                   label="Số điện thoại"
                   placeholder="Nhập SĐT để lưu hồ sơ khách hàng"
+                  required={!isEditMode}
+                  error={errors.soDienThoai?.message}
                   {...register("soDienThoai")}
                 />
               )}
@@ -258,7 +334,7 @@ export function SalesInvoiceForm({ products, customers = [], nextSoPhieu, return
             <div className="pt-2">
               <Button type="submit" loading={isSubmitting} className="w-full h-12 rounded-2xl shadow-lg shadow-primary/20">
                 <Save className="w-4 h-4 mr-2" />
-                Lưu & Xuất phiếu
+                {isEditMode ? "Cập nhật phiếu" : "Lưu & Xuất phiếu"}
               </Button>
             </div>
           </div>

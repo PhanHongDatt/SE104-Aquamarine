@@ -39,6 +39,7 @@ export async function updateSystemSettings(data: any) {
       const updated = await tx.thamSo.update({
         where: { id: 1 },
         data: {
+          phanTramLoiNhuanToiThieu: validated.phanTramLoiNhuanToiThieu,
           soLuongTonKhoToiThieu: validated.soLuongTonKhoToiThieu,
           tiLeTraTruocToiThieu: validated.tiLeTraTruocToiThieu,
         }

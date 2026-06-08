@@ -1,6 +1,21 @@
 const { execFileSync, spawnSync } = require("node:child_process");
-const { closeSync, existsSync, mkdirSync, openSync, rmSync } = require("node:fs");
+const { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync } = require("node:fs");
 const { join } = require("node:path");
+
+function loadLocalEnv() {
+  if (!existsSync(".env")) return;
+
+  for (const line of readFileSync(".env", "utf8").split(/\r?\n/)) {
+    const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
+    if (!match) continue;
+
+    const [, key, rawValue] = match;
+    if (process.env[key] !== undefined) continue;
+    process.env[key] = rawValue.replace(/^['"]|['"]$/g, "");
+  }
+}
+
+loadLocalEnv();
 
 const databaseUrl = process.env.DATABASE_URL;
 const backupDir = process.env.BACKUP_DIR || "backups";
@@ -26,13 +41,19 @@ function parseDatabaseUrl(url) {
   };
 }
 
+function getPostgresToolUrl(url) {
+  const parsed = new URL(url);
+  parsed.searchParams.delete("schema");
+  return parsed.toString();
+}
+
 function isCommandAvailable(command) {
   const result = spawnSync(command, ["--version"], { stdio: "ignore" });
   return !result.error;
 }
 
 function runLocalBackup() {
-  execFileSync("pg_dump", [databaseUrl, "--file", outputFile, "--no-owner", "--no-privileges"], {
+  execFileSync("pg_dump", [getPostgresToolUrl(databaseUrl), "--file", outputFile, "--no-owner", "--no-privileges"], {
     stdio: "inherit",
   });
 }

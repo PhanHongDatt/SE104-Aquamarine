@@ -7,12 +7,13 @@ interface PrintableInventoryReportProps {
   data: BaoCaoTonKhoDetailedItem[];
   thang: number;
   nam: number;
+  periodLabel?: string;
 }
 
 export const PrintableInventoryReport = React.forwardRef<
   HTMLDivElement,
   PrintableInventoryReportProps
->(({ data, thang, nam }, ref) => {
+>(({ data, thang, nam, periodLabel }, ref) => {
   return (
     <div
       ref={ref}
@@ -29,7 +30,7 @@ export const PrintableInventoryReport = React.forwardRef<
         <div className="mt-6">
           <h2 className="text-3xl font-black tracking-tight">BÁO CÁO TỒN KHO</h2>
           <p className="text-lg font-bold text-zinc-600 mt-1">
-            Tháng {thang} Năm {nam}
+            {periodLabel || `Tháng ${thang} Năm ${nam}`}
           </p>
         </div>
       </div>

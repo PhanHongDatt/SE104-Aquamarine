@@ -34,6 +34,20 @@ async function isValidUnit(maDVT: string) {
   return !!unit;
 }
 
+async function getMinimumProfitPercent() {
+  const settings = await prisma.thamSo.findUnique({
+    where: { id: 1 },
+    select: { phanTramLoiNhuanToiThieu: true },
+  });
+  return Number(settings?.phanTramLoiNhuanToiThieu ?? 0);
+}
+
+function assertProfitMeetsMinimum(profitPercent: number, minimumProfitPercent: number) {
+  if (profitPercent < minimumProfitPercent) {
+    throw new Error(`Phần trăm lợi nhuận phải lớn hơn hoặc bằng ${minimumProfitPercent}% theo quy định hiện tại`);
+  }
+}
+
 // 2. Lấy danh sách
 export async function getLoaiSanPhams() {
   try {
@@ -62,6 +76,8 @@ export async function createLoaiSanPham(data: LoaiSanPhamInput) {
     if (!(await isValidUnit(validated.maDVT))) {
       return { success: false, message: "Đơn vị tính không hợp lệ" };
     }
+    const minimumProfitPercent = await getMinimumProfitPercent();
+    assertProfitMeetsMinimum(validated.phanTramLoiNhuan, minimumProfitPercent);
 
     // Kiểm tra trùng tên (không phân biệt hoa/thường)
     const existing = await prisma.loaiSanPham.findFirst({
@@ -103,6 +119,8 @@ export async function updateLoaiSanPham(maLSP: string, data: LoaiSanPhamInput) {
     if (!(await isValidUnit(validated.maDVT))) {
       return { success: false, message: "Đơn vị tính không hợp lệ" };
     }
+    const minimumProfitPercent = await getMinimumProfitPercent();
+    assertProfitMeetsMinimum(validated.phanTramLoiNhuan, minimumProfitPercent);
 
     // Kiểm tra trùng tên (không phân biệt hoa/thường, trừ chính nó)
     const existing = await prisma.loaiSanPham.findFirst({

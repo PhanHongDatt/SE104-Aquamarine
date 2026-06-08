@@ -3,6 +3,7 @@ import type { SanPham } from "@/types/model";
 import { Package, ArrowLeft, Search, Info } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { HAM_LUONG_LABELS } from "@/schemas/san-pham.schema";
 
 export const metadata = { title: "Sản Phẩm – Aquamarine Jewelry & Luxury" };
 
@@ -12,6 +13,8 @@ const HAM_LUONG_STYLE: Record<string, string> = {
   K18: "bg-yellow-50 text-yellow-700 border-yellow-200",
   K14: "bg-slate-100 text-slate-700 border-slate-200",
   K10: "bg-zinc-100 text-zinc-600 border-zinc-200",
+  BAC_925: "bg-sky-100 text-sky-700 border-sky-200",
+  KHONG_AP_DUNG: "bg-zinc-100 text-zinc-600 border-zinc-200",
 };
 
 function formatCurrency(value: number) {
@@ -100,7 +103,7 @@ export default async function SanPhamPage() {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span className={cn("px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase font-montserrat", HAM_LUONG_STYLE[item.hamLuong] || "bg-zinc-100")}>
-                        {item.hamLuong}
+                        {HAM_LUONG_LABELS[item.hamLuong as keyof typeof HAM_LUONG_LABELS] ?? item.hamLuong}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right font-mono text-zinc-600">{Number(item.trongLuong).toLocaleString("vi-VN")}</td>

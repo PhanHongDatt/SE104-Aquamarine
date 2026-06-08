@@ -24,6 +24,12 @@ function toCount(value: unknown) {
 }
 
 export default async function AdminDashboardPage() {
+  const settings = await prisma.thamSo.findUnique({
+    where: { id: 1 },
+    select: { soLuongTonKhoToiThieu: true },
+  });
+  const minimumStock = settings?.soLuongTonKhoToiThieu ?? 0;
+
   // 1. Fetch real stats from Monolith Database
   const [productCount, totalRevenue, todaySales, lowStockCount] = await Promise.all([
     prisma.sanPham.count({ where: { deletedAt: null } }),
@@ -38,7 +44,7 @@ export default async function AdminDashboardPage() {
     prisma.$queryRaw<{ count: bigint }[]>`
       SELECT COUNT(*)::bigint AS count
       FROM "SanPham" sp
-      WHERE sp."deletedAt" IS NULL AND sp."tonKho" < sp."tonToiThieu"
+      WHERE sp."deletedAt" IS NULL AND sp."tonKho" < ${minimumStock}
     `
   ]);
   const lowStockTotal = toCount(lowStockCount[0]?.count);

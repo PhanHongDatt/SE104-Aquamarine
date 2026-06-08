@@ -15,6 +15,11 @@ export default async function StaffDashboardPage() {
     getServerSession(authOptions),
     getCurrentPermissions(),
   ]);
+  const settings = await prisma.thamSo.findUnique({
+    where: { id: 1 },
+    select: { soLuongTonKhoToiThieu: true },
+  });
+  const minimumStock = settings?.soLuongTonKhoToiThieu ?? 0;
 
   const [unfinishedServices, lowStockProducts, lowStockCount] = await Promise.all([
     prisma.phieuDichVu.findMany({
@@ -29,17 +34,17 @@ export default async function StaffDashboardPage() {
       tonToiThieu: number;
       tenDVT: string;
     }>>`
-      SELECT sp."maSP", sp."tenSP", sp."tonKho", sp."tonToiThieu", dvt."tenDVT"
+      SELECT sp."maSP", sp."tenSP", sp."tonKho", ${minimumStock}::integer AS "tonToiThieu", dvt."tenDVT"
       FROM "SanPham" sp
       INNER JOIN "DonViTinh" dvt ON dvt."maDVT" = sp."maDVT"
-      WHERE sp."deletedAt" IS NULL AND sp."tonKho" < sp."tonToiThieu"
+      WHERE sp."deletedAt" IS NULL AND sp."tonKho" < ${minimumStock}
       ORDER BY sp."tonKho" ASC
       LIMIT 5
     `,
     prisma.$queryRaw<Array<{ count: bigint }>>`
       SELECT COUNT(*)::bigint AS count
       FROM "SanPham" sp
-      WHERE sp."deletedAt" IS NULL AND sp."tonKho" < sp."tonToiThieu"
+      WHERE sp."deletedAt" IS NULL AND sp."tonKho" < ${minimumStock}
     `,
   ]);
   const lowStockTotal = Number(lowStockCount[0]?.count ?? 0);

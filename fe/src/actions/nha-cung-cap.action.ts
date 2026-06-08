@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { nextSequentialIdFromValidCodes, withUniqueRetry } from "@/lib/id-generation";
 import { hasPermission, PERMISSIONS, ACTIONS } from "@/lib/permissions";
+import { normalizeComparableText } from "@/lib/business-rules";
 import { nhaCungCapSchema, type NhaCungCapFormValues } from "@/schemas/nha-cung-cap.schema";
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
@@ -13,7 +14,7 @@ function serialize(data: any) {
 }
 
 async function requireSupplierPermission(hanhDong: string = ACTIONS.VIEW) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions) as any;
   if (!(await hasPermission(PERMISSIONS.NHA_CUNG_CAP, hanhDong, session))) {
     return { allowed: false, message: "Bạn không có quyền quản lý nhà cung cấp" };
   }
@@ -28,12 +29,34 @@ async function generateSupplierId() {
   return nextSequentialIdFromValidCodes(records.map((record) => record.maNCC), "NCC", 3);
 }
 
+async function findDuplicateSupplier(input: NhaCungCapFormValues, excludeMaNCC?: string) {
+  const normalizedName = normalizeComparableText(input.tenNCC);
+  const phone = input.soDienThoai.trim();
+  const candidates = await prisma.nhaCungCap.findMany({
+    where: {
+      deletedAt: null,
+      ...(excludeMaNCC ? { NOT: { maNCC: excludeMaNCC } } : {}),
+    },
+    select: { maNCC: true, tenNCC: true, soDienThoai: true },
+  });
+
+  return candidates.find((supplier) =>
+    normalizeComparableText(supplier.tenNCC) === normalizedName ||
+    supplier.soDienThoai.trim() === phone
+  ) ?? null;
+}
+
 export async function createNhaCungCap(input: NhaCungCapFormValues) {
   try {
     const auth = await requireSupplierPermission(ACTIONS.CREATE);
     if (!auth.allowed) return { success: false, message: auth.message };
 
     const validated = nhaCungCapSchema.parse(input);
+    const duplicate = await findDuplicateSupplier(validated);
+    if (duplicate) {
+      return { success: false, message: `Nhà cung cấp đã tồn tại: ${duplicate.maNCC} - ${duplicate.tenNCC}` };
+    }
+
     const record = await withUniqueRetry(async () => {
       const maNCC = await generateSupplierId();
       return prisma.nhaCungCap.create({
@@ -64,6 +87,11 @@ export async function updateNhaCungCap(maNCC: string, input: NhaCungCapFormValue
     if (!auth.allowed) return { success: false, message: auth.message };
 
     const validated = nhaCungCapSchema.parse(input);
+    const duplicate = await findDuplicateSupplier(validated, maNCC);
+    if (duplicate) {
+      return { success: false, message: `Nhà cung cấp đã tồn tại: ${duplicate.maNCC} - ${duplicate.tenNCC}` };
+    }
+
     const record = await prisma.nhaCungCap.update({
       where: { maNCC },
       data: {
@@ -90,12 +118,18 @@ export async function deleteNhaCungCap(maNCC: string) {
     const auth = await requireSupplierPermission(ACTIONS.DELETE);
     if (!auth.allowed) return { success: false, message: auth.message };
 
-    const usedInPurchase = await prisma.phieuMuaHang.findFirst({ where: { maNCC } });
-    if (usedInPurchase) {
-      return { success: false, message: "Không thể xóa nhà cung cấp đã có phiếu mua hàng" };
+    const supplier = await prisma.nhaCungCap.findUnique({
+      where: { maNCC },
+      select: { maNCC: true, deletedAt: true },
+    });
+    if (!supplier || supplier.deletedAt) {
+      return { success: false, message: "Nhà cung cấp không tồn tại hoặc đã bị xóa" };
     }
 
-    await prisma.nhaCungCap.delete({ where: { maNCC } });
+    await prisma.nhaCungCap.update({
+      where: { maNCC },
+      data: { deletedAt: new Date() },
+    });
     revalidatePath("/admin/danh-muc/nha-cung-cap");
     revalidatePath("/nhan-vien/danh-muc/nha-cung-cap");
     return { success: true, message: "Xóa nhà cung cấp thành công" };

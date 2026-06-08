@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import {
   assertDvtValidForLoaiSP,
-  assertPurchaseQuantityMeetsMinimum,
+  assertHamLuongValidForLoaiSP,
   calculateEndingStock,
   calculateInvoiceTotal,
   calculateLineTotal,
@@ -13,8 +13,10 @@ import {
   isLowStock,
   isValidPhoneNumber,
   isDvtValidForLoaiSP,
+  getAllowedHamLuongValuesForLoaiSP,
   validateServiceDelivery,
 } from "../src/lib/business-rules";
+import { getBusinessDateParts, getBusinessDayBounds } from "../src/lib/business-date";
 import { nextSequentialIdFromValidCodes } from "../src/lib/id-generation";
 
 assert.equal(
@@ -31,6 +33,16 @@ assert.equal(
   nextSequentialIdFromValidCodes(["SP001", "SPABC", "SP099"], "SP", 3),
   "SP100",
   "Sinh mã SP phải bỏ qua mã lệch chuẩn",
+);
+assert.deepEqual(
+  getBusinessDateParts(new Date("2026-06-05T17:00:00.000Z")),
+  { ngay: 6, thang: 6, nam: 2026 },
+  "Mốc 00:00 giờ Việt Nam phải được tính đúng ngày nghiệp vụ",
+);
+assert.equal(
+  getBusinessDayBounds({ ngay: 6, thang: 6, nam: 2026 }).startDate.toISOString(),
+  "2026-06-05T17:00:00.000Z",
+  "Đầu ngày nghiệp vụ 06/06/2026 phải là 17:00 UTC ngày 05/06",
 );
 
 assert.equal(isValidPhoneNumber("0901234567"), true, "Số điện thoại Việt Nam hợp lệ phải được chấp nhận");
@@ -60,17 +72,19 @@ assert.throws(
   /Sản phẩm loại Nữ trang chỉ được dùng đơn vị Gram\/Chỉ/,
   "Nữ trang dùng Lượng phải bị từ chối",
 );
+assert.deepEqual(getAllowedHamLuongValuesForLoaiSP("Bạc 925"), ["BAC_925"], "Bạc phải dùng chỉ số bạc");
+assert.deepEqual(getAllowedHamLuongValuesForLoaiSP("Kim Cương"), ["KHONG_AP_DUNG"], "Kim cương không cần hàm lượng K");
+assert.equal(assertHamLuongValidForLoaiSP("Vàng miếng", "K24"), true, "Vàng miếng chấp nhận hàm lượng K");
+assert.throws(
+  () => assertHamLuongValidForLoaiSP("Đá Quý Tổng Hợp", "K18"),
+  /Không áp dụng/,
+  "Đá quý không được dùng hàm lượng K",
+);
 
 assert.equal(calculateLineTotal(3, 250_000), 750_000, "Thành tiền phải bằng số lượng nhân đơn giá");
 assert.throws(() => calculateLineTotal(0, 250_000), /Số lượng/);
 assert.throws(() => calculateLineTotal(1, 0), /Đơn giá phải lớn hơn 0/);
 assert.throws(() => calculateLineTotal(1, -1), /Đơn giá phải lớn hơn 0/);
-assert.equal(assertPurchaseQuantityMeetsMinimum("SP001", 5, 5), true, "Số lượng mua bằng ngưỡng phải được chấp nhận");
-assert.throws(
-  () => assertPurchaseQuantityMeetsMinimum("SP001", 3, 5),
-  /Số lượng mua sản phẩm SP001 phải ≥ 5/,
-  "Số lượng mua dưới ngưỡng phải bị từ chối",
-);
 
 assert.equal(
   calculateInvoiceTotal([

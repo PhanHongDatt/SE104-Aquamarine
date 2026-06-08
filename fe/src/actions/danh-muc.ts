@@ -52,6 +52,7 @@ export async function getDanhSachNhaCungCap(): Promise<NhaCungCap[]> {
     [PERMISSIONS.MUA_HANG, ACTIONS.CREATE],
   ]);
   const data = await prisma.nhaCungCap.findMany({
+    where: { deletedAt: null },
     orderBy: { maNCC: 'asc' }
   });
   return serialize(data);

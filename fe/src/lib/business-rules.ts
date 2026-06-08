@@ -12,7 +12,7 @@ export function calculateSellPrice(importPrice: number, profitPercent: number) {
   return Math.round(importPrice * (1 + profitPercent / 100));
 }
 
-function normalizeVietnameseText(value: string) {
+export function normalizeVietnameseText(value: string) {
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -20,6 +20,10 @@ function normalizeVietnameseText(value: string) {
     .replace(/Đ/g, "D")
     .toLowerCase()
     .trim();
+}
+
+export function normalizeComparableText(value: string) {
+  return normalizeVietnameseText(value).replace(/\s+/g, " ");
 }
 
 export function getAllowedDvtNamesForLoaiSP(tenLSP: string) {
@@ -58,6 +62,50 @@ export function assertDvtValidForLoaiSP(tenLSP: string, tenDVT: string) {
   throw new Error(`Sản phẩm loại ${loaiLabel} chỉ được dùng đơn vị ${allowed.join("/")}`);
 }
 
+const GOLD_HAM_LUONG_VALUES = ["K24", "K22", "K18", "K14", "K10"] as const;
+const SILVER_HAM_LUONG_VALUES = ["BAC_925"] as const;
+const NO_HAM_LUONG_VALUES = ["KHONG_AP_DUNG"] as const;
+
+export const HAM_LUONG_LABELS: Record<string, string> = {
+  K24: "24K",
+  K22: "22K",
+  K18: "18K",
+  K14: "14K",
+  K10: "10K",
+  BAC_925: "Bạc 925",
+  KHONG_AP_DUNG: "Không áp dụng",
+};
+
+export function getAllowedHamLuongValuesForLoaiSP(tenLSP: string): string[] | null {
+  const normalized = normalizeVietnameseText(tenLSP);
+
+  if (normalized.includes("kim cuong") || normalized.includes("da quy") || normalized.includes("ngoc trai")) {
+    return [...NO_HAM_LUONG_VALUES];
+  }
+
+  if (normalized.includes("bac")) {
+    return [...SILVER_HAM_LUONG_VALUES];
+  }
+
+  if (normalized.includes("vang") || normalized.includes("nu trang")) {
+    return [...GOLD_HAM_LUONG_VALUES];
+  }
+
+  return null;
+}
+
+export function getDefaultHamLuongForLoaiSP(tenLSP: string) {
+  return getAllowedHamLuongValuesForLoaiSP(tenLSP)?.[0] ?? "K24";
+}
+
+export function assertHamLuongValidForLoaiSP(tenLSP: string, hamLuong: string) {
+  const allowed = getAllowedHamLuongValuesForLoaiSP(tenLSP);
+  if (!allowed || allowed.includes(hamLuong as any)) return true;
+
+  const labels = allowed.map((value) => HAM_LUONG_LABELS[value] ?? value).join(", ");
+  throw new Error(`Hàm lượng/chỉ số của loại ${tenLSP} chỉ được chọn: ${labels}`);
+}
+
 export function calculateLineTotal(quantity: number, unitPrice: number) {
   if (!Number.isInteger(quantity) || quantity <= 0) {
     throw new Error("Số lượng phải là số nguyên lớn hơn 0");
@@ -66,23 +114,6 @@ export function calculateLineTotal(quantity: number, unitPrice: number) {
     throw new Error("Đơn giá phải lớn hơn 0");
   }
   return quantity * unitPrice;
-}
-
-export function assertPurchaseQuantityMeetsMinimum(
-  productLabel: string,
-  quantity: number,
-  minimumQuantity: number,
-) {
-  if (!Number.isInteger(quantity) || quantity <= 0) {
-    throw new Error("Số lượng mua phải là số nguyên lớn hơn 0");
-  }
-  if (!Number.isInteger(minimumQuantity) || minimumQuantity <= 0) {
-    throw new Error("Số lượng nhập tối thiểu phải là số nguyên lớn hơn 0");
-  }
-  if (quantity < minimumQuantity) {
-    throw new Error(`Số lượng mua sản phẩm ${productLabel} phải ≥ ${minimumQuantity}`);
-  }
-  return true;
 }
 
 export function calculateInvoiceTotal(items: Array<{ quantity: number; unitPrice: number }>) {

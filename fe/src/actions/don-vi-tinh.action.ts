@@ -54,7 +54,7 @@ export async function getDonViTinhs() {
       const dinhLuong = item.dinhLuong ? Number(item.dinhLuong) : null;
       const unitName = item.tenDVT.toLowerCase();
       const ghiChu = unitName.includes("lượng")
-        ? "1 Lượng = 10 chỉ = 37,5 gram"
+        ? "1 Lượng = 37.5 gram"
         : unitName.includes("chỉ")
           ? "1 Chỉ = 3,75 gram"
           : dinhLuong

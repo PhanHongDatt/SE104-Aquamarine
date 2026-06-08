@@ -1,5 +1,20 @@
 const { execFileSync, spawnSync } = require("node:child_process");
-const { closeSync, existsSync, openSync } = require("node:fs");
+const { closeSync, existsSync, openSync, readFileSync } = require("node:fs");
+
+function loadLocalEnv() {
+  if (!existsSync(".env")) return;
+
+  for (const line of readFileSync(".env", "utf8").split(/\r?\n/)) {
+    const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
+    if (!match) continue;
+
+    const [, key, rawValue] = match;
+    if (process.env[key] !== undefined) continue;
+    process.env[key] = rawValue.replace(/^['"]|['"]$/g, "");
+  }
+}
+
+loadLocalEnv();
 
 const databaseUrl = process.env.DATABASE_URL;
 const backupFile = process.env.BACKUP_FILE;
@@ -29,13 +44,19 @@ function parseDatabaseUrl(url) {
   };
 }
 
+function getPostgresToolUrl(url) {
+  const parsed = new URL(url);
+  parsed.searchParams.delete("schema");
+  return parsed.toString();
+}
+
 function isCommandAvailable(command) {
   const result = spawnSync(command, ["--version"], { stdio: "ignore" });
   return !result.error;
 }
 
 function runLocalRestore() {
-  execFileSync("psql", [databaseUrl, "--file", backupFile], {
+  execFileSync("psql", [getPostgresToolUrl(databaseUrl), "--file", backupFile], {
     stdio: "inherit",
   });
 }

@@ -11,7 +11,7 @@ export interface LoaiSanPham {
   donViTinh?: DonViTinh;
 }
 
-export type HamLuong = 'K24' | 'K22' | 'K18' | 'K14' | 'K10';
+export type HamLuong = 'K24' | 'K22' | 'K18' | 'K14' | 'K10' | 'BAC_925' | 'KHONG_AP_DUNG';
 
 export interface SanPham {
   maSP: string;
@@ -21,7 +21,6 @@ export interface SanPham {
   trongLuong: number;
   maDVT: string;
   tonKho: number;
-  tonToiThieu: number;
   donGiaNhap: number;
   donGiaBan: number;
   loaiSanPham?: LoaiSanPham;
@@ -34,6 +33,7 @@ export interface NhaCungCap {
   diaChi: string;
   soDienThoai: string;
   nguoiLienHe: string;
+  deletedAt?: string | null;
 }
 
 export type HangKhachHang = 'Thuong' | 'Bac' | 'Vang' | 'KimCuong';

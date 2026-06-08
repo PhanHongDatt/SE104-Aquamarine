@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 const PERMISSIONS = {
   DON_VI_TINH: "DM_DVT",
   SAN_PHAM: "DM_SP",
+  BAN_HANG: "GD_BAN",
   MUA_HANG: "GD_MUA",
   LAP_DICH_VU: "DV_LAP",
   TRA_CUU_DICH_VU: "DV_TRA",
@@ -83,6 +84,8 @@ async function main() {
   const actionCreatedProductIds: string[] = [];
   const actionPurchaseReceiptIds: string[] = [];
   const actionServiceReceiptIds: string[] = [];
+  const toDateInputValue = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
   try {
     await prisma.thamSo.upsert({
@@ -197,16 +200,20 @@ async function main() {
 
     const [
       { createSanPham, getSanPhams },
-      { lapPhieuMuaHang },
-      { lapPhieuDichVu, updateTinhTrangDichVu },
+      { lapPhieuMuaHang, deletePhieuMuaHang, updatePhieuMuaHangGia, updatePhieuMuaHang, deletePhieuBanHang, updatePhieuBanHang },
+      { lapPhieuDichVu, updateTinhTrangDichVu, deletePhieuDichVu, updatePhieuDichVu },
       { updateNhomNguoiDung, deleteNhomNguoiDung },
       { updateSystemSettings },
+      { createNhaCungCap, deleteNhaCungCap },
+      { getBaoCaoDoanhThuDetailed, getBaoCaoTonKhoDetailed },
     ] = await Promise.all([
       import("../src/actions/san-pham.action"),
       import("../src/actions/giao-dich"),
       import("../src/actions/service.action"),
       import("../src/actions/phan-quyen.action"),
       import("../src/actions/settings.action"),
+      import("../src/actions/nha-cung-cap.action"),
+      import("../src/actions/bao-cao"),
     ]);
 
     const renameManagerGroup = await updateNhomNguoiDung("QUANLY", { tenNhom: "QUAN_LY_RENAMED" });
@@ -221,6 +228,7 @@ async function main() {
     }))?.id ?? 0;
     const settingsLogCount = await prisma.lichSuThayDoiQuyDinh.count();
     const settingsResult = await updateSystemSettings({
+      phanTramLoiNhuanToiThieu: Number(currentSettings.phanTramLoiNhuanToiThieu),
       soLuongTonKhoToiThieu: currentSettings.soLuongTonKhoToiThieu,
       tiLeTraTruocToiThieu: Number(currentSettings.tiLeTraTruocToiThieu),
     });
@@ -252,6 +260,23 @@ async function main() {
     });
     assert.equal(validUnitProduct.success, true, "Vàng miếng dùng Lượng phải được tạo thành công");
     actionCreatedProductIds.push(validUnitProduct.data.maSP);
+    const duplicateProduct = await createSanPham({
+      tenSP: `  ${validUnitProduct.data.tenSP.toUpperCase()}  `,
+      maLSP: validGoldLspId,
+      hamLuong: "K24",
+      trongLuong: 1,
+      maDVT: luongDvtId,
+      donGiaNhap: 1000,
+    });
+    assert.equal(duplicateProduct.success, false, "Sản phẩm cùng tên trong cùng loại phải bị từ chối");
+
+    const duplicateSupplier = await createNhaCungCap({
+      tenNCC: `  ${`Test NCC ${nccId}`.toLowerCase()}  `,
+      diaChi: "Test duplicate",
+      soDienThoai: `09${suffix(8)}`,
+      nguoiLienHe: "Tester",
+    });
+    assert.equal(duplicateSupplier.success, false, "Nhà cung cấp trùng tên phải bị từ chối");
 
     const serviceActionTotal = 600_000;
     await prisma.loaiDichVu.create({
@@ -262,6 +287,38 @@ async function main() {
         nhomDV: "GiaCong",
       },
     });
+    const duplicateServiceCreateResult = await lapPhieuDichVu({
+      soPhieu: "PDV0000000",
+      ngayLap: actionServiceDate,
+      tenKhachHang: "Khách DV trùng",
+      soDienThoai: `05${suffix(8)}`,
+      chiTietDichVu: [
+        {
+          maDV: actionServiceTypeId,
+          donGiaDV: serviceActionTotal,
+          chiPhiPhatSinh: 0,
+          donGiaDuocTinh: serviceActionTotal,
+          soLuong: 1,
+          thanhTien: serviceActionTotal,
+          traTruoc: serviceActionTotal,
+          conLai: 0,
+        },
+        {
+          maDV: actionServiceTypeId,
+          donGiaDV: serviceActionTotal,
+          chiPhiPhatSinh: 0,
+          donGiaDuocTinh: serviceActionTotal,
+          soLuong: 1,
+          thanhTien: serviceActionTotal,
+          traTruoc: serviceActionTotal,
+          conLai: 0,
+        },
+      ],
+      tongTien: serviceActionTotal * 2,
+      tongTraTruoc: serviceActionTotal * 2,
+      tongConLai: 0,
+    });
+    assert.equal(duplicateServiceCreateResult.success, false, "Phiếu dịch vụ không được nhập trùng cùng loại dịch vụ");
     const actionServiceReportBefore = await prisma.baoCaoDoanhThu.findUnique({ where: { ngay_thang_nam: actionServiceReportDate } });
     shouldDeleteActionServiceReport = !actionServiceReportBefore;
     const actionServiceRevenueBefore = Number(actionServiceReportBefore?.dtDichVu ?? 0);
@@ -291,12 +348,53 @@ async function main() {
     );
     assert.equal(serviceRevenueAfterCreate, actionServiceRevenueBefore, "Lập phiếu dịch vụ chưa hoàn thành không được tăng doanh thu");
 
+    const updatedServiceTotal = serviceActionTotal + 100_000;
+    const serviceUpdateResult = await updatePhieuDichVu(serviceCreateResult.data.soPhieu, {
+      soPhieu: serviceCreateResult.data.soPhieu,
+      ngayLap: actionServiceDate,
+      tenKhachHang: "Khách DV action sửa",
+      soDienThoai: `06${suffix(8)}`,
+      chiTietDichVu: [{
+        maDV: actionServiceTypeId,
+        donGiaDV: serviceActionTotal,
+        chiPhiPhatSinh: 100_000,
+        donGiaDuocTinh: updatedServiceTotal,
+        soLuong: 1,
+        thanhTien: updatedServiceTotal,
+        traTruoc: updatedServiceTotal / 2,
+        conLai: updatedServiceTotal / 2,
+      }],
+      tongTien: updatedServiceTotal,
+      tongTraTruoc: updatedServiceTotal / 2,
+      tongConLai: updatedServiceTotal / 2,
+    });
+    assert.equal(serviceUpdateResult.success, true, "Sửa phiếu dịch vụ chưa giao phải thành công");
+    assert.equal(
+      Number((await prisma.phieuDichVu.findUniqueOrThrow({ where: { soPhieu: serviceCreateResult.data.soPhieu } })).tongTien),
+      updatedServiceTotal,
+      "Sửa phiếu dịch vụ phải cập nhật tổng tiền",
+    );
+    assert.equal(
+      Number((await prisma.baoCaoDoanhThu.findUnique({ where: { ngay_thang_nam: actionServiceReportDate } }))?.dtDichVu ?? 0),
+      actionServiceRevenueBefore,
+      "Sửa phiếu dịch vụ chưa hoàn thành chưa được tăng doanh thu",
+    );
+
+    const invalidEarlyDeliveryDate = new Date(actionServiceDate);
+    invalidEarlyDeliveryDate.setDate(invalidEarlyDeliveryDate.getDate() - 1);
+    const invalidEarlyDeliveryResult = await updateTinhTrangDichVu(
+      serviceCreateResult.data.soPhieu,
+      [{ stt: 1, ngayGiao: invalidEarlyDeliveryDate }],
+    );
+    assert.equal(invalidEarlyDeliveryResult.success, false, "Ngày giao trước ngày lập phiếu dịch vụ phải bị từ chối");
+    assert.match(invalidEarlyDeliveryResult.message, /không được trước ngày lập phiếu/);
+
     const serviceCompleteResult = await updateTinhTrangDichVu(serviceCreateResult.data.soPhieu, [{ stt: 1, ngayGiao: actionServiceDate }]);
     assert.equal(serviceCompleteResult.success, true, "Đánh dấu giao tất cả dòng dịch vụ phải thành công");
     const serviceRevenueAfterComplete = Number(
       (await prisma.baoCaoDoanhThu.findUniqueOrThrow({ where: { ngay_thang_nam: actionServiceReportDate } })).dtDichVu,
     );
-    assert.equal(serviceRevenueAfterComplete, actionServiceRevenueBefore + serviceActionTotal, "Doanh thu dịch vụ phải tăng đúng tổng tiền khi phiếu hoàn thành");
+    assert.equal(serviceRevenueAfterComplete, actionServiceRevenueBefore + updatedServiceTotal, "Doanh thu dịch vụ phải tăng đúng tổng tiền khi phiếu hoàn thành");
 
     const serviceRollbackResult = await updateTinhTrangDichVu(serviceCreateResult.data.soPhieu, [{ stt: 1, daGiao: false }]);
     assert.equal(serviceRollbackResult.success, true, "Rollback một dòng dịch vụ về chưa giao phải thành công");
@@ -336,6 +434,58 @@ async function main() {
     const saleReport = await prisma.baoCaoDoanhThu.findUniqueOrThrow({ where: { ngay_thang_nam: saleReportDate } });
     assert.equal(soldProduct.tonKho, 8, "Lập phiếu bán phải giảm tồn kho");
     assert.equal(Number(saleReport.dtBanHang), saleTotal, "Lập phiếu bán phải tăng doanh thu bán hàng");
+    const saleDayRevenueReport = await getBaoCaoDoanhThuDetailed(
+      saleDate.getMonth() + 1,
+      saleDate.getFullYear(),
+      "day",
+      toDateInputValue(saleDate),
+    );
+    assert.equal(saleDayRevenueReport.tongDTBanHang, saleTotal, "Báo cáo doanh thu theo ngày phải lấy đúng phiếu bán trong ngày");
+    const saleQuarterRevenueReport = await getBaoCaoDoanhThuDetailed(
+      saleDate.getMonth() + 1,
+      saleDate.getFullYear(),
+      "quarter",
+      undefined,
+      Math.ceil((saleDate.getMonth() + 1) / 3),
+    );
+    assert.equal(saleQuarterRevenueReport.tongDTBanHang, saleTotal, "Báo cáo doanh thu theo quý phải tổng hợp đúng phiếu bán trong quý");
+
+    const updatedSaleTotal = calculateLineTotal(1, calculateSellPrice(1000, 20));
+    const updateSaleAction = await updatePhieuBanHang(saleReceiptId, {
+      soPhieu: saleReceiptId,
+      ngayLap: saleDate,
+      tenKhachHang: "Khách test sửa",
+      tongTien: updatedSaleTotal,
+      chiTietBanHang: [{
+        maSP: saleSpId,
+        soLuong: 1,
+        donGiaBan: calculateSellPrice(1000, 20),
+        thanhTien: updatedSaleTotal,
+      }],
+    } as any);
+    assert.equal(updateSaleAction.success, true, "Sửa phiếu bán phải hoàn tác và cập nhật tồn kho/doanh thu thành công");
+    assert.equal(
+      (await prisma.sanPham.findUniqueOrThrow({ where: { maSP: saleSpId } })).tonKho,
+      9,
+      "Sửa phiếu bán từ 2 xuống 1 phải cộng lại đúng tồn kho",
+    );
+    assert.equal(
+      Number((await prisma.baoCaoDoanhThu.findUniqueOrThrow({ where: { ngay_thang_nam: saleReportDate } })).dtBanHang),
+      updatedSaleTotal,
+      "Sửa phiếu bán phải đồng bộ lại doanh thu bán hàng",
+    );
+    const deleteSaleAction = await deletePhieuBanHang(saleReceiptId);
+    assert.equal(deleteSaleAction.success, true, "Xóa phiếu bán phải hoàn tác thành công");
+    assert.equal(
+      (await prisma.sanPham.findUniqueOrThrow({ where: { maSP: saleSpId } })).tonKho,
+      10,
+      "Xóa phiếu bán phải cộng lại tồn kho đã bán",
+    );
+    assert.equal(
+      Number((await prisma.baoCaoDoanhThu.findUnique({ where: { ngay_thang_nam: saleReportDate } }))?.dtBanHang ?? 0),
+      0,
+      "Xóa phiếu bán phải trừ lại doanh thu bán hàng",
+    );
 
     const newPurchasePrice = 1003;
     const purchaseTotal = calculateLineTotal(3, newPurchasePrice);
@@ -370,21 +520,87 @@ async function main() {
     const purchasedProduct = await prisma.sanPham.findUniqueOrThrow({ where: { maSP: purchaseSpId } });
     assert.equal(purchasedProduct.tonKho, 4, "Lập phiếu mua phải tăng tồn kho");
     assert.equal(Number(purchasedProduct.donGiaBan), calculateSellPrice(newPurchasePrice, 25), "Phiếu mua phải tính lại giá bán");
+    const purchaseQuarterInventoryReport = await getBaoCaoTonKhoDetailed(
+      purchaseDate.getMonth() + 1,
+      purchaseDate.getFullYear(),
+      "quarter",
+      undefined,
+      Math.ceil((purchaseDate.getMonth() + 1) / 3),
+    );
+    const purchaseInventoryLine = purchaseQuarterInventoryReport.find((item) => item.maSP === purchaseSpId);
+    assert.equal(purchaseInventoryLine?.slMuaVao, 3, "Báo cáo tồn kho theo quý phải tổng hợp đúng số lượng mua");
 
+    const correctedPurchasePrice = 1200;
+    const updatePurchasePriceResult = await updatePhieuMuaHangGia(purchaseReceiptId, [
+      { maSP: purchaseSpId, donGiaMua: correctedPurchasePrice },
+    ]);
+    assert.equal(updatePurchasePriceResult.success, true, "Sửa giá nhập phiếu mua phải thành công");
+    const updatedPurchaseLine = await prisma.chiTietMuaHang.findUniqueOrThrow({
+      where: { soPhieu_maSP: { soPhieu: purchaseReceiptId, maSP: purchaseSpId } },
+    });
+    assert.equal(Number(updatedPurchaseLine.donGia), correctedPurchasePrice, "Dòng phiếu mua phải lưu đơn giá mới");
+    assert.equal(Number(updatedPurchaseLine.thanhTien), calculateLineTotal(3, correctedPurchasePrice), "Dòng phiếu mua phải tính lại thành tiền");
+    const updatedPurchaseProduct = await prisma.sanPham.findUniqueOrThrow({ where: { maSP: purchaseSpId } });
+    assert.equal(Number(updatedPurchaseProduct.donGiaNhap), correctedPurchasePrice, "Sửa giá phiếu mua mới nhất phải cập nhật giá nhập sản phẩm");
+    assert.equal(Number(updatedPurchaseProduct.donGiaBan), calculateSellPrice(correctedPurchasePrice, 25), "Sửa giá phiếu mua phải tính lại giá bán sản phẩm");
+
+    const editedPurchaseTotal = calculateLineTotal(2, correctedPurchasePrice);
+    const updatePurchaseFullResult = await updatePhieuMuaHang(purchaseReceiptId, {
+      soPhieu: purchaseReceiptId,
+      ngayLap: purchaseDate,
+      maNCC: nccId,
+      tongTien: editedPurchaseTotal,
+      chiTietMuaHang: [{
+        maSP: purchaseSpId,
+        soLuong: 2,
+        donGiaMua: correctedPurchasePrice,
+        thanhTien: editedPurchaseTotal,
+      }],
+    } as any);
+    assert.equal(updatePurchaseFullResult.success, true, "Sửa toàn bộ phiếu mua phải thành công");
+    const fullEditedPurchaseLine = await prisma.chiTietMuaHang.findUniqueOrThrow({
+      where: { soPhieu_maSP: { soPhieu: purchaseReceiptId, maSP: purchaseSpId } },
+    });
+    assert.equal(fullEditedPurchaseLine.soLuong, 2, "Sửa phiếu mua phải cập nhật được số lượng nhập");
+    assert.equal(
+      (await prisma.sanPham.findUniqueOrThrow({ where: { maSP: purchaseSpId } })).tonKho,
+      3,
+      "Sửa phiếu mua từ 3 xuống 2 phải trừ lại đúng tồn kho",
+    );
+    assert.equal(
+      (await prisma.baoCaoTonKho.findUniqueOrThrow({ where: { ngay_thang_nam_maSP: { ...purchaseReportDate, maSP: purchaseSpId } } })).slMuaVao,
+      2,
+      "Sửa phiếu mua phải đồng bộ lại số lượng mua vào trong báo cáo tồn kho",
+    );
+
+    const actionPurchaseQuantity = 5;
+    const purchaseStockBeforeAction = (await prisma.sanPham.findUniqueOrThrow({ where: { maSP: purchaseSpId } })).tonKho;
     const purchaseActionValid = await lapPhieuMuaHang({
       soPhieu: "PMH0000000",
       ngayLap: new Date(),
       maNCC: nccId,
-      tongTien: 5015,
+      tongTien: actionPurchaseQuantity * 1003,
       chiTietMuaHang: [{
         maSP: purchaseSpId,
-        soLuong: 5,
+        soLuong: actionPurchaseQuantity,
         donGiaMua: 1003,
-        thanhTien: 5015,
+        thanhTien: actionPurchaseQuantity * 1003,
       }],
     } as any);
     assert.equal(purchaseActionValid.success, true, "Phiếu mua hợp lệ phải được chấp nhận");
     actionPurchaseReceiptIds.push(purchaseActionValid.data.soPhieu);
+    assert.equal(
+      (await prisma.sanPham.findUniqueOrThrow({ where: { maSP: purchaseSpId } })).tonKho,
+      purchaseStockBeforeAction + actionPurchaseQuantity,
+      "Lập phiếu mua action phải cộng tồn kho",
+    );
+    const deletePurchaseAction = await deletePhieuMuaHang(purchaseActionValid.data.soPhieu);
+    assert.equal(deletePurchaseAction.success, true, "Xóa phiếu mua phải đảo tồn kho thành công khi tồn đủ");
+    assert.equal(
+      (await prisma.sanPham.findUniqueOrThrow({ where: { maSP: purchaseSpId } })).tonKho,
+      purchaseStockBeforeAction,
+      "Xóa phiếu mua phải trừ lại tồn kho đã nhập",
+    );
 
     const serviceTotal = 500_000;
     await prisma.loaiDichVu.create({
@@ -446,6 +662,13 @@ async function main() {
     });
     const serviceReportAfter = await prisma.baoCaoDoanhThu.findUniqueOrThrow({ where: { ngay_thang_nam: serviceReportDate } });
     assert.equal(Number(serviceReportAfter.dtDichVu), serviceTotal, "Phiếu dịch vụ chỉ tăng doanh thu khi đã hoàn thành");
+    const deleteServiceResult = await deletePhieuDichVu(serviceReceiptId);
+    assert.equal(deleteServiceResult.success, true, "Xóa phiếu dịch vụ đã hoàn thành phải thành công");
+    assert.equal(
+      Number((await prisma.baoCaoDoanhThu.findUnique({ where: { ngay_thang_nam: serviceReportDate } }))?.dtDichVu ?? 0),
+      0,
+      "Xóa phiếu dịch vụ hoàn thành phải trừ lại doanh thu dịch vụ",
+    );
 
     await prisma.$transaction(async (tx) => {
       await tx.loaiSanPham.update({
@@ -462,7 +685,7 @@ async function main() {
     });
 
     const repricedProduct = await prisma.sanPham.findUniqueOrThrow({ where: { maSP: purchaseSpId } });
-    assert.equal(Number(repricedProduct.donGiaBan), calculateSellPrice(newPurchasePrice, 17), "Đổi lợi nhuận LSP phải round lại giá bán");
+    assert.equal(Number(repricedProduct.donGiaBan), calculateSellPrice(correctedPurchasePrice, 17), "Đổi lợi nhuận LSP phải round lại giá bán");
 
     await prisma.sanPham.update({
       where: { maSP: saleSpId },
@@ -476,6 +699,11 @@ async function main() {
     );
     const historicalSoftDeletedProduct = await prisma.sanPham.findUnique({ where: { maSP: saleSpId } });
     assert.ok(historicalSoftDeletedProduct, "Sản phẩm soft-delete vẫn phải còn trong CSDL để giữ lịch sử");
+
+    const deleteSupplierResult = await deleteNhaCungCap(nccId);
+    assert.equal(deleteSupplierResult.success, true, "Nhà cung cấp đã có phiếu mua phải được xóa mềm");
+    const softDeletedSupplier = await prisma.nhaCungCap.findUniqueOrThrow({ where: { maNCC: nccId } });
+    assert.ok(softDeletedSupplier.deletedAt, "Xóa nhà cung cấp phải ghi deletedAt thay vì xóa cứng");
 
     await prisma.khachHang.create({
       data: {

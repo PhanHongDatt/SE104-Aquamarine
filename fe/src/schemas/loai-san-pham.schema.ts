@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const loaiSanPhamSchema = z.object({
-  tenLSP: z.string().min(1, "Tên loại sản phẩm không được để trống").max(100, "Tên quá dài"),
+  tenLSP: z.string().trim().min(1, "Tên loại sản phẩm không được để trống").max(100, "Tên quá dài"),
   maDVT: z.string().min(1, "Vui lòng chọn đơn vị tính mặc định"),
   phanTramLoiNhuan: z.coerce
     .number()

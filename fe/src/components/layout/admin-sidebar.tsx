@@ -9,7 +9,7 @@ import {
   LayoutDashboard, Package, Box, Ruler, Truck,
   ShoppingCart, Tag, FileText, ListChecks, BarChart3,
   LineChart, Settings, Users, Gem, ChevronRight, UserCircle,
-  Wrench, Shield, Database,
+  Wrench, Shield, Database, Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getMyPermissions } from "@/actions/permissions.action";
@@ -54,7 +54,8 @@ const adminNavGroups: NavGroup[] = [
   {
     title: "Dịch vụ",
     items: [
-      { href: "/admin/dich-vu/phieu-dich-vu", icon: FileText, label: "Phiếu dịch vụ", permission: "DV_LAP" },
+      { href: "/admin/dich-vu/phieu-dich-vu/tao-moi", icon: FileText, label: "Lập phiếu", permission: "DV_LAP" },
+      { href: "/admin/dich-vu/phieu-dich-vu", icon: Search, label: "Tra cứu phiếu", permission: "DV_TRA" },
       { href: "/admin/dich-vu/loai-dich-vu", icon: ListChecks, label: "Loại dịch vụ", permission: "DV_LDV" },
     ],
   },

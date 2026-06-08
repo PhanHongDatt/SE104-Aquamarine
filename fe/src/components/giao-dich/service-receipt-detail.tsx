@@ -1,26 +1,61 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { 
   FileText, Printer, ChevronLeft, Calendar, 
-  User, Phone, Clock, CheckCircle2, AlertCircle, Save, Download
+  User, Phone, Clock, AlertCircle, Save, Download, Edit2
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Modal } from "@/components/ui/modal";
 import { PrintableServiceInvoice } from "./printable-service-invoice";
 import { updateTinhTrangDichVu } from "@/actions/service.action";
+import { ServiceReceiptForm } from "./service-receipt-form";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface ServiceReceiptDetailProps {
   phieu: any;
   isAdmin?: boolean;
+  serviceTypes?: any[];
+  customers?: any[];
+  minPrepaymentPercent?: number;
 }
 
-export function ServiceReceiptDetail({ phieu, isAdmin = false }: ServiceReceiptDetailProps) {
+function toDateInputValue(value: Date | string) {
+  const date = new Date(value);
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().slice(0, 10);
+}
+
+function buildDeliveryDetails(details: any[] = []) {
+  return details.map((ct: any) => ({
+    stt: ct.stt,
+    ketQua: ct.ketQua || "",
+    soChungThu: ct.soChungThu || "",
+    ngayGiao: ct.ngayGiao ? toDateInputValue(ct.ngayGiao) : "",
+    nhomDV: ct.loaiDichVu?.nhomDV,
+  }));
+}
+
+export function ServiceReceiptDetail({
+  phieu,
+  isAdmin = false,
+  serviceTypes = [],
+  customers = [],
+  minPrepaymentPercent = 50,
+}: ServiceReceiptDetailProps) {
   const router = useRouter();
+  const { hasPermission } = usePermissions();
   const printRef = useRef<HTMLDivElement>(null);
+  const ngayLapInputValue = toDateInputValue(phieu.ngayLap);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const canEditContent =
+    hasPermission("DV_TRA", "SUA") &&
+    phieu.tinhTrang !== "HoanThanh" &&
+    phieu.chiTietDichVu.every((ct: any) => !ct.ngayGiao);
 
   const handlePrint = () => {
     if (!printRef.current) return;
@@ -77,18 +112,22 @@ export function ServiceReceiptDetail({ phieu, isAdmin = false }: ServiceReceiptD
   };
 
   const [isUpdating, setIsUpdating] = useState(false);
-  const [details, setDetails] = useState(phieu.chiTietDichVu.map((ct: any) => ({
-    stt: ct.stt,
-    ketQua: ct.ketQua || "",
-    soChungThu: ct.soChungThu || "",
-    ngayGiao: ct.ngayGiao ? new Date(ct.ngayGiao).toISOString().split('T')[0] : "",
-    nhomDV: ct.loaiDichVu?.nhomDV
-  })));
+  const [details, setDetails] = useState(() => buildDeliveryDetails(phieu.chiTietDichVu));
+
+  useEffect(() => {
+    setDetails(buildDeliveryDetails(phieu.chiTietDichVu));
+  }, [phieu.soPhieu, phieu.chiTietDichVu]);
 
   const formatCurrency = (val: number) => 
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
 
   const handleUpdateStatus = async () => {
+    const invalidDetail = details.find((detail: any) => detail.ngayGiao && detail.ngayGiao < ngayLapInputValue);
+    if (invalidDetail) {
+      toast.error(`Ngày giao thực tế không được trước ngày lập phiếu (${new Date(phieu.ngayLap).toLocaleDateString("vi-VN")})`);
+      return;
+    }
+
     try {
       setIsUpdating(true);
       const res = await updateTinhTrangDichVu(phieu.soPhieu, details);
@@ -119,6 +158,11 @@ export function ServiceReceiptDetail({ phieu, isAdmin = false }: ServiceReceiptD
           <ChevronLeft className="w-4 h-4" /> Quay lại
         </Button>
         <div className="flex gap-2">
+          {canEditContent && (
+            <Button variant="outline" onClick={() => setIsEditModalOpen(true)} className="gap-2">
+              <Edit2 className="w-4 h-4" /> Sửa nội dung
+            </Button>
+          )}
           <Button variant="outline" onClick={handlePrint} className="gap-2">
             <Printer className="w-4 h-4" /> In phiếu
           </Button>
@@ -237,10 +281,14 @@ export function ServiceReceiptDetail({ phieu, isAdmin = false }: ServiceReceiptD
                       <Input 
                         type="date"
                         disabled={phieu.tinhTrang === "HoanThanh"}
-                        value={details[idx].ngayGiao}
+                        min={ngayLapInputValue}
+                        value={details[idx]?.ngayGiao || ""}
                         onChange={(e) => {
                           const newDetails = [...details];
-                          newDetails[idx].ngayGiao = e.target.value;
+                          newDetails[idx] = {
+                            ...(newDetails[idx] || { stt: item.stt, ketQua: "", soChungThu: "", nhomDV: item.loaiDichVu?.nhomDV }),
+                            ngayGiao: e.target.value,
+                          };
                           setDetails(newDetails);
                         }}
                         className="h-9 text-xs"
@@ -253,10 +301,13 @@ export function ServiceReceiptDetail({ phieu, isAdmin = false }: ServiceReceiptD
                           <label className="text-[10px] font-bold text-zinc-400 uppercase">Kết quả giám định</label>
                           <select
                             disabled={phieu.tinhTrang === "HoanThanh"}
-                            value={details[idx].ketQua}
+                            value={details[idx]?.ketQua || ""}
                             onChange={(e) => {
                               const newDetails = [...details];
-                              newDetails[idx].ketQua = e.target.value;
+                              newDetails[idx] = {
+                                ...(newDetails[idx] || { stt: item.stt, ngayGiao: "", soChungThu: "", nhomDV: item.loaiDichVu?.nhomDV }),
+                                ketQua: e.target.value,
+                              };
                               setDetails(newDetails);
                             }}
                             className="flex h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
@@ -271,10 +322,13 @@ export function ServiceReceiptDetail({ phieu, isAdmin = false }: ServiceReceiptD
                           <Input 
                             placeholder="Nhập số CT"
                             disabled={phieu.tinhTrang === "HoanThanh"}
-                            value={details[idx].soChungThu}
+                            value={details[idx]?.soChungThu || ""}
                             onChange={(e) => {
                               const newDetails = [...details];
-                              newDetails[idx].soChungThu = e.target.value;
+                              newDetails[idx] = {
+                                ...(newDetails[idx] || { stt: item.stt, ngayGiao: "", ketQua: "", nhomDV: item.loaiDichVu?.nhomDV }),
+                                soChungThu: e.target.value,
+                              };
                               setDetails(newDetails);
                             }}
                             className="h-9 text-xs"
@@ -299,6 +353,25 @@ export function ServiceReceiptDetail({ phieu, isAdmin = false }: ServiceReceiptD
           </div>
         </div>
       </div>
+
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Sửa phiếu dịch vụ"
+        size="xl"
+      >
+        <ServiceReceiptForm
+          key={phieu.soPhieu}
+          serviceTypes={serviceTypes}
+          customers={customers}
+          nextSoPhieu={phieu.soPhieu}
+          redirectPath={`${isAdmin ? "/admin/dich-vu/phieu-dich-vu" : "/nhan-vien/dich-vu/tra-cuu"}/${phieu.soPhieu}`}
+          minPrepaymentPercent={minPrepaymentPercent}
+          mode="edit"
+          initialData={phieu}
+          onSuccess={() => setIsEditModalOpen(false)}
+        />
+      </Modal>
     </div>
   );
 }
